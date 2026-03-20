@@ -1,41 +1,34 @@
+:root {
+  --morfi-bg-cream: #FDF6EB;
+  --morfi-input-white: #FFFFFF;
+
+  
+  --morfi-terracotta: #9E5737; 
+  --morfi-action-orange: #F2673B; 
+
+  --morfi-text-dark: #1A253D;
+  --morfi-border-gray: #D8DCE6;
+
+  --morfi-status-error: #D93025;
+  --morfi-status-success: #188038;
+
+  --morfi-font-main: 'Geografica', sans-serif; 
+}
+
 body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background-color: #f4f4f4;
-    padding: 20px;
+  background-color: var(--morfi-bg-cream);
+  color: var(--morfi-text-dark);
+  font-family: var(--morfi-font-main);
 }
 
-header {
-    background-color: #4CAF50;
-    color: white;
-    padding: 15px;
-    font-size: 24px;
+.button-primary {
+  background-color: var(--morfi-action-orange);
+  color: var(--morfi-input-white);
+  border: none;
 }
 
-h2 {
-    color: #333;
-}
-
-table {
-    width: 80%;
-    margin: auto;
-    border-collapse: collapse;
-}
-
-th, td {
-    border: 1px solid black;
-    padding: 10px;
-}
-
-button {
-    background-color: green;
-    color: white;
-    padding: 10px;
-    margin: 10px;
-    border: none;
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: darkgreen;
+.input-field {
+  background-color: var(--morfi-input-white);
+  border: 1px solid var(--morfi-border-gray);
+  color: var(--morfi-text-dark);
 }
