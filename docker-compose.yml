@@ -1,32 +1,45 @@
-version: '3.8'
-
 services:
-  db:
+  morfi_db:
     platform: linux/arm64
     image: kartoza/postgis:15-3.3
     container_name: morfi_db
     restart: always
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=$${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB} -c 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  web:
+  morfi_app:
     platform: linux/arm64
-    build: .
+    build:
+      context: .
     container_name: morfi_app
     restart: always
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@morfi_db:5432/${DB_NAME}
+      SECRET_KEY: ${SECRET_KEY:-dev_key_morfi}
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
     ports:
       - "5001:5000"
-    environment:
-      # URL generica
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+    volumes:
+      - ./app:/app/app
     depends_on:
-      - db
+      morfi_db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

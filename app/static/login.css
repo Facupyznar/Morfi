@@ -1,0 +1,74 @@
+/* Paleta de colores Morfi */
+:root {
+    --morfi-orange: #F2673B;
+    --morfi-dark: #2D2D2D;
+    --morfi-light: #F8F9FA;
+    --morfi-gray: #6C757D;
+}
+
+body {
+    background-color: #f5f5f5; 
+    display: flex;
+    align-items: center;
+    padding-top: 40px;
+    padding-bottom: 40px;
+}
+
+.form-signin {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border-top: 5px solid var(--morfi-orange);
+}
+
+.form-signin h1 {
+    color: var(--morfi-dark);
+    font-weight: 700;
+}
+
+.form-floating:focus-within {
+    z-index: 2;
+}
+
+.form-control:focus {
+    border-color: var(--morfi-orange);
+    box-shadow: 0 0 0 0.25rem rgba(242, 103, 59, 0.25);
+}
+
+.btn-primary {
+    background-color: var(--morfi-orange);
+    border-color: var(--morfi-orange);
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #d4562e;
+    border-color: #d4562e;
+    transform: translateY(-1px);
+}
+
+.btn-outline-secondary {
+    color: var(--morfi-gray);
+    border-color: var(--morfi-gray);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--morfi-gray);
+    color: white;
+}
+
+a {
+    color: var(--morfi-orange);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: #d4562e;
+}
+
+.text-muted {
+    font-size: 0.85rem;
+}

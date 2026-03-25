@@ -1,0 +1,66 @@
+:root {
+    --morfi-orange: #F2673B;
+    --morfi-bg: #FDF5F2; /* Fondo cremita suave como la imagen */
+}
+
+body {
+    background-color: var(--morfi-bg);
+}
+
+.search-section {
+    background-color: var(--morfi-orange);
+    margin-top: -25px; /* Para que suba un poco si usas navbar */
+}
+
+.restaurant-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    border: none;
+    transition: transform 0.2s;
+}
+
+.restaurant-card:hover {
+    transform: scale(1.01);
+}
+
+.card-image-container {
+    height: 160px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.badge-amigos {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: rgba(13, 110, 253, 0.8);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+.match-score {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: var(--morfi-orange);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.trending-tag {
+    background-color: #FFF0EB;
+    color: var(--morfi-orange);
+    display: inline-block;
+    border: 1px solid #FFE0D6;
+}
+
+.text-primary {
+    color: #003049 !important; /* Azul oscuro para los nombres */
+}

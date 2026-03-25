@@ -7,9 +7,14 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./app .
+COPY . .
 
-CMD ["python", "app.py"]
+EXPOSE 5000
+
+CMD ["python", "-m", "app.run"]
