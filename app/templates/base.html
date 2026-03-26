@@ -7,6 +7,7 @@
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
 
     {% block customCSS %}
     {% endblock %}
@@ -14,19 +15,28 @@
 </head>
 <body>
 
-    <!-- Navbar solo visible si está logueado -->
-    {% if current_user.is_authenticated and request.endpoint not in ['login', 'register'] %}
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand" href="#">Morfi</a>
-            <div class="ms-auto">
-                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">Cerrar sesión</a>
+    {% if current_user.is_authenticated and request.endpoint not in ['auth.login', 'auth.register'] %}
+    <nav class="morfi-nav">
+        <div class="morfi-nav-inner">
+            <span class="morfi-brand">Morfi</span>
+            <div class="morfi-nav-actions">
+                <a href="{{ url_for('home.index') }}" class="morfi-nav-btn morfi-nav-btn-secondary">
+                    <i class="bi bi-house-door-fill"></i>
+                    <span>Home</span>
+                </a>
+                <a href="{{ url_for('profile.profile') }}" class="morfi-nav-btn morfi-nav-btn-secondary">
+                    <i class="bi bi-person-fill"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="morfi-nav-btn morfi-nav-btn-primary">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Cerrar sesión</span>
+                </a>
             </div>
         </div>
     </nav>
     {% endif %}
 
-    <!-- Contenido principal -->
     <main class="container mt-4">
         {% with messages = get_flashed_messages() %}
             {% if messages %}
@@ -42,7 +52,6 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Bootstrap Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

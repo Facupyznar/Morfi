@@ -1,0 +1,82 @@
+:root {
+    --morfi-orange: #F2673B;
+    --morfi-dark-blue: #1A237E; /* Azul oscuro para botones seleccionados */
+    --morfi-input-bg: #FFF8F5; /* Fondo rosado muy suave para los inputs */
+}
+
+/* Clases de Utilidad */
+.text-morfi-orange { color: var(--morfi-orange) !important; }
+.bg-morfi-orange { background-color: var(--morfi-orange) !important; }
+.fs-7 { font-size: 0.85rem; }
+.fs-8 { font-size: 0.7rem; }
+
+/* Estilo de Inputs */
+.input-morfi-bg {
+    background-color: var(--morfi-input-bg) !important;
+    padding: 12px 20px;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(242, 103, 59, 0.1) !important;
+    border-color: #FFE0D6 !important;
+}
+
+/* Tags de Preferencias y Restricciones */
+.pref-tag, .restriction-tag {
+    background-color: var(--morfi-input-bg);
+    border-color: #FFE0D6 !important;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pref-tag input:checked + label,
+.restriction-tag input:checked + label {
+    color: var(--morfi-orange) !important;
+    font-weight: bold;
+}
+
+.pref-tag:has(input:checked),
+.restriction-tag:has(input:checked) {
+    background-color: #FFF0EB;
+    border-color: var(--morfi-orange) !important;
+}
+
+/* Botones Segmentados (Rango de Precio) */
+.btn-outline-morfi-blue {
+    color: var(--morfi-dark-blue);
+    background-color: var(--morfi-input-bg);
+    border-color: #FFE0D6 !important;
+}
+
+.btn-check:checked + .btn-outline-morfi-blue {
+    background-color: var(--morfi-dark-blue) !important;
+    color: white !important;
+    border-color: var(--morfi-dark-blue) !important;
+}
+
+/* Tarjetas de Ambiente */
+.ambient-card {
+    background-color: var(--morfi-input-bg);
+    border-color: #FFE0D6 !important;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ambient-card:has(input:checked) {
+    background-color: #FFF0EB;
+    border-color: var(--morfi-orange) !important;
+    box-shadow: 0 0 10px rgba(242, 103, 59, 0.1);
+}
+
+/* Botón Principal */
+.btn-morfi-orange {
+    background-color: var(--morfi-orange);
+    color: white;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.btn-morfi-orange:hover {
+    background-color: #E0562B;
+    color: white;
+}

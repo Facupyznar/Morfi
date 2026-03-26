@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Mi Perfil Gourmet{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="perfil-page">
+    <div class="perfil-shell">
+        <header class="perfil-hero">
+            <div class="perfil-hero-top">
+                <a href="{{ url_for('home.index') }}" class="perfil-back" aria-label="Volver">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <div class="perfil-title-wrap">
+                    <span class="perfil-kicker">Perfil Morfi</span>
+                    <h1>Mi Perfil Gourmet</h1>
+                </div>
+                <div class="perfil-trophy">
+                    <i class="bi bi-trophy-fill"></i>
+                </div>
+            </div>
+            <div class="perfil-hero-body">
+                <div>
+                    <h2>{{ user.username }}</h2>
+                    <p>{{ user.member_since }}</p>
+                    {% if user.email %}
+                    <p>{{ user.email }}</p>
+                    {% endif %}
+                </div>
+                <div class="perfil-stats">
+                    <div class="stat-pill">
+                        <span class="stat-value">{{ user.stats.visits }}</span>
+                        <span class="stat-label">Visitas</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span class="stat-value">{{ user.stats.rewards }}</span>
+                        <span class="stat-label">Recompensas</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span class="stat-value">{{ user.stats.friends }}</span>
+                        <span class="stat-label">Amigos</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="perfil-grid">
+            <article class="perfil-card progress-card">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Tu nivel actual</span>
+                        <h3>{{ user.level.current }}</h3>
+                    </div>
+                    <span class="icon-badge">
+                        <i class="bi bi-graph-up"></i>
+                    </span>
+                </div>
+                <p class="section-copy">Progreso hacia {{ user.level.next }}</p>
+                <div class="progress-track" aria-label="Progreso de nivel">
+                    <div class="progress-fill" style="width: {{ user.level.progress | default(0) }}%"></div>
+                </div>
+                <div class="progress-meta">
+                    <span>{{ user.level.xp_current }} / {{ user.level.xp_total }} XP</span>
+                    <span>{{ user.level.progress }}%</span>
+                </div>
+                <p class="progress-help">Te faltan {{ user.level.xp_missing }} XP para {{ user.level.next }}</p>
+            </article>
+
+            <article class="perfil-card levels-card">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Ruta de crecimiento</span>
+                        <h3>Niveles Gourmet</h3>
+                    </div>
+                    <span class="icon-badge">
+                        <i class="bi bi-stars"></i>
+                    </span>
+                </div>
+                <div class="level-list">
+                    {% for level in user.levels %}
+                    <div class="level-item {% if level.active %}is-active{% else %}is-muted{% endif %}">
+                        <div class="level-rank">{{ level.number }}</div>
+                        <div class="level-name">{{ level.name }}</div>
+                        {% if level.active %}
+                        <span class="level-badge">Actual</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="perfil-card quick-card">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Movete rapido</span>
+                        <h3>Accesos Rapidos</h3>
+                    </div>
+                    <span class="icon-badge">
+                        <i class="bi bi-grid-1x2-fill"></i>
+                    </span>
+                </div>
+                <div class="quick-grid">
+                    {% for action in user.quick_actions %}
+                    {% if not action.get('admin_only') or user.is_admin %}
+                    <a href="{{ action.href }}" class="quick-action">
+                        <i class="bi {{ action.icon }}"></i>
+                        <span>{{ action.label }}</span>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="perfil-card rewards-card">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">Tus beneficios</span>
+                        <h3>Mis Recompensas</h3>
+                    </div>
+                    <span class="icon-badge">
+                        <i class="bi bi-gift-fill"></i>
+                    </span>
+                </div>
+                <div class="reward-list">
+                    {% for reward in user.rewards_list %}
+                    <div class="reward-item">
+                        <div class="reward-copy">
+                            <h4>{{ reward.title }}</h4>
+                            <p>{{ reward.location }}</p>
+                        </div>
+                        <span class="reward-value">{{ reward.value }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </article>
+        </div>
+
+        <section class="cta-card">
+            <div>
+                <span class="eyebrow light">Subi de nivel</span>
+                <h3>¡Segui sumando XP!</h3>
+                <p>Descubri lugares nuevos, activá recompensas y acercate al proximo nivel gourmet.</p>
+            </div>
+            <a href="{{ url_for('home.index') }}" class="cta-button">Explorar Restaurantes</a>
+        </section>
+    </div>
+</section>
+{% endblock %}

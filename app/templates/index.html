@@ -13,7 +13,9 @@
             <span class="small">Hola, {{ current_user.name if current_user.is_authenticated else 'Gourmet' }}!</span>
         </div>
         <div class="profile-icon">
-            <i class="bi bi-person-circle text-white fs-4"></i>
+            <a href="{{ url_for('profile.profile') }}" class="text-white fs-4" aria-label="Ir al perfil">
+                <i class="bi bi-person-circle"></i>
+            </a>
         </div>
     </div>
     <div class="input-group mb-3">
@@ -59,4 +61,4 @@
     </div>
     {% endfor %}
 </div>
-{% endblock %}s
+{% endblock %}

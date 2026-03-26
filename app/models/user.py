@@ -1,10 +1,12 @@
 import enum
 import uuid
+from datetime import date, datetime
 
 from flask_login import UserMixin
 from geoalchemy2 import Geometry
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.hybrid import hybrid_property
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.database import db
@@ -36,15 +38,79 @@ class User(db.Model, UserMixin):
         nullable=False,
         default=Role.COMENSAL,
     )
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    birth_date = db.Column(db.Date)
 
-    def __init__(self, username, email, password, name=None, rol=Role.COMENSAL, ubicacion=None):
+    def __init__(
+        self,
+        username,
+        email,
+        password,
+        name=None,
+        rol=Role.COMENSAL,
+        ubicacion=None,
+        birth_date=None,
+        is_admin=False,
+    ):
         self.username = username.strip()
         self.email = email.strip().lower()
         self.name = name.strip() if isinstance(name, str) and name.strip() else None
         self.rol = rol if isinstance(rol, Role) else Role(rol)
         self.password = password
+        self.is_admin = bool(is_admin)
+        self.birth_date = self.parse_birth_date(birth_date)
         if ubicacion is not None:
             self.ubicacion = ubicacion
+
+    @staticmethod
+    def parse_birth_date(value):
+        if value is None or value == "":
+            return None
+        if isinstance(value, date) and not isinstance(value, datetime):
+            return value
+        if isinstance(value, datetime):
+            return value.date()
+        if not isinstance(value, str):
+            raise ValueError("La fecha de nacimiento no tiene un formato válido.")
+
+        months = {
+            "enero": 1,
+            "febrero": 2,
+            "marzo": 3,
+            "abril": 4,
+            "mayo": 5,
+            "junio": 6,
+            "julio": 7,
+            "agosto": 8,
+            "septiembre": 9,
+            "setiembre": 9,
+            "octubre": 10,
+            "noviembre": 11,
+            "diciembre": 12,
+        }
+
+        normalized = " ".join(value.strip().lower().split())
+        for separator in ("-", "/", "."):
+            try:
+                return datetime.strptime(normalized, f"%d{separator}%m{separator}%Y").date()
+            except ValueError:
+                pass
+
+        parts = normalized.split(" ")
+        if len(parts) == 3 and parts[1] in months:
+            return date(int(parts[2]), months[parts[1]], int(parts[0]))
+
+        raise ValueError("La fecha de nacimiento no tiene un formato válido.")
+
+    @hybrid_property
+    def age(self):
+        if not self.birth_date:
+            return None
+        today = date.today()
+        years = today.year - self.birth_date.year
+        if (today.month, today.day) < (self.birth_date.month, self.birth_date.day):
+            years -= 1
+        return years
 
     @property
     def password(self):

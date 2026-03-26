@@ -9,6 +9,7 @@ from app.database import db
 from app.models.user import User
 from app.routes.auth import auth_bp
 from app.routes.home import home_bp
+from app.routes.profile import profile_bp
 
 
 def create_app():
@@ -33,6 +34,7 @@ def create_app():
 
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(home_bp)
+    flask_app.register_blueprint(profile_bp)
 
 
     return flask_app
