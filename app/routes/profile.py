@@ -61,7 +61,7 @@ def profile():
             {"label": "Editar Perfil", "icon": "bi-pencil-square", "href": url_for("profile.edit_profile")},
             {"label": "Historial", "icon": "bi-clock-history", "href": "#"},
             {"label": "Wishlist", "icon": "bi-bookmark-heart", "href": "#"},
-            {"label": "Admin", "icon": "bi-shield-lock", "href": "#", "admin_only": True},
+            {"label": "Admin", "icon": "bi-shield-lock", "href": url_for("admin.dashboard"), "admin_only": True},
         ],
         "rewards_list": [
             {"title": "20% OFF en Parrilla", "location": "La Parrilla Criolla", "value": "20%"},

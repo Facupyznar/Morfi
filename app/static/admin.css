@@ -1,0 +1,147 @@
+:root {
+    --morfi-red-header: #FF1744;
+    --morfi-cream-bg: #FDF5F2; /* Fondo cremita suave como la imagen */
+    --morfi-dark-blue: #003049; /* Azul oscuro para los títulos */
+    --morfi-orange: #F2673B;
+}
+
+/* Clases de Utilidad */
+.bg-morfi-cream { background-color: var(--morfi-cream-bg); }
+.text-morfi-orange { color: var(--morfi-orange) !important; }
+.text-morfi-blue { color: var(--morfi-dark-blue) !important; }
+
+/* Estilo de las Tarjetas de Estadísticas */
+.stat-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
+}
+
+/* Estilo de la Lista de Herramientas */
+.govern-tools-list {
+    border: 1px solid #EAEAEA;
+}
+
+.tool-item {
+    transition: background-color 0.2s;
+}
+
+.tool-item:hover {
+    background-color: #F8F9FA;
+}
+
+.tool-item h6 {
+    color: var(--morfi-dark-blue);
+}
+
+/* Badges de notificación sobre los iconos */
+.tool-item .badge {
+    font-size: 0.65rem;
+    padding: 4px 7px;
+    border: 2px solid white; /* Efecto de recorte */
+}
+
+/* Tarjeta de Salud de la Plataforma */
+.platform-health-card {
+    margin-top: -15px; /* Unir visualmente con la lista si se desea */
+    position: relative;
+    z-index: 2;
+}
+
+.admin-section-header {
+    background: linear-gradient(180deg, rgba(242, 103, 59, 0.08) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.admin-user-table thead th {
+    background-color: #fff7f3;
+    border-bottom: 1px solid #f0d9d0;
+    color: var(--morfi-dark-blue);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.admin-user-table tbody td {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    vertical-align: middle;
+}
+
+.profile-detail-card {
+    background-color: #fffaf7;
+    border-top: 1px solid #f2e2db;
+    padding: 1rem 1.25rem;
+}
+
+.detail-label {
+    color: #7d7d7d;
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+}
+
+.detail-value {
+    color: var(--morfi-dark-blue);
+    font-weight: 600;
+}
+
+.status-chip {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.35rem 0.75rem;
+}
+
+.status-chip-admin {
+    background-color: rgba(213, 0, 0, 0.1);
+    color: #b00020;
+}
+
+.status-chip-user {
+    background-color: rgba(0, 200, 83, 0.12);
+    color: #007a38;
+}
+
+@media (max-width: 767.98px) {
+    .admin-user-table thead {
+        display: none;
+    }
+
+    .admin-user-table,
+    .admin-user-table tbody,
+    .admin-user-table tr,
+    .admin-user-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-user-table tr {
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .admin-user-table tbody td {
+        border: 0;
+        padding: 0.35rem 1rem;
+    }
+
+    .admin-user-table tbody td.text-end {
+        padding-bottom: 1rem;
+        text-align: left !important;
+    }
+
+    .collapse-row {
+        border-bottom: 0 !important;
+    }
+
+    .profile-detail-card {
+        padding: 1rem;
+    }
+}

@@ -7,6 +7,7 @@ from flask_wtf.csrf import CSRFProtect
 from app.config import Config
 from app.database import db
 from app.models.user import User
+from app.routes.admin import admin_bp
 from app.routes.auth import auth_bp
 from app.routes.home import home_bp
 from app.routes.profile import profile_bp
@@ -33,6 +34,7 @@ def create_app():
         return db.session.get(User, normalized_id)
 
     flask_app.register_blueprint(auth_bp)
+    flask_app.register_blueprint(admin_bp)
     flask_app.register_blueprint(home_bp)
     flask_app.register_blueprint(profile_bp)
 
