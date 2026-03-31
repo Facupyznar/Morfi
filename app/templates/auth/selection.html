@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 90vh; background-color: #FDF5F2;">
+    <p class="text-morfi-orange fw-bold mb-1">Morfi</p>
+    <h2 class="fw-bold mb-5" style="font-family: 'Baloo 2'; color: #1A1A2E;">¿Cómo querés usar Morfi?</h2>
+
+    <div class="row g-4" style="max-width: 800px; width: 100%;">
+        <div class="col-md-6">
+            <div class="card h-100 border-0 p-4 text-center text-white rounded-4 shadow" style="background-color: #1A1A2E;">
+                <div class="mx-auto bg-white bg-opacity-10 rounded-circle p-3 mb-3" style="width: 60px;">
+                    <i class="bi bi-person-bounding-box fs-3"></i>
+                </div>
+                <h5 class="fw-bold">Quiero descubrir restaurantes</h5>
+                <p class="small opacity-75 mb-4">Reservá, acumulá beneficios y conectá con amigos</p>
+                <a href="{{ url_for('auth.register', role='comensal') }}" class="btn w-100 rounded-pill py-2 fw-bold" style="background-color: #F2673B; color: white;">Registrarme como usuario</a>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 p-4 text-center text-white rounded-4 shadow" style="background-color: #F2673B;">
+                <div class="mx-auto bg-white bg-opacity-10 rounded-circle p-3 mb-3" style="width: 60px;">
+                    <i class="bi bi-shop fs-3"></i>
+                </div>
+                <h5 class="fw-bold">Quiero sumar mi restaurante</h5>
+                <p class="small opacity-75 mb-4">Gestioná reservas, menú y beneficios para tus clientes</p>
+                <a href="{{ url_for('auth.register', role='socio_restaurante') }}" class="btn w-100 rounded-pill py-2 fw-bold" style="background-color: #F7F3EE; color: #F2673B;">Registrar mi local</a>
+            </div>
+        </div>
+    </div>
+    
+    <p class="mt-5 text-muted small">¿Ya tenés cuenta? <a href="{{ url_for('auth.login') }}" class="text-morfi-orange text-decoration-none">Iniciar sesión</a></p>
+</div>
+{% endblock %}

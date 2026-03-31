@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="landing-hero" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070'); background-size: cover; height: 500px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white;">
+    <h1 style="font-family: 'Baloo 2'; font-weight: 800; fontSize: 48px;">Descubrí. Reservá. Disfrutá.</h1>
+    <p>La plataforma gastronómica que conecta sabores con personas</p>
+
+    <div class="d-flex flex-column flex-sm-row gap-3 mt-4">
+        <a href="{{ url_for('auth.register_selection') }}" class="btn btn-lg px-4 rounded-pill fw-bold" style="background-color: #F2673B; color: white;">Registrarse</a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-lg px-4 rounded-pill fw-bold" style="background-color: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.5);">Iniciar sesión</a>
+    </div>
+    
+    <div class="search-bar mt-4 d-flex" style="width: 100%; max-width: 600px;">
+        <input type="text" class="form-control rounded-start-pill border-0 p-3" placeholder="¿Qué querés comer hoy?">
+        <button class="btn border-0 rounded-end-pill px-4" style="background-color: #F2673B; color: white;">Buscar</button>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row text-center g-4">
+        {% for card in [
+            ('Descubrí', 'bi-utensils', 'Encontrá restaurantes según tus gustos y ubicación.'),
+            ('Reservá', 'bi-calendar-check', 'Reservá mesa en tiempo real con confirmación instantánea.'),
+            ('Beneficios', 'bi-gift', 'Subí de nivel comiendo y desbloqueá descuentos.')
+        ] %}
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 rounded-4 h-100">
+                <i class="bi {{ card[1] }} fs-1 mb-3" style="color: #F2673B;"></i>
+                <h5 class="fw-bold">{{ card[0] }}</h5>
+                <p class="text-muted small">{{ card[2] }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

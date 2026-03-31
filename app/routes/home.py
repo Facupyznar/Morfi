@@ -8,7 +8,7 @@ home_bp = Blueprint("home", __name__)
 
 @home_bp.route('/home')
 @login_required
-def index():
+def home():
     # Datos de prueba basados en tu imagen
     dummy_restaurants = [
         {
@@ -34,4 +34,4 @@ def index():
             "image_url": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=800"
         }
     ]
-    return render_template('index.html', restaurants=dummy_restaurants)
+    return render_template('home.html', restaurants=dummy_restaurants)

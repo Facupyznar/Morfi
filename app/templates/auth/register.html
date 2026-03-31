@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear Cuenta - Morfi{% endblock %}
+
+{% block customCSS %}
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block content %}
+{% set is_partner = role == 'socio_restaurante' %}
+<div class="split-container">
+    
+    <div class="brand-side d-none d-lg-flex">
+        <div class="brand-content text-center">
+            <h1 class="brand-logo">Morfi</h1>
+            <p class="brand-tagline">
+                {% if is_partner %}
+                Sumá tu restaurante y empezá a gestionar tu local en Morfi
+                {% else %}
+                Tu próxima experiencia gastronómica te espera
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="form-side">
+        <div class="form-wrapper">
+            <h2 class="form-title">
+                {% if is_partner %}Crear cuenta para restaurante{% else %}Crear cuenta{% endif %}
+            </h2>
+            <p class="text-muted text-center mb-3">
+                {% if is_partner %}
+                Vas a registrarte como socio restaurante.
+                {% else %}
+                Vas a registrarte como comensal.
+                {% endif %}
+            </p>
+            
+            <form action="{{ url_for('auth.register', role=role) }}" method="POST" class="mt-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="role" value="{{ role }}">
+                
+                <div class="mb-3">
+                    <input type="text" name="name" class="morfi-input" placeholder="Nombre completo" required>
+                </div>
+
+                <div class="mb-3">
+                    <input type="text" name="username" class="morfi-input" placeholder="Nombre de usuario" required>
+                </div>
+
+                <div class="mb-3">
+                    <input type="email" name="email" class="morfi-input" placeholder="Email" required>
+                </div>
+
+                <div class="mb-1">
+                    <div class="input-group-custom">
+                        <input type="date" name="fecha" id="fecha" class="morfi-input" required>
+                    </div>
+                    <label for="fecha" class="input-sublabel">Fecha de Nacimiento</label>
+                </div>
+
+                <div class="mb-3 position-relative">
+                    <input type="password" name="password" class="morfi-input" placeholder="Contraseña" required>
+                    <i class="bi bi-eye position-absolute end-0 top-50 translate-middle-y me-3 text-muted" style="cursor: pointer;"></i>
+                </div>
+
+                <div class="mb-4">
+                    <input type="password" name="confirm_password" class="morfi-input" placeholder="Confirmar contraseña" required>
+                </div>
+
+                <button type="submit" class="btn-morfi-primary">
+                    {% if is_partner %}Crear cuenta de restaurante{% else %}Crear cuenta{% endif %}
+                </button>
+
+                <div class="text-center mt-3">
+                    <p class="auth-switch">
+                        Ya tengo cuenta — <a href="{{ url_for('auth.login') }}">Iniciar sesión</a>
+                    </p>
+                    <p class="auth-switch mt-2">
+                        <a href="{{ url_for('auth.register_selection') }}">Elegir otro tipo de cuenta</a>
+                    </p>
+                </div>
+
+                <div class="divider">
+                    <span>o continuá con</span>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-6">
+                        <button type="button" class="btn-morfi-outline w-100">
+                            <i class="bi bi-google me-2"></i>Google
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button type="button" class="btn-morfi-outline w-100">
+                            <i class="bi bi-apple me-2"></i>Apple
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,74 +1,146 @@
-/* Paleta de colores Morfi */
 :root {
-    --morfi-orange: #F2673B;
-    --morfi-dark: #2D2D2D;
-    --morfi-light: #F8F9FA;
-    --morfi-gray: #6C757D;
+    --morfi-dark: #1A1A2E;
+    --morfi-orange: #F2673B; /* Ajustado al naranja de tu logo */
+    --morfi-beige: #F7F3EE;
+    --morfi-border: #D9CEBD;
+    --morfi-text-muted: #B8A99A;
 }
 
-body {
-    background-color: #f5f5f5; 
+body, html {
+    margin: 0;
+    height: 100%;
+    font-family: 'Manrope', sans-serif;
+    overflow-x: hidden;
+}
+
+.split-container {
+    display: flex;
+    min-height: 100vh;
+    width: 100vw;
+}
+
+.brand-side {
+    width: 40%;
+    background-color: var(--morfi-dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 60px;
+}
+
+.brand-logo {
+    color: var(--morfi-orange);
+    font-family: 'Baloo 2', cursive;
+    font-size: 80px;
+    font-weight: 800;
+    margin-bottom: 0;
+}
+
+.brand-tagline {
+    color: #B8A99A;
+    font-size: 1.2rem;
+    margin-top: -10px;
+}
+
+.form-side {
+    flex: 1;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+
+.form-wrapper {
+    width: 100%;
+    max-width: 380px; /* Tamaño exacto de tu diseño */
+}
+
+.form-title {
+    font-family: 'Baloo 2', cursive;
+    font-weight: 800;
+    font-size: 32px;
+    color: var(--morfi-dark);
+    margin-bottom: 25px;
+}
+
+/* Estilo de los Inputs corregido */
+.morfi-input {
+    width: 100%;
+    height: 52px;
+    background-color: #F7F3EE;
+    border: 1px solid #D9CEBD;
+    border-radius: 10px;
+    padding: 0 16px;
+    font-size: 15px;
+    color: var(--morfi-dark);
+    transition: all 0.2s ease;
+}
+
+.morfi-input:focus {
+    outline: none;
+    border-color: var(--morfi-orange);
+    background-color: #fff;
+}
+
+.input-sublabel {
+    font-size: 13px;
+    color: #333;
+    margin-top: 4px;
+    margin-left: 2px;
+}
+
+/* Botón Principal */
+.btn-morfi-primary {
+    width: 100%;
+    height: 52px;
+    background-color: #F2673B;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 16px;
+    margin-top: 15px;
+    box-shadow: 0 4px 6px rgba(242, 103, 59, 0.2);
+}
+
+/* Botones Google/Apple */
+.btn-morfi-outline {
+    height: 48px;
+    background: white;
+    border: 1px solid var(--morfi-border);
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 15px;
     display: flex;
     align-items: center;
-    padding-top: 40px;
-    padding-bottom: 40px;
+    justify-content: center;
 }
 
-.form-signin {
-    background: white;
-    padding: 2rem;
-    border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    border-top: 5px solid var(--morfi-orange);
+/* Divisor */
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 25px 0;
+    color: #B8A99A;
+    font-size: 12px;
 }
 
-.form-signin h1 {
-    color: var(--morfi-dark);
-    font-weight: 700;
+.divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #D9CEBD;
 }
 
-.form-floating:focus-within {
-    z-index: 2;
+.divider span { padding: 0 10px; }
+
+.auth-switch {
+    font-size: 14px;
+    color: #6B6B8A;
 }
 
-.form-control:focus {
-    border-color: var(--morfi-orange);
-    box-shadow: 0 0 0 0.25rem rgba(242, 103, 59, 0.25);
-}
-
-.btn-primary {
-    background-color: var(--morfi-orange);
-    border-color: var(--morfi-orange);
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-    background-color: #d4562e;
-    border-color: #d4562e;
-    transform: translateY(-1px);
-}
-
-.btn-outline-secondary {
-    color: var(--morfi-gray);
-    border-color: var(--morfi-gray);
-}
-
-.btn-outline-secondary:hover {
-    background-color: var(--morfi-gray);
-    color: white;
-}
-
-a {
+.auth-switch a {
     color: var(--morfi-orange);
     text-decoration: none;
-}
-
-a:hover {
-    text-decoration: underline;
-    color: #d4562e;
-}
-
-.text-muted {
-    font-size: 0.85rem;
+    font-weight: 500;
 }

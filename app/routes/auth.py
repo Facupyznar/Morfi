@@ -19,16 +19,34 @@ def _resolve_next_url():
         if not parsed.scheme and not parsed.netloc:
             return next_url
     try:
-        return url_for("home.index")
+        return url_for("home.home")
     except BuildError:
-        return url_for("auth.home")
+        return url_for("auth.index")
 
 
-@auth_bp.route("/")
-def home():
-    if current_user.is_authenticated:
-        return redirect(_resolve_next_url())
-    return redirect(url_for("auth.login"))
+def _resolve_register_role():
+    raw_role = (request.form.get("role") or request.args.get("role") or Role.COMENSAL.value).strip()
+    try:
+        role = Role(raw_role)
+    except ValueError:
+        role = Role.COMENSAL
+
+    allowed_roles = {Role.COMENSAL, Role.SOCIO_RESTAURANTE}
+    if role not in allowed_roles:
+        return Role.COMENSAL
+    return role
+
+
+@auth_bp.route('/')
+def index():
+    return render_template("auth/index.html")
+
+
+@auth_bp.route('/register/selection')
+def register_selection():
+    return render_template('auth/selection.html')
+
+
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -43,7 +61,7 @@ def login():
 
         if not username or not password:
             flash("Usuario y contraseña son obligatorios.", "warning")
-            return render_template("login.html")
+            return render_template("auth/login.html")
 
         user = ModelUser.login(db, username, password)
         if user:
@@ -52,13 +70,15 @@ def login():
 
         flash("Usuario o contraseña incorrectos.", "danger")
 
-    return render_template("login.html")
+    return render_template("auth/login.html")
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
         return redirect(_resolve_next_url())
+
+    selected_role = _resolve_register_role()
 
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -71,18 +91,18 @@ def register():
 
         if not username or not email or not password or not confirm_password:
             flash("Todos los campos marcados con * son obligatorios.", "warning")
-            return render_template("register.html")
+            return render_template("auth/register.html", role=selected_role.value)
 
         if password != confirm_password:
             flash("Las contraseñas no coinciden.", "danger")
-            return render_template("register.html")
+            return render_template("auth/register.html", role=selected_role.value)
 
         if birth_date_raw:
             try:
                 birth_date = datetime.strptime(birth_date_raw, "%Y-%m-%d").date()
             except ValueError:
                 flash("La fecha de nacimiento no tiene un formato válido.", "danger")
-                return render_template("register.html")
+                return render_template("auth/register.html", role=selected_role.value)
 
         try:
             ModelUser.register(
@@ -92,19 +112,19 @@ def register():
                 password=password,
                 name=name,
                 birth_date=birth_date,
-                rol=Role.COMENSAL,
+                rol=selected_role,
             )
         except ValueError as ex:
             flash(str(ex), "danger")
-            return render_template("register.html")
+            return render_template("auth/register.html", role=selected_role.value)
         except Exception:
             flash("No se pudo completar el registro.", "danger")
-            return render_template("register.html")
+            return render_template("auth/register.html", role=selected_role.value)
 
         flash("¡Cuenta creada! Ya podés iniciar sesión.", "success")
         return redirect(url_for("auth.login"))
 
-    return render_template("register.html")
+    return render_template("auth/register.html", role=selected_role.value)
 
 
 @auth_bp.route("/logout")
