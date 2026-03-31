@@ -12,7 +12,7 @@
                 </div>
                 <h5 class="fw-bold">Quiero descubrir restaurantes</h5>
                 <p class="small opacity-75 mb-4">Reservá, acumulá beneficios y conectá con amigos</p>
-                <a href="{{ url_for('auth.register', role='comensal') }}" class="btn w-100 rounded-pill py-2 fw-bold" style="background-color: #F2673B; color: white;">Registrarme como usuario</a>
+                <a href="{{ url_for('auth.register_comensal') }}" class="btn w-100 rounded-pill py-2 fw-bold" style="background-color: #F2673B; color: white;">Registrarme como usuario</a>
             </div>
         </div>
 
@@ -23,7 +23,7 @@
                 </div>
                 <h5 class="fw-bold">Quiero sumar mi restaurante</h5>
                 <p class="small opacity-75 mb-4">Gestioná reservas, menú y beneficios para tus clientes</p>
-                <a href="{{ url_for('auth.register', role='socio_restaurante') }}" class="btn w-100 rounded-pill py-2 fw-bold" style="background-color: #F7F3EE; color: #F2673B;">Registrar mi local</a>
+                <a href="{{ url_for('auth.register_partner') }}" class="btn w-100 rounded-pill py-2 fw-bold" style="background-color: #F7F3EE; color: #F2673B;">Registrar mi local</a>
             </div>
         </div>
     </div>

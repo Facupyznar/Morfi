@@ -1,0 +1,229 @@
+html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    background-color: #FDF9F4;
+    font-family: 'Manrope', sans-serif;
+}
+
+body > main.container.mt-4 {
+    width: 100%;
+    max-width: none;
+    margin-top: 0 !important;
+    padding: 0;
+}
+
+.main-wrapper {
+    width: 100%;
+    min-height: 100vh;
+}
+
+.navbar-morfi {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    background-color: transparent;
+    box-shadow: none;
+    padding: 24px 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.logo-text {
+    font-family: 'Baloo 2', cursive;
+    color: #F2673B;
+    font-weight: 800;
+    font-size: 30px;
+    text-decoration: none;
+}
+
+.nav-buttons {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.btn-login {
+    text-decoration: none;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.btn-register {
+    background-color: #F2673B;
+    color: white;
+    padding: 12px 26px;
+    border-radius: 999px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 12px 28px rgba(242, 103, 59, 0.28);
+}
+
+.hero-section {
+    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070');
+    background-size: cover;
+    background-position: center;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+    padding: 120px 24px 64px;
+}
+
+.hero-content {
+    width: 100%;
+    max-width: 900px;
+}
+
+.hero-title {
+    font-family: 'Baloo 2', cursive;
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    line-height: 0.95;
+    font-weight: 800;
+    margin-bottom: 18px;
+}
+
+.hero-subtitle {
+    max-width: 680px;
+    margin: 0 auto 28px;
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.search-container {
+    width: min(100%, 650px);
+    margin: 0 auto;
+    background: white;
+    border-radius: 999px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.search-icon {
+    color: #8f8f8f;
+    margin-left: 18px;
+}
+
+.search-input {
+    border: none;
+    flex-grow: 1;
+    padding: 12px 8px;
+    outline: none;
+    font-size: 16px;
+    min-width: 0;
+}
+
+.search-button {
+    background: #F2673B;
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.benefits-section {
+    width: 100%;
+    padding: 80px 24px 96px;
+    background-color: #FDF9F4;
+}
+
+.benefits-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.icon-circle {
+    width: 80px;
+    height: 80px;
+    background-color: #FFF0EB;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 20px auto;
+    transition: transform 0.3s ease;
+}
+
+.icon-circle i {
+    color: #F2673B;
+    font-size: 2rem;
+}
+
+.card-benefit:hover .icon-circle {
+    transform: scale(1.1);
+}
+
+.card-benefit {
+    border: none !important;
+    border-radius: 25px !important;
+    padding: 40px 20px !important;
+    background: white;
+}
+
+.card-benefit h6 {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: #1A1A2E;
+    margin-bottom: 15px;
+}
+
+.card-benefit p {
+    color: #6B6B8A;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+@media (max-width: 767px) {
+    .navbar-morfi {
+        padding: 18px 20px;
+    }
+
+    .nav-buttons {
+        gap: 12px;
+    }
+
+    .btn-register {
+        padding: 10px 18px;
+    }
+
+    .search-container {
+        border-radius: 24px;
+        flex-wrap: wrap;
+        padding: 14px;
+    }
+
+    .search-icon {
+        margin-left: 4px;
+    }
+
+    .search-button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 575px) {
+    .navbar-morfi {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .hero-section {
+        padding-top: 160px;
+    }
+}

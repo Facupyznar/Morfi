@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Restaurante - Morfi{% endblock %}
+
+{% block customCSS %}
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='registro_socio.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="split-container-fixed">
+    
+    <div class="brand-panel">
+        <div class="text-center">
+            <h1 class="logo-morf-white">Morfi</h1>
+            <p class="tagline-white">Sumá tu restaurante a Morfi</p>
+        </div>
+    </div>
+
+    <div class="form-panel">
+        <div class="form-content-box">
+            <h2 class="form-main-title">Registrar restaurante</h2>
+            
+            <form action="{{ url_for('auth.register_partner') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <input type="text" name="restaurant_name" class="morfi-custom-input" placeholder="Nombre del restaurante" required>
+                <input type="text" name="address" class="morfi-custom-input" placeholder="Dirección" required>
+                <input type="email" name="contact_email" class="morfi-custom-input" placeholder="Email de contacto" required>
+                <input type="password" name="password" class="morfi-custom-input" placeholder="Contraseña" required>
+
+                <label class="dashed-upload">
+                    <input type="file" name="restaurant_assets" class="d-none" multiple>
+                    <i class="bi bi-upload"></i>
+                    <span style="font-size: 0.8rem;">Logo y fotos del restaurante</span>
+                </label>
+
+                <label class="dashed-upload">
+                    <input type="file" name="legal_documentation" class="d-none">
+                    <i class="bi bi-upload"></i>
+                    <span style="font-size: 0.8rem;">Documentación legal</span>
+                </label>
+
+                <button type="submit" class="btn-morfi-primary-full">Enviar para verificación</button>
+
+                <div class="text-center mt-3">
+                    <p class="switch-auth-text" style="font-size: 0.85rem;">
+                        ¿Ya tenés cuenta? <a href="{{ url_for('auth.login') }}">Iniciar sesión</a>
+                    </p>
+                    <p class="switch-auth-text" style="font-size: 0.85rem;">
+                        <a href="{{ url_for('auth.register_selection') }}">Elegir otro tipo de cuenta</a>
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

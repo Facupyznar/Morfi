@@ -1,35 +1,69 @@
 {% extends 'base.html' %}
+
+{% block title %}Morfi{% endblock %}
+
+{% block customCSS %}
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">{% endblock %}
+
 {% block content %}
-<div class="landing-hero" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070'); background-size: cover; height: 500px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white;">
-    <h1 style="font-family: 'Baloo 2'; font-weight: 800; fontSize: 48px;">Descubrí. Reservá. Disfrutá.</h1>
-    <p>La plataforma gastronómica que conecta sabores con personas</p>
+<div class="main-wrapper">
+    <nav class="navbar-morfi">
+        <a href="/" class="logo-text">Morfi</a>
+        <div class="nav-buttons">
+            <a href="{{ url_for('auth.login') }}" class="btn-login">Iniciar sesión</a>
+            <a href="{{ url_for('auth.register_selection') }}" class="btn-register">Registrarse</a>
+        </div>
+    </nav>
 
-    <div class="d-flex flex-column flex-sm-row gap-3 mt-4">
-        <a href="{{ url_for('auth.register_selection') }}" class="btn btn-lg px-4 rounded-pill fw-bold" style="background-color: #F2673B; color: white;">Registrarse</a>
-        <a href="{{ url_for('auth.login') }}" class="btn btn-lg px-4 rounded-pill fw-bold" style="background-color: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.5);">Iniciar sesión</a>
-    </div>
-    
-    <div class="search-bar mt-4 d-flex" style="width: 100%; max-width: 600px;">
-        <input type="text" class="form-control rounded-start-pill border-0 p-3" placeholder="¿Qué querés comer hoy?">
-        <button class="btn border-0 rounded-end-pill px-4" style="background-color: #F2673B; color: white;">Buscar</button>
-    </div>
-</div>
+    <header class="hero-section">
+        <div class="hero-content">
+        <h1 class="hero-title">Descubrí. Reservá. Disfrutá.</h1>
+        <p class="hero-subtitle">La plataforma gastronómica que conecta sabores con personas</p>
+        
+        <div class="search-container">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="¿Qué querés comer hoy?">
+            <button class="search-button">Buscar</button>
+        </div>
+        </div>
+    </header>
 
-<div class="container py-5">
-    <div class="row text-center g-4">
-        {% for card in [
-            ('Descubrí', 'bi-utensils', 'Encontrá restaurantes según tus gustos y ubicación.'),
-            ('Reservá', 'bi-calendar-check', 'Reservá mesa en tiempo real con confirmación instantánea.'),
-            ('Beneficios', 'bi-gift', 'Subí de nivel comiendo y desbloqueá descuentos.')
-        ] %}
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-4 rounded-4 h-100">
-                <i class="bi {{ card[1] }} fs-1 mb-3" style="color: #F2673B;"></i>
-                <h5 class="fw-bold">{{ card[0] }}</h5>
-                <p class="text-muted small">{{ card[2] }}</p>
+    <section class="benefits-section">
+        <div class="benefits-container">
+            <div class="row text-center g-4 justify-content-center">
+                <div class="col-md-4 col-lg-3">
+                    <div class="card card-benefit shadow-sm h-100">
+                        <div class="icon-circle">
+                            <i class="bi bi-globe-americas"></i> 
+                        </div>
+                        <h6>Descubrí</h6>
+                        <p>Encontrá restaurantes según tus gustos, ubicación y recomendaciones de amigos.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4 col-lg-3">
+                    <div class="card card-benefit shadow-sm h-100">
+                        <div class="icon-circle">
+                            <i class="bi bi-calendar4-event"></i>
+                        </div>
+                        <h6>Reservá</h6>
+                        <p>Reservá mesa en tiempo real con confirmación instantánea y recordatorios.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4 col-lg-3">
+                    <div class="card card-benefit shadow-sm h-100">
+                        <div class="icon-circle">
+                            <i class="bi bi-gift"></i>
+                        </div>
+                        <h6>Beneficios</h6>
+                        <p>Subí de nivel comiendo. Desbloqueá descuentos, postres gratis y más.</p>
+                    </div>
+                </div>
             </div>
         </div>
-        {% endfor %}
-    </div>
+    </section>
 </div>
 {% endblock %}
