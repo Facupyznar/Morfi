@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+ 
+  <!-- sombra circulo -->
+  <circle cx="101" cy="101" r="96" fill="#0D0D1A"/>
+ 
+  <!-- anillo naranja brillante -->
+  <circle cx="100" cy="100" r="96" fill="#FF6B35"/>
+ 
+  <!-- anillo naranja suave -->
+  <circle cx="100" cy="100" r="90" fill="#FF8050"/>
+ 
+  <!-- fondo interior oscuro -->
+  <circle cx="100" cy="100" r="82" fill="#1A1A2E"/>
+ 
+  <!-- clip para que el texto no salga del circulo interior -->
+  <clipPath id="innerCircle">
+    <circle cx="100" cy="100" r="80"/>
+  </clipPath>
+ 
+  <!-- texto sombra oscura -->
+  <text
+    x="97" y="101"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="'Baloo 2', Helvetica Rounded, Arial Rounded MT Bold, sans-serif"
+    font-weight="800"
+    font-style="italic"
+    font-size="50"
+    fill="#0D0D1A"
+    clip-path="url(#innerCircle)"
+  >morfi</text>
+ 
+  <!-- texto sombra naranja -->
+  <text
+    x="96" y="100"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="'Baloo 2', Helvetica Rounded, Arial Rounded MT Bold, sans-serif"
+    font-weight="800"
+    font-style="italic"
+    font-size="50"
+    fill="#C94A1A"
+    clip-path="url(#innerCircle)"
+  >morfi</text>
+ 
+  <!-- texto principal -->
+  <text
+    x="94" y="98"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="'Baloo 2', Helvetica Rounded, Arial Rounded MT Bold, sans-serif"
+    font-weight="800"
+    font-style="italic"
+    font-size="50"
+    fill="#FF6B35"
+    stroke="#C94A1A"
+    stroke-width="1.5"
+    paint-order="stroke fill"
+    clip-path="url(#innerCircle)"
+  >morfi</text>
+ 
+</svg>

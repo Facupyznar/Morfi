@@ -1,33 +1,60 @@
 {% extends 'base.html' %}
+
+{% block title %}Registrarse - Morfi{% endblock %}
+
+{% block customCSS %}
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='selection.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
 {% block content %}
-<div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 90vh; background-color: #FDF5F2;">
-    <p class="text-morfi-orange fw-bold mb-1">Morfi</p>
-    <h2 class="fw-bold mb-5" style="font-family: 'Baloo 2'; color: #1A1A2E;">¿Cómo querés usar Morfi?</h2>
+<div class="selection-wrap">
 
-    <div class="row g-4" style="max-width: 800px; width: 100%;">
-        <div class="col-md-6">
-            <div class="card h-100 border-0 p-4 text-center text-white rounded-4 shadow" style="background-color: #1A1A2E;">
-                <div class="mx-auto bg-white bg-opacity-10 rounded-circle p-3 mb-3" style="width: 60px;">
-                    <i class="bi bi-person-bounding-box fs-3"></i>
-                </div>
-                <h5 class="fw-bold">Quiero descubrir restaurantes</h5>
-                <p class="small opacity-75 mb-4">Reservá, acumulá beneficios y conectá con amigos</p>
-                <a href="{{ url_for('auth.register_comensal') }}" class="btn w-100 rounded-pill py-2 fw-bold" style="background-color: #F2673B; color: white;">Registrarme como usuario</a>
-            </div>
-        </div>
+  <!-- LOGO CIRCULAR -->
+  <div class="logo-circle-wrap">
+    <svg viewBox="0 0 200 200" width="120" height="120" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="101" cy="101" r="96" fill="#0D0D1A"/>
+      <circle cx="100" cy="100" r="96" fill="#FF6B35"/>
+      <circle cx="100" cy="100" r="88" fill="#FF8050"/>
+      <circle cx="100" cy="100" r="80" fill="#1A1A2E"/>
+      <text x="103" y="108" text-anchor="middle" dominant-baseline="central"
+        font-family="'Baloo 2', cursive" font-weight="800" font-style="italic"
+        font-size="50" fill="#0D0D1A">morfi</text>
+      <text x="102" y="107" text-anchor="middle" dominant-baseline="central"
+        font-family="'Baloo 2', cursive" font-weight="800" font-style="italic"
+        font-size="50" fill="#C94A1A">morfi</text>
+      <text x="94" y="98" text-anchor="middle" dominant-baseline="central"
+        font-family="'Baloo 2', cursive" font-weight="800" font-style="italic"
+        font-size="50" fill="#FF6B35" stroke="#C94A1A" stroke-width="1.5" paint-order="stroke fill">morfi</text>
+    </svg>
+  </div>
 
-        <div class="col-md-6">
-            <div class="card h-100 border-0 p-4 text-center text-white rounded-4 shadow" style="background-color: #F2673B;">
-                <div class="mx-auto bg-white bg-opacity-10 rounded-circle p-3 mb-3" style="width: 60px;">
-                    <i class="bi bi-shop fs-3"></i>
-                </div>
-                <h5 class="fw-bold">Quiero sumar mi restaurante</h5>
-                <p class="small opacity-75 mb-4">Gestioná reservas, menú y beneficios para tus clientes</p>
-                <a href="{{ url_for('auth.register_partner') }}" class="btn w-100 rounded-pill py-2 fw-bold" style="background-color: #F7F3EE; color: #F2673B;">Registrar mi local</a>
-            </div>
-        </div>
+  <h2 class="selection-title">¿Cómo querés usar Morfi?</h2>
+
+  <div class="cards-row">
+
+    <div class="sel-card dark">
+      <div class="sel-icon">
+        <i class="bi bi-person-bounding-box"></i>
+      </div>
+      <h5>Quiero descubrir restaurantes</h5>
+      <p>Reservá, acumulá beneficios y conectá con amigos</p>
+      <a href="{{ url_for('auth.register_comensal') }}" class="sel-btn orange">Registrarme como usuario</a>
     </div>
-    
-    <p class="mt-5 text-muted small">¿Ya tenés cuenta? <a href="{{ url_for('auth.login') }}" class="text-morfi-orange text-decoration-none">Iniciar sesión</a></p>
+
+    <div class="sel-card orange">
+      <div class="sel-icon">
+        <i class="bi bi-shop"></i>
+      </div>
+      <h5>Quiero sumar mi restaurante</h5>
+      <p>Gestioná reservas, menú y beneficios para tus clientes</p>
+      <a href="{{ url_for('auth.register_partner') }}" class="sel-btn cream">Registrar mi local</a>
+    </div>
+
+  </div>
+
+  <p class="already-account">¿Ya tenés cuenta? <a href="{{ url_for('auth.login') }}">Iniciar sesión</a></p>
+
 </div>
 {% endblock %}

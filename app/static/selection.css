@@ -1,0 +1,101 @@
+main.container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+
+.selection-wrap {
+  min-height: 100vh;
+  background-color: #F7F3EE;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  font-family: 'Manrope', sans-serif;
+}
+
+.logo-circle-wrap {
+  margin-bottom: 24px;
+}
+
+.selection-title {
+  font-family: 'Baloo 2', cursive;
+  font-weight: 800;
+  font-size: 28px;
+  color: #1A1A2E;
+  margin-bottom: 36px;
+  text-align: center;
+}
+
+.cards-row {
+  display: flex;
+  gap: 20px;
+  max-width: 780px;
+  width: 100%;
+}
+
+.sel-card {
+  flex: 1;
+  border-radius: 20px;
+  padding: 36px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: white;
+}
+
+.sel-card.dark { background: #1A1A2E; }
+.sel-card.orange { background: #FF6B35; }
+
+.sel-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 18px;
+}
+
+.sel-card h5 {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  margin-bottom: 10px;
+}
+
+.sel-card p {
+  font-size: 13px;
+  opacity: 0.78;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.sel-btn {
+  display: block;
+  width: 100%;
+  padding: 11px 0;
+  border-radius: 999px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  text-align: center;
+  transition: opacity 0.2s;
+}
+.sel-btn:hover { opacity: 0.88; text-decoration: none; }
+
+.sel-btn.orange { background: #FF6B35; color: white; }
+.sel-btn.cream  { background: #F7F3EE; color: #FF6B35; }
+
+.already-account {
+  margin-top: 32px;
+  font-size: 14px;
+  color: #6B6B8A;
+}
+.already-account a { color: #FF6B35; text-decoration: none; }
+.already-account a:hover { text-decoration: underline; }
+
+@media (max-width: 600px) {
+  .cards-row { flex-direction: column; }
+}

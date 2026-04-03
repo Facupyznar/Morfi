@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 
-{% block title %}Iniciar sesión - Morfi{% endblock %}
+{% block title %}Acceso Restaurante - Morfi{% endblock %}
 
 {% block customCSS %}
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='login_restaurante.css') }}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 {% endblock %}
 
@@ -13,12 +13,13 @@
 
   <div class="panel-left">
     <div class="logo">morfi</div>
-    <p class="tagline">Bienvenido de vuelta</p>
+    <p class="tagline">Acceder como restaurante</p>
   </div>
 
   <div class="panel-right">
     <div class="form-wrap">
-      <h2>Iniciar sesión</h2>
+      <h2>Panel de Socio</h2>
+      <p class="subtitle">Gestioná tu restaurante desde un solo lugar</p>
 
       {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -30,16 +31,16 @@
 
       <form class="fields" action="{{ url_for('auth.login') }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="text" name="username" placeholder="Usuario" required autofocus />
+        <input type="hidden" name="role" value="restaurante">
+        <input type="email" name="username" placeholder="Email del restaurante" required autofocus />
         <div class="pass-wrap">
           <input type="password" name="password" id="pass" placeholder="Contraseña" required />
           <button type="button" class="toggle-pass" onclick="togglePass()">
             <i class="bi bi-eye" id="eyeIcon"></i>
           </button>
         </div>
-        <div class="forgot"><a href="#">Olvidé mi contraseña</a></div>
-        <button type="submit" class="btn-primary-morfi">Iniciar sesión</button>
-        <p class="register-link">¿No tenés cuenta? <a href="{{ url_for('auth.register_selection') }}">Registrate</a></p>
+        <button type="submit" class="btn-dark-morfi">Iniciar sesión como socio</button>
+        <p class="back-link">¿No tenés cuenta? <a href="{{ url_for('auth.register_partner') }}">Registrá tu restaurante</a></p>
       </form>
     </div>
   </div>

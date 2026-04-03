@@ -203,3 +203,17 @@ def logout():
     logout_user()
     flash("Sesión cerrada correctamente.", "info")
     return redirect(url_for("auth.login"))
+
+@auth_bp.route("/login/restaurante", methods=["GET", "POST"])
+def login_restaurante():
+    if current_user.is_authenticated:
+        return redirect(_resolve_next_url())
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        user = ModelUser.login(db, username, password)
+        if user:
+            login_user(user)
+            return redirect(_resolve_next_url())
+        flash("Usuario o contraseña incorrectos.", "danger")
+    return render_template("auth/login_restaurante.html")

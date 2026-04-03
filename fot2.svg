@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 150" width="560" height="150">
+  <defs>
+    <filter id="sombra" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="4" dy="4" stdDeviation="0" flood-color="#1A1A2E" flood-opacity="1"/>
+    </filter>
+    <filter id="sombra2" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="0" flood-color="#C94A1A" flood-opacity="1"/>
+    </filter>
+  </defs>
+
+  <!-- capa sombra oscura -->
+  <text
+    x="286" y="118"
+    text-anchor="middle"
+    font-family="'Baloo 2', Helvetica Rounded, Arial Rounded MT Bold, sans-serif"
+    font-weight="800"
+    font-style="italic"
+    font-size="118"
+    fill="#1A1A2E"
+  >morfi</text>
+
+  <!-- capa sombra naranja oscuro -->
+  <text
+    x="283" y="115"
+    text-anchor="middle"
+    font-family="'Baloo 2', Helvetica Rounded, Arial Rounded MT Bold, sans-serif"
+    font-weight="800"
+    font-style="italic"
+    font-size="118"
+    fill="#C94A1A"
+  >morfi</text>
+
+  <!-- capa principal naranja -->
+  <text
+    x="280" y="112"
+    text-anchor="middle"
+    font-family="'Baloo 2', Helvetica Rounded, Arial Rounded MT Bold, sans-serif"
+    font-weight="800"
+    font-style="italic"
+    font-size="118"
+    fill="#FF6B35"
+    stroke="#C94A1A"
+    stroke-width="2"
+    paint-order="stroke fill"
+  >morfi</text>
+</svg>

@@ -49,8 +49,14 @@ main.container { max-width: 100% !important; padding: 0 !important; margin: 0 !i
 h2 {
   font-family: 'Manrope', sans-serif;
   font-weight: 700;
-  font-size: 24px;
+  font-size: 22px;
   color: #1A1A2E;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #6B6B8A;
   margin-bottom: 24px;
 }
 
@@ -73,9 +79,14 @@ h2 {
   color: #1A1A2E;
   box-sizing: border-box;
 }
-.fields input:focus { border-color: #FF6B35; background: #fff; }
+
+.fields input:focus {
+  border-color: #FF6B35;
+  background: #fff;
+}
 
 .pass-wrap { position: relative; }
+
 .pass-wrap input { padding-right: 44px; }
 
 .toggle-pass {
@@ -90,18 +101,12 @@ h2 {
   font-size: 16px;
   padding: 0;
 }
+
 .toggle-pass:hover { color: #FF6B35; }
 
-.forgot {
-  text-align: right;
-  font-size: 13px;
-}
-.forgot a { color: #FF6B35; text-decoration: none; }
-.forgot a:hover { text-decoration: underline; }
-
-.btn-primary-morfi {
+.btn-dark-morfi {
   width: 100%;
-  background: #FF6B35;
+  background: #1A1A2E;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -112,16 +117,22 @@ h2 {
   cursor: pointer;
   transition: background 0.2s;
 }
-.btn-primary-morfi:hover { background: #C94A1A; }
 
-.register-link {
+.btn-dark-morfi:hover { background: #2D2D4E; }
+
+.back-link {
   text-align: center;
   font-size: 14px;
   color: #6B6B8A;
   margin: 0;
 }
-.register-link a { color: #FF6B35; text-decoration: none; }
-.register-link a:hover { text-decoration: underline; }
+
+.back-link a {
+  color: #FF6B35;
+  text-decoration: none;
+}
+
+.back-link a:hover { text-decoration: underline; }
 
 .flash-msg {
   background: #FFF0EB;

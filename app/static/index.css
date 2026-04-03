@@ -216,6 +216,20 @@ body > main.container.mt-4 {
     }
 }
 
+.btn-login {
+    background: #ffffff;
+    color: #1A1A2E;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 9px 20px;
+    border-radius: 999px;
+    border: 1px solid #D9CEBD;
+    cursor: pointer;
+    font-family: 'Manrope', sans-serif;
+    transition: background 0.2s;
+}
+.btn-login:hover { background: #F7F3EE; }
+
 @media (max-width: 575px) {
     .navbar-morfi {
         flex-direction: column;
