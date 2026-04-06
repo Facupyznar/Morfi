@@ -6,6 +6,7 @@ from .menu_tags import MenuTags
 from .modelUser import ModelUser
 from .reserva import Reserva
 from .restaurant import Restaurant
+from .restaurant_tags import RestaurantTags
 from .review import Review
 from .tag import Tag
 from .user import User

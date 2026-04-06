@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Restaurante - Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    {% include 'includes/_admin_sidebar.html' %}
+
+    <main class="admin-main">
+        <header class="admin-page-header">
+            <h1 class="admin-page-title">Editar perfil del restaurante</h1>
+        </header>
+
+        <form action="{{ url_for('admin.update_restaurant_profile') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card-morfi p-4 text-center">
+                        <div class="position-relative d-inline-block mx-auto mb-3">
+                            <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center baloo" style="width: 110px; height: 110px; font-size: 32px;">
+                                {{ restaurant.name[:2]|upper if restaurant.name else 'MR' }}
+                            </div>
+                            <button type="button" class="btn btn-morfi-primary rounded-circle position-absolute bottom-0 end-0" style="width: 36px; height: 36px; padding: 0;">
+                                <i class="bi bi-camera"></i>
+                            </button>
+                        </div>
+
+                        <div class="text-start mt-4">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted mb-1">Nombre del restaurante</label>
+                                <input type="text" name="name" class="form-control bg-light border-morfi" value="{{ restaurant.name or '' }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted mb-1">Ubicación</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-geo-alt"></i></span>
+                                    <input type="text" id="edit-restaurant-location" name="address" class="form-control bg-light border-start-0" value="{{ restaurant.address }}" placeholder="Palermo, CABA">
+                                </div>
+                                <input type="hidden" id="edit-restaurant-lat" name="latitude" value="{{ restaurant.latitude or '' }}">
+                                <input type="hidden" id="edit-restaurant-lng" name="longitude" value="{{ restaurant.longitude or '' }}">
+                                <div id="edit-restaurant-map" class="rounded-4 border mt-3" style="height: 240px; overflow: hidden;"></div>
+                                <div class="form-text">Marcá la ubicación del local para aparecer correctamente en los resultados cercanos.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card-morfi p-4 mb-4">
+                        <h3 class="baloo h5 mb-4">Tags de cocina</h3>
+                        <div class="d-flex flex-wrap gap-2 mb-4">
+                            {% for tag in cuisine_tags %}
+                            <div class="form-check p-0">
+                                <input type="checkbox" class="btn-check" id="cuisine-{{ loop.index }}" name="cuisines" value="{{ tag.name }}" autocomplete="off" {% if tag.name in selected_tag_names %}checked{% endif %}>
+                                <label class="btn btn-outline-morfi rounded-pill px-4" for="cuisine-{{ loop.index }}">{{ tag.name }}</label>
+                            </div>
+                            {% else %}
+                            <p class="text-muted mb-0">No hay tags de cocina disponibles.</p>
+                            {% endfor %}
+                        </div>
+
+                        <h3 class="baloo h5 mb-3">Ambientes</h3>
+                        <div class="d-flex flex-wrap gap-2 mb-4">
+                            {% for tag in ambience_tags %}
+                            <div class="form-check p-0">
+                                <input type="checkbox" class="btn-check" id="ambience-{{ loop.index }}" name="ambience" value="{{ tag.name }}" autocomplete="off" {% if tag.name in selected_tag_names %}checked{% endif %}>
+                                <label class="btn btn-outline-morfi rounded-pill px-4" for="ambience-{{ loop.index }}">{{ tag.name }}</label>
+                            </div>
+                            {% else %}
+                            <p class="text-muted mb-0">No hay tags de ambiente disponibles.</p>
+                            {% endfor %}
+                        </div>
+
+                        <h3 class="baloo h5 mb-3">Ocasiones</h3>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for tag in occasion_tags %}
+                            <div class="form-check p-0">
+                                <input type="checkbox" class="btn-check" id="occasion-{{ loop.index }}" name="occasions" value="{{ tag.name }}" autocomplete="off" {% if tag.name in selected_tag_names %}checked{% endif %}>
+                                <label class="btn btn-outline-morfi rounded-pill px-4" for="occasion-{{ loop.index }}">{{ tag.name }}</label>
+                            </div>
+                            {% else %}
+                            <p class="text-muted mb-0">No hay tags de ocasión disponibles.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-3 mt-4">
+                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-dark px-4 py-2">Cancelar</a>
+                        <button type="submit" class="btn btn-morfi-primary px-5 py-2">Guardar cambios</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </main>
+</div>
+
+<style>
+.btn-outline-morfi { border: 1px solid var(--morfi-border); color: var(--morfi-dark); background: var(--morfi-beige); }
+.btn-check:checked + .btn-outline-morfi { background-color: var(--morfi-orange); border-color: var(--morfi-orange); color: white; }
+</style>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    initMorfiLocationPicker({
+        mapId: "edit-restaurant-map",
+        addressId: "edit-restaurant-location",
+        latId: "edit-restaurant-lat",
+        lngId: "edit-restaurant-lng",
+        initialLat: {{ restaurant.latitude or -34.6037 }},
+        initialLng: {{ restaurant.longitude or -58.3816 }},
+    });
+</script>
+{% endblock %}

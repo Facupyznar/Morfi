@@ -1,66 +1,141 @@
-:root {
-    --morfi-orange: #F2673B;
-    --morfi-bg: #FDF5F2; /* Fondo cremita suave como la imagen */
+/* Filtros */
+.filter-chip {
+    background: white;
+    border: 1px solid var(--morfi-border);
+    padding: 8px 20px;
+    border-radius: 99px;
+    font-size: 14px;
+    white-space: nowrap;
+    transition: 0.2s;
+}
+.filter-chip.active {
+    background: var(--morfi-orange);
+    color: white;
+    border-color: var(--morfi-orange);
 }
 
-body {
-    background-color: var(--morfi-bg);
-}
-
-.search-section {
-    background-color: var(--morfi-orange);
-    margin-top: -25px; /* Para que suba un poco si usas navbar */
+/* Restaurant Cards */
+.restaurant-card-link {
+    display: block;
+    text-decoration: none;
 }
 
 .restaurant-card {
-    background: white;
-    border-radius: 20px;
+    background: var(--morfi-beige);
+    border: 1px solid var(--morfi-border);
+    border-radius: 16px;
     overflow: hidden;
-    border: none;
-    transition: transform 0.2s;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
-
 .restaurant-card:hover {
-    transform: scale(1.01);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 28px rgba(26, 26, 46, 0.08);
 }
 
-.card-image-container {
-    height: 160px;
-    background-size: cover;
-    background-position: center;
+.card-img-wrapper {
     position: relative;
+    height: 160px;
+    overflow: hidden;
 }
-
-.badge-amigos {
+.card-img-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+.restaurant-card:hover .card-img-wrapper img {
+    transform: scale(1.05);
+}
+.match-badge {
     position: absolute;
-    top: 15px;
-    left: 15px;
-    background: rgba(13, 110, 253, 0.8);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
+    top: 12px;
+    right: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #c8d7f8;
+    color: #2e4db5;
+    font-size: 12px;
+    font-weight: 600;
 }
 
-.match-score {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: var(--morfi-orange);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: bold;
+.restaurant-card-body {
+    padding: 16px;
 }
 
-.trending-tag {
-    background-color: #FFF0EB;
+.restaurant-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.restaurant-card-title {
+    margin: 0;
+    color: var(--morfi-dark);
+    font-family: var(--morfi-font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.restaurant-card-price {
+    color: var(--morfi-muted);
+    font-size: 13px;
+    line-height: 1.2;
+}
+
+.restaurant-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.restaurant-card-tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #ede6dc;
+    color: var(--morfi-muted);
+    font-size: 12px;
+}
+
+.restaurant-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+}
+
+.restaurant-card-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     color: var(--morfi-orange);
-    display: inline-block;
-    border: 1px solid #FFE0D6;
 }
 
-.text-primary {
-    color: #003049 !important; /* Azul oscuro para los nombres */
+.restaurant-card-distance {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--morfi-muted);
+}
+
+/* Sidebar */
+.sidebar-card {
+    background: white;
+    border: 1px solid var(--morfi-border);
+    border-radius: 18px;
+    padding: 20px;
+}
+.avatar-xs {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #2E4DB5; color: white;
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+}
+.wishlist-img {
+    width: 40px; height: 40px; background: #ddd; border-radius: 8px;
 }

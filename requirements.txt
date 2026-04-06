@@ -3,7 +3,6 @@ click==8.3.1
 Flask==3.1.3
 Flask-SQLAlchemy==3.1.1
 Flask-Login
-GeoAlchemy2==0.18.4
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.3
@@ -14,3 +13,4 @@ SQLAlchemy==2.0.48
 typing_extensions==4.15.0
 Werkzeug==3.1.6
 Flask-WTF
+geopy==2.4.1

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Encontrá amigos - Morfi{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center pt-5 px-4 text-center">
+    <div class="d-flex align-items-center gap-3 mb-5">
+        {% set steps = [('Gustos', true), ('Contactos', true), ('Listo', false)] %}
+        {% for label, active in steps %}
+            <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" 
+                     style="width: 32px; height: 32px; font-size: 13px; {{ 'background-color: var(--morfi-orange); color: white;' if active else 'background-color: var(--morfi-border); color: var(--morfi-muted);' }}">
+                    {{ loop.index }}
+                </div>
+                <span class="small {{ 'fw-bold text-dark' if active else 'text-muted' }}">{{ label }}</span>
+                {% if not loop.last %}
+                    <div style="width: 40px; height: 1px; background-color: var(--morfi-border);"></div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="max-w-md w-100 mt-5" style="max-width: 450px;">
+        <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4" 
+             style="width: 96px; height: 96px; background-color: #FFF0EB;">
+            <i class="bi bi-people-fill" style="font-size: 48px; color: var(--morfi-orange);"></i>
+        </div>
+        
+        <h1 class="baloo mb-3" style="font-size: 32px; color: var(--morfi-dark);">Encontrá amigos en Morfi</h1>
+        <p class="mb-5 px-3" style="color: var(--morfi-muted); line-height: 1.6;">
+            Sincronizá tus contactos para ver qué restaurantes visitan tus amigos y compartir recomendaciones.
+        </p>
+
+        <form action="{{ url_for('profile.complete_setup') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-morfi-primary w-100 py-3 mb-3 shadow-sm" style="border-radius: 12px;">
+                Sincronizar contactos
+            </button>
+            <a href="{{ url_for('home.home') }}" class="d-block text-decoration-none py-2" style="color: var(--morfi-muted);">
+                Omitir por ahora
+            </a >
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -15,3 +15,4 @@ class Tag(db.Model):
 
     user_tags = db.relationship("UserTags", back_populates="tag", cascade="all, delete-orphan", lazy=True)
     menu_tags = db.relationship("MenuTags", back_populates="tag", cascade="all, delete-orphan", lazy=True)
+    restaurant_tags = db.relationship("RestaurantTags", back_populates="tag", cascade="all, delete-orphan", lazy=True)

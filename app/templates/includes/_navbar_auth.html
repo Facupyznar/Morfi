@@ -1,0 +1,36 @@
+<nav class="morfi-nav-auth">
+    <div class="morfi-nav-inner">
+        <a href="{{ url_for('home.home') }}" class="morfi-brand">Morfi</a>
+
+        <form action="{{ url_for('home.home') }}" method="get" class="morfi-search-container">
+            <i class="bi bi-search morfi-search-icon"></i>
+            <input type="text" name="q" placeholder="¿Qué querés comer hoy?" autocomplete="off">
+        </form>
+
+        <div class="morfi-nav-actions">
+            <button type="button" class="morfi-icon-btn morfi-icon-btn--bell" aria-label="Notificaciones">
+                <i class="bi bi-bell"></i>
+                <span class="morfi-notification-dot" aria-hidden="true"></span>
+            </button>
+
+            <a href="{{ url_for('profile.profile') }}" class="profile-link">
+                <div class="morfi-avatar">
+                    {% if current_user.foto_perfil %}
+                    <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Perfil" class="morfi-avatar-image">
+                    {% else %}
+                    {{ (current_user.name or 'Tu usuario')[:2]|upper }}
+                    {% endif %}
+                </div>
+                <div class="morfi-nivel">
+                    {% if current_user.nivel %}
+                    <span class="morfi-user-chip"> Nivel {{current_user.nivel}}</span>
+                    {% endif %}
+                </div>
+            </a>
+
+            <a href="{{ url_for('auth.logout') }}" class="morfi-icon-btn morfi-icon-btn--logout" aria-label="Cerrar sesión" title="Cerrar sesión">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</nav>

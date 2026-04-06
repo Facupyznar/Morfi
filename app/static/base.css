@@ -1,5 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --morfi-orange: #FF6B35;
+    --morfi-dark: #1A1A2E;
+    --morfi-beige: #F7F3EE;
+    --morfi-border: #D9CEBD;
+    --morfi-muted: #6B6B8A;
+    --morfi-font-body: 'Manrope', sans-serif;
+    --morfi-font-display: 'Baloo 2', cursive;
+}
+
+
 body {
-    background: #fdf5f2;
+    background-color: var(--morfi-beige);
+    font-family: var(--morfi-font-body);
+}
+
+.baloo {
+    font-family: var(--morfi-font-display);
+    font-weight: 800;
+    font-style: italic;
+}
+.card-morfi { background: white; border: 1px solid var(--morfi-border); border-radius: 12px; }
+.btn-morfi-primary { background-color: var(--morfi-orange); color: white; border: none; font-weight: 600; }
+.btn-morfi-primary:hover { background-color: #C94A1A; color: white;
 }
 
 .morfi-nav {
@@ -32,6 +57,167 @@ body {
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+}
+
+.morfi-nav-auth {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    min-height: 64px;
+    width: 100%;
+    background: #ffffff;
+    border-bottom: 1px solid var(--morfi-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.morfi-nav-auth .morfi-nav-inner {
+    width: 100%;
+    max-width: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 64px;
+    padding: 0 32px;
+    margin: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.morfi-nav-auth .morfi-brand {
+    flex: 0 0 140px;
+    font-size: 1.95rem;
+    font-style: italic;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+.morfi-search-container {
+    flex: 0 1 400px;
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--morfi-beige);
+    border: 1px solid var(--morfi-border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+}
+
+.morfi-search-container input {
+    background: transparent;
+    border: none;
+    outline: none;
+    margin-left: 10px;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--morfi-dark);
+}
+
+.morfi-search-container input::placeholder {
+    color: #b8a99a;
+}
+
+.morfi-search-icon {
+    color: #b8a99a;
+    font-size: 16px;
+}
+
+.morfi-nav-auth .morfi-nav-actions {
+    flex: 0 0 auto;
+    gap: 14px;
+    flex-wrap: nowrap;
+}
+
+.morfi-icon-btn {
+    position: relative;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--morfi-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.morfi-icon-btn:hover {
+    color: var(--morfi-dark);
+    transform: translateY(-1px);
+}
+
+.morfi-icon-btn i {
+    font-size: 20px;
+}
+
+.morfi-notification-dot {
+    position: absolute;
+    top: -1px;
+    right: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--morfi-orange);
+}
+
+.profile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--morfi-dark);
+    padding: 2px 0;
+}
+
+.morfi-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--morfi-dark);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    overflow: hidden;
+}
+
+.morfi-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.morfi-user-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #fff1eb;
+    color: #c94a1a;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+body:has(.morfi-nav-auth) .container {
+    margin-top: 20px;
 }
 
 .morfi-nav-btn {
@@ -70,6 +256,36 @@ body {
     color: #d9542d;
 }
 
+.morfi-flash {
+    position: relative;
+    margin-bottom: 16px;
+    padding: 14px 44px 14px 16px;
+    border-radius: 12px;
+    border: 1px solid #ff9a6c;
+    background: #fff0eb;
+    color: #c94a1a;
+    box-shadow: 0 10px 24px rgba(242, 103, 59, 0.08);
+}
+
+.morfi-flash .btn-close {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+}
+
+.morfi-flash--danger {
+    border-color: #f1aeb5;
+    background: #f8d7da;
+    color: #842029;
+}
+
+.morfi-flash--error {
+    border-color: #f1aeb5;
+    background: #f8d7da;
+    color: #842029;
+}
+
 @media (max-width: 575.98px) {
     .morfi-nav {
         padding: 12px 12px 0;
@@ -88,5 +304,42 @@ body {
     .morfi-nav-btn {
         justify-content: center;
         flex: 1 1 0;
+    }
+
+    .morfi-nav-auth {
+        min-height: 64px;
+    }
+
+    .morfi-nav-auth .morfi-nav-inner {
+        gap: 12px;
+        padding: 0 14px;
+    }
+
+    .morfi-user-chip {
+        display: none;
+    }
+
+    .morfi-avatar,
+    .morfi-icon-btn {
+        width: auto;
+        height: auto;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .morfi-nav-auth .morfi-nav-inner {
+        flex-wrap: wrap;
+        gap: 14px;
+        padding: 0 18px;
+    }
+
+    .morfi-nav-auth .morfi-brand {
+        flex-basis: auto;
+    }
+
+    .morfi-search-container {
+        order: 3;
+        flex-basis: 100%;
+        max-width: none;
     }
 }

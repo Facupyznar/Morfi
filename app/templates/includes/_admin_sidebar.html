@@ -1,0 +1,47 @@
+{% set admin_nav_items = admin_nav_items if admin_nav_items is defined else [
+    {'endpoint': 'admin.dashboard', 'label': 'Inicio', 'icon': 'bi-house-door'},
+    {'endpoint': 'admin.edit_restaurant_profile', 'label': 'Perfil', 'icon': 'bi-shop'},
+    {'endpoint': 'admin.menu', 'label': 'Menú', 'icon': 'bi-utensils'},
+    {'endpoint': 'admin.reservations', 'label': 'Reservas', 'icon': 'bi-calendar3'},
+    {'endpoint': 'admin.offers', 'label': 'Ofertas', 'icon': 'bi-tags'},
+    {'endpoint': 'admin.reviews', 'label': 'Reseñas', 'icon': 'bi-star'},
+    {'endpoint': 'admin.benefits', 'label': 'Beneficios', 'icon': 'bi-gift'},
+    {'endpoint': 'admin.metrics', 'label': 'Métricas', 'icon': 'bi-bar-chart'}
+] %}
+
+<aside class="admin-sidebar">
+    <a href="{{ url_for('admin.dashboard') }}" class="admin-sidebar__brand">Morfi</a>
+
+    <nav class="admin-sidebar__nav">
+        {% for item in admin_nav_items %}
+            {% set is_active = active_admin_section is defined and active_admin_section == item.label %}
+            <a
+                href="{% if item.endpoint in ['admin.dashboard', 'admin.edit_restaurant_profile'] %}{{ url_for(item.endpoint) }}{% else %}#{% endif %}"
+                class="admin-sidebar__link {{ 'is-active' if is_active else '' }}"
+            >
+                <i class="bi {{ item.icon }}"></i>
+                <span>{{ item.label }}</span>
+            </a>
+        {% endfor %}
+    </nav>
+
+    <div class="admin-sidebar__footer">
+        <div class="admin-sidebar__profile">
+            <div class="admin-sidebar__profile-avatar">
+                {% if current_user.foto_perfil %}
+                <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Perfil">
+                {% else %}
+                {{ (current_user.name or current_user.username or 'MR')[:2]|upper }}
+                {% endif %}
+            </div>
+            <div class="admin-sidebar__profile-copy">
+                <strong>{{ current_user.name or current_user.username }}</strong>
+            </div>
+        </div>
+
+        <a href="{{ url_for('auth.logout') }}" class="admin-sidebar__logout">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Cerrar sesión</span>
+        </a>
+    </div>
+</aside>

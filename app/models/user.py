@@ -3,7 +3,6 @@ import uuid
 from datetime import date, datetime
 
 from flask_login import UserMixin
-from geoalchemy2 import Geometry
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -14,7 +13,7 @@ from app.database import db
 
 class Role(enum.Enum):
     COMENSAL = "comensal"
-    SOCIO_RESTAURANTE = "socio_restaurante"
+    SOCIO_ADMIN = "socio_admin"
     ADMIN_GLOBAL = "admin_global"
 
 
@@ -26,7 +25,9 @@ class User(db.Model, UserMixin):
     name = db.Column(db.String(100))
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column("password", db.String(255), nullable=False)
-    ubicacion = db.Column(Geometry("POINT", srid=4326))
+    address = db.Column(db.String(255), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
     nivel = db.Column(db.Numeric(3, 2), nullable=False, default=1.0)
     foto_perfil = db.Column(db.String(255))
     rol = db.Column(
@@ -48,7 +49,9 @@ class User(db.Model, UserMixin):
         password,
         name=None,
         rol=Role.COMENSAL,
-        ubicacion=None,
+        address=None,
+        latitude=None,
+        longitude=None,
         birth_date=None,
         is_admin=False,
     ):
@@ -59,8 +62,13 @@ class User(db.Model, UserMixin):
         self.password = password
         self.is_admin = bool(is_admin)
         self.birth_date = self.parse_birth_date(birth_date)
-        if ubicacion is not None:
-            self.ubicacion = ubicacion
+        self.address = (address or "").strip()
+        if not self.address:
+            raise ValueError("La dirección es obligatoria.")
+        if latitude is None or longitude is None:
+            raise ValueError("Las coordenadas son obligatorias.")
+        self.latitude = float(latitude)
+        self.longitude = float(longitude)
 
     @staticmethod
     def parse_birth_date(value):
@@ -126,6 +134,10 @@ class User(db.Model, UserMixin):
         if not self.password_hash or not isinstance(password, str):
             return False
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def role(self):
+        return getattr(self.rol, "value", None)
 
     def get_id(self):
         return str(self.user_id)

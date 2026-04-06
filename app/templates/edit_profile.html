@@ -1,134 +1,99 @@
 {% extends 'base.html' %}
-
 {% block title %}Editar Perfil - Morfi{% endblock %}
 
-{% block customCSS %}
-<link rel="stylesheet" href="{{ url_for('static', filename='edit_profile.css') }}">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-{% endblock %}
-
 {% block content %}
-<div class="container-fluid p-0" style="background-color: #FDF5F2; min-height: 100vh;">
-    
-    <div class="p-3 shadow-sm" style="background-color: #F2673B; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
-        <div class="d-flex align-items-center text-white">
-            <a href="{{ url_for('profile.profile') }}" class="text-white me-3 fs-4"><i class="bi bi-arrow-left-short"></i></a>
-            <div>
-                <h6 class="fw-bold mb-0">Editar Perfil</h6>
-                <p class="small mb-0 opacity-75" style="font-size: 0.7rem;">Actualizá tus hábitos y preferencias</p>
+<form action="{{ url_for('profile.update_profile') }}" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="container py-4">
+        <h1 class="baloo text-dark mb-4">Editar perfil</h1>
+        
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card-morfi p-4 text-center">
+                    <div class="position-relative d-inline-block mx-auto mb-3">
+                        {% if user.foto_perfil %}
+                        <img src="{{ url_for('static', filename=user.foto_perfil) }}" alt="Foto de perfil" class="rounded-circle object-fit-cover" style="width: 110px; height: 110px;">
+                        {% else %}
+                        <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center baloo" style="width: 110px; height: 110px; font-size: 32px;">{{ user.name[:2]|upper if user.name else user.username[:2]|upper }}</div>
+                        {% endif %}
+                        <label for="edit-profile-photo" class="btn btn-morfi-primary rounded-circle position-absolute bottom-0 end-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; padding: 0; cursor: pointer;"><i class="bi bi-camera"></i></label>
+                    </div>
+                    <input type="file" id="edit-profile-photo" name="profile_photo" accept="image/png,image/jpeg,image/webp,image/gif" class="d-none">
+                    <p class="small text-muted mb-0">Elegí una foto para actualizar tu perfil.</p>
+                    
+                    <div class="text-start mt-4">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">Nombre completo</label>
+                            <input type="text" name="name" class="form-control bg-light border-morfi" value="{{ user.name or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">Ubicación</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-geo-alt"></i></span>
+                                <input type="text" id="edit-profile-location" name="location" class="form-control bg-light border-start-0" value="{{ location_text }}" placeholder="Palermo, CABA">
+                            </div>
+                            <input type="hidden" id="edit-profile-lat" name="latitude" value="{{ user.latitude or '' }}">
+                            <input type="hidden" id="edit-profile-lng" name="longitude" value="{{ user.longitude or '' }}">
+                            <div id="edit-profile-map" class="rounded-4 border mt-3" style="height: 240px; overflow: hidden;"></div>
+                            <div class="form-text">Ingresá una dirección o zona, por ejemplo: Palermo, CABA.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card-morfi p-4 mb-4">
+                    <h3 class="baloo h5 mb-4">Mis preferencias</h3>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        {% for tag in cuisine_tags %}
+                        <div class="form-check p-0">
+                            <input type="checkbox" class="btn-check" id="cuisine-{{ loop.index }}" name="cuisines" value="{{ tag.name }}" autocomplete="off" {% if tag.name in selected_cuisines %}checked{% endif %}>
+                            <label class="btn btn-outline-morfi rounded-pill px-4" for="cuisine-{{ loop.index }}">{{ tag.name }}</label>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">No hay cocinas disponibles.</p>
+                        {% endfor %}
+                    </div>
+
+                    <h3 class="baloo h5 mb-3">Restricciones alimentarias</h3>
+                    <div class="list-group list-group-flush">
+                        {% for tag in restriction_tags %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center border-bottom bg-transparent px-0 py-3">
+                            <span>{{ tag.name }}</span>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" name="restrictions" value="{{ tag.name }}" {% if tag.name in selected_restrictions %}checked{% endif %}>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">No hay restricciones disponibles.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-3 mt-4">
+                    <a href="{{ url_for('profile.profile') }}" class="btn btn-outline-dark px-4 py-2">Cancelar</a>
+                    <button type="submit" class="btn btn-morfi-primary px-5 py-2">Guardar cambios</button>
+                </div>
             </div>
         </div>
     </div>
+</form>
 
-    <form action="{{ url_for('profile.edit_profile') }}" method="POST" enctype="multipart/form-data" class="px-3 mt-4 pb-5">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        
-        <div class="card mb-4 border-0 shadow-sm rounded-4">
-            <div class="card-body text-center p-4">
-                <div class="position-relative d-inline-block mb-3">
-                    <img src="{% if user.avatar_url %}{{ url_for('static', filename=user.avatar_url) }}{% else %}{{ url_for('static', filename='MORFI.png') }}{% endif %}" alt="Avatar" class="rounded-circle img-thumbnail shadow" style="width: 100px; height: 100px; object-fit: cover;">
-                    <label for="avatar" class="position-absolute bottom-0 end-0 bg-morfi-orange rounded-circle d-flex align-items-center justify-content-center shadow" style="width: 32px; height: 32px; cursor: pointer; border: 2px solid white;">
-                        <i class="bi bi-upload text-white small"></i>
-                    </label>
-                    <input type="file" name="avatar" id="avatar" class="d-none" accept="image/*">
-                </div>
-                <h6 class="fw-bold text-dark mb-1"><i class="bi bi-camera me-2 text-morfi-orange"></i>Foto de Perfil</h6>
-                <p class="text-muted small mb-0" style="font-size: 0.7rem;">Hacé click en el icono para cambiar tu foto</p>
-            </div>
-        </div>
+<style>
+.btn-outline-morfi { border: 1px solid var(--morfi-border); color: var(--morfi-dark); background: var(--morfi-beige); }
+.btn-check:checked + .btn-outline-morfi { background-color: var(--morfi-orange); border-color: var(--morfi-orange); color: white; }
+</style>
+{% endblock %}
 
-        <div class="card mb-4 border-0 shadow-sm rounded-4">
-            <div class="card-body p-4">
-                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person me-2 text-morfi-orange"></i>Nombre de Usuario</h6>
-                <input type="text" name="username" class="form-control rounded-pill border-0 input-morfi-bg" value="{{ user.username }}" placeholder="juan_foodie" required>
-            </div>
-        </div>
-
-        <div class="card mb-4 border-0 shadow-sm rounded-4">
-            <div class="card-body p-4">
-                <h6 class="fw-bold text-dark mb-1"><i class="bi bi-geo-alt me-2 text-morfi-orange"></i>Ubicación Base</h6>
-                <p class="text-muted small mb-3" style="font-size: 0.7rem;">Afecta las recomendaciones y el geofencing</p>
-                <div class="input-group">
-                    <input type="text" name="ubicacion_base" class="form-control rounded-pill border-0 input-morfi-bg" value="{{ user.ubicacion_base_str }}" placeholder="ej: Calle Falsa 123, Pacheco">
-                    <button class="btn btn-outline-secondary rounded-pill ms-2" type="button"><i class="bi bi-compass"></i></button>
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-4 border-0 shadow-sm rounded-4">
-            <div class="card-body p-4">
-                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-heart me-2 text-morfi-orange"></i>Preferencias Gastronómicas</h6>
-                <div class="row g-2">
-                    {% for pref in ['Parrilla', 'Pizza', 'Sushi', 'Minutas', 'Veggie', 'Pastas', 'Hamburguesas', 'Postres'] %}
-                    <div class="col-6">
-                        <div class="form-check pref-tag rounded-pill p-2 px-3 text-center border">
-                            <input class="form-check-input d-none" type="checkbox" name="preferencias" value="{{ pref }}" id="pref{{ loop.index }}" {% if pref in user.preferencias_list %}checked{% endif %}>
-                            <label class="form-check-label w-100 fs-7 text-muted" for="pref{{ loop.index }}">
-                                {{ pref }}
-                            </label>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-4 border-0 shadow-sm rounded-4">
-            <div class="card-body p-4">
-                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-exclamation-triangle me-2 text-morfi-orange"></i>Restricciones Alimentarias</h6>
-                <div class="d-flex flex-wrap gap-2">
-                    {% for restr in ['Sin Gluten / Celíaco', 'Vegano', 'Vegetariano', 'Sin Lactosa', 'Alergia a Frutos Secos'] %}
-                    <div class="form-check restriction-tag rounded-pill p-1 px-3 border fs-7 text-muted">
-                        <input class="form-check-input d-none" type="checkbox" name="restricciones" value="{{ restr }}" id="restr{{ loop.index }}" {% if restr in user.restricciones_list %}checked{% endif %}>
-                        <label class="form-check-label" for="restr{{ loop.index }}">
-                            {{ restr }}
-                        </label>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-4 border-0 shadow-sm rounded-4">
-            <div class="card-body p-4">
-                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-cash-stack me-2 text-morfi-orange"></i>Rango de Precios Preferido</h6>
-                <div class="btn-group w-100 rounded-pill overflow-hidden border" role="group">
-                    <input type="radio" class="btn-check" name="price_range" id="price1" value="$" {% if user.price_range == '$' %}checked{% endif %}>
-                    <label class="btn btn-outline-morfi-blue border-0 py-3" for="price1"><b>$</b><br><span class="fs-8">Económico</span></label>
-                    
-                    <input type="radio" class="btn-check" name="price_range" id="price2" value="$$" {% if user.price_range == '$$' or not user.price_range %}checked{% endif %}>
-                    <label class="btn btn-outline-morfi-blue border-0 py-3" for="price2"><b>$$</b><br><span class="fs-8">Moderado</span></label>
-                    
-                    <input type="radio" class="btn-check" name="price_range" id="price3" value="$$$" {% if user.price_range == '$$$' %}checked{% endif %}>
-                    <label class="btn btn-outline-morfi-blue border-0 py-3" for="price3"><b>$$$</b><br><span class="fs-8">Premium</span></label>
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-4 border-0 shadow-sm rounded-4">
-            <div class="card-body p-4">
-                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-building me-2 text-morfi-orange"></i>Ambientes Preferidos</h6>
-                <div class="row g-2">
-                    {% set ambientes = [('Casual', 'bi-tshirt'), ('Romántico', 'bi-heart-fill'), ('Familiar', 'bi-people-fill'), ('Business', 'bi-briefcase-fill')] %}
-                    {% for name, icon in ambientes %}
-                    <div class="col-6">
-                        <div class="form-check ambient-card rounded-4 p-3 text-center border">
-                            <input class="form-check-input d-none" type="radio" name="ambiente" value="{{ name }}" id="ambient{{ loop.index }}" {% if user.ambiente == name %}checked{% endif %}>
-                            <label class="form-check-label w-100" for="ambient{{ loop.index }}">
-                                <i class="bi {{ icon }} text-morfi-orange fs-4 d-block mb-1"></i>
-                                <span class="fs-7 text-muted fw-bold">{{ name }}</span>
-                            </label>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <div class="fixed-bottom p-3" style="background-color: #FDF5F2;">
-            <button type="submit" class="btn btn-morfi-orange w-100 rounded-pill py-3 fw-bold shadow">Guardar Cambios</button>
-        </div>
-
-    </form>
-</div>
+{% block page_scripts %}
+<script>
+    initMorfiLocationPicker({
+        mapId: "edit-profile-map",
+        addressId: "edit-profile-location",
+        latId: "edit-profile-lat",
+        lngId: "edit-profile-lng",
+        initialLat: {{ user.latitude or -34.6037 }},
+        initialLng: {{ user.longitude or -58.3816 }},
+    });
+</script>
 {% endblock %}

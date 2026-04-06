@@ -29,10 +29,9 @@
         {% endif %}
       {% endwith %}
 
-      <form class="fields" action="{{ url_for('auth.login') }}" method="POST">
+      <form class="fields" action="{{ url_for('auth.login_restaurante') }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="role" value="restaurante">
-        <input type="email" name="username" placeholder="Email del restaurante" required autofocus />
+        <input type="text" name="username" placeholder="Usuario del restaurante" required autofocus />
         <div class="pass-wrap">
           <input type="password" name="password" id="pass" placeholder="Contraseña" required />
           <button type="button" class="toggle-pass" onclick="togglePass()">
@@ -41,6 +40,7 @@
         </div>
         <button type="submit" class="btn-dark-morfi">Iniciar sesión como socio</button>
         <p class="back-link">¿No tenés cuenta? <a href="{{ url_for('auth.register_partner') }}">Registrá tu restaurante</a></p>
+        <p class="back-link">¿Querés entrar como comensal? <a href="{{ url_for('auth.login') }}">Ir al login de usuario</a></p>
       </form>
     </div>
   </div>

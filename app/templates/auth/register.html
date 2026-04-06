@@ -20,12 +20,15 @@
         <div class="form-content-box">
             <h2 class="form-main-title">Crear cuenta</h2>
             
-            <form action="{{ url_for('auth.register') }}" method="POST">
+            <form action="{{ url_for('auth.register_comensal') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
                 <input type="text" name="name" class="morfi-custom-input" placeholder="Nombre completo" required>
                 <input type="text" name="username" class="morfi-custom-input" placeholder="Nombre de usuario" required>
                 <input type="email" name="email" class="morfi-custom-input" placeholder="Email" required>
+                <input type="text" id="user-register-address" name="address" class="morfi-custom-input" placeholder="Dirección" required>
+                <input type="hidden" id="user-register-lat" name="latitude">
+                <input type="hidden" id="user-register-lng" name="longitude">
                 
                 <div class="mb-1">
                     <input type="date" name="fecha" id="fecha" class="morfi-custom-input" required>

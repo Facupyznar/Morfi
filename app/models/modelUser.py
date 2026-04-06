@@ -31,7 +31,18 @@ class ModelUser:
         return None
 
     @staticmethod
-    def register(db, username, email, password, name=None, birth_date=None, rol=Role.COMENSAL):
+    def register(
+        db,
+        username,
+        email,
+        password,
+        name=None,
+        birth_date=None,
+        rol=Role.COMENSAL,
+        address=None,
+        latitude=None,
+        longitude=None,
+    ):
         normalized_username = (username or "").strip()
         normalized_email = (email or "").strip().lower()
         normalized_name = (name or "").strip() or None
@@ -55,6 +66,9 @@ class ModelUser:
             name=normalized_name,
             birth_date=birth_date,
             rol=rol,
+            address=address,
+            latitude=latitude,
+            longitude=longitude,
         )
         db.session.add(user)
         db.session.commit()
