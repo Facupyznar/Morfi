@@ -39,6 +39,7 @@ class User(db.Model, UserMixin):
         nullable=False,
         default=Role.COMENSAL,
     )
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     birth_date = db.Column(db.Date)
 
@@ -53,6 +54,7 @@ class User(db.Model, UserMixin):
         latitude=None,
         longitude=None,
         birth_date=None,
+        is_active=True,
         is_admin=False,
     ):
         self.username = username.strip()
@@ -60,6 +62,7 @@ class User(db.Model, UserMixin):
         self.name = name.strip() if isinstance(name, str) and name.strip() else None
         self.rol = rol if isinstance(rol, Role) else Role(rol)
         self.password = password
+        self.is_active = bool(is_active)
         self.is_admin = bool(is_admin)
         self.birth_date = self.parse_birth_date(birth_date)
         self.address = (address or "").strip()

@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Tags y Categorías - Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="system-layout">
+    {% include 'includes/_system_sidebar.html' %}
+
+    <main class="system-main">
+        <header class="system-page-header system-page-header--split">
+            <h1 class="system-page-title">Gestión de Tags y Categorías</h1>
+            <button type="button" class="admin-menu-add-btn" data-system-modal-open>
+                <i class="bi bi-plus-lg"></i>
+                <span>Nuevo tag</span>
+            </button>
+        </header>
+
+        <div class="system-search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" placeholder="Buscar tags..." data-system-tag-search>
+        </div>
+
+        <div class="system-tags-layout">
+            <aside class="system-category-panel">
+                <h3 class="system-panel-eyebrow">Categorías</h3>
+                <div class="system-category-list">
+                    {% for category in tag_categories %}
+                    <a href="{{ category.href }}" class="system-category-card {{ 'is-active' if category.active else '' }}">
+                        <p class="system-category-card__title">{{ category.name }}</p>
+                        <p class="system-category-card__meta">{{ category.tag_count }} tags · {{ category.restaurant_count }} restaurantes</p>
+                    </a>
+                    {% else %}
+                    <article class="admin-card admin-empty-state">
+                        <p>No hay categorías disponibles.</p>
+                    </article>
+                    {% endfor %}
+                </div>
+            </aside>
+
+            <section class="system-tags-panel">
+                <h3 class="system-panel-eyebrow">Tags en "{{ selected_category_name or 'Sin categoría' }}"</h3>
+                <div class="admin-card system-table-card">
+                    <div class="table-responsive">
+                        <table class="admin-table system-table">
+                            <thead>
+                                <tr>
+                                    <th>Tag</th>
+                                    <th>Restaurantes</th>
+                                    <th>Usuarios</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody data-system-tag-table>
+                                {% for tag in tags %}
+                                <tr data-tag-name="{{ (tag.name or '')|lower }}">
+                                    <td class="system-strong-cell">{{ tag.name }}</td>
+                                    <td class="system-muted-cell">{{ tag.restaurant_count }}</td>
+                                    <td class="system-muted-cell">{{ tag.user_count }}</td>
+                                    <td>
+                                        <button type="button" class="admin-menu-switch {{ 'is-on' if tag.active else '' }}" disabled>
+                                            <span class="admin-menu-switch__thumb"></span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="admin-table__empty">No hay tags para mostrar.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<div class="system-modal-backdrop" data-system-modal-backdrop hidden></div>
+<aside class="system-modal-card" data-system-modal hidden>
+    <div class="system-modal-card__head">
+        <h2>Nuevo tag</h2>
+        <button type="button" class="system-modal-close" data-system-modal-close aria-label="Cerrar">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
+    <form class="system-modal-form">
+        <div>
+            <label class="system-form-label">Nombre del tag</label>
+            <input type="text" placeholder="Ej: Fusión asiática" disabled>
+        </div>
+        <div>
+            <label class="system-form-label">Categoría</label>
+            <select disabled>
+                {% for category in tag_categories %}
+                <option>{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="system-form-label">Descripción</label>
+            <textarea rows="3" placeholder="Descripción breve del tag" disabled></textarea>
+        </div>
+        <div>
+            <label class="system-form-label">Ícono asociado</label>
+            <input type="text" placeholder="Ej: icon-name" disabled>
+        </div>
+        <button type="button" class="admin-menu-save-btn" disabled>Crear tag</button>
+    </form>
+</aside>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    (function () {
+        const searchInput = document.querySelector("[data-system-tag-search]");
+        const rows = Array.from(document.querySelectorAll("[data-system-tag-table] tr[data-tag-name]"));
+        const modal = document.querySelector("[data-system-modal]");
+        const backdrop = document.querySelector("[data-system-modal-backdrop]");
+        const openButton = document.querySelector("[data-system-modal-open]");
+        const closeButton = document.querySelector("[data-system-modal-close]");
+
+        if (searchInput) {
+            searchInput.addEventListener("input", function () {
+                const query = this.value.trim().toLowerCase();
+                rows.forEach((row) => {
+                    row.hidden = query && !row.dataset.tagName.includes(query);
+                });
+            });
+        }
+
+        function setModalState(isOpen) {
+            if (!modal || !backdrop) {
+                return;
+            }
+            modal.hidden = !isOpen;
+            backdrop.hidden = !isOpen;
+            document.body.classList.toggle("admin-drawer-open", isOpen);
+        }
+
+        if (openButton) {
+            openButton.addEventListener("click", () => setModalState(true));
+        }
+
+        if (closeButton) {
+            closeButton.addEventListener("click", () => setModalState(false));
+        }
+
+        if (backdrop) {
+            backdrop.addEventListener("click", () => setModalState(false));
+        }
+    })();
+</script>
+{% endblock %}

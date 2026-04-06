@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Menú - Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    {% include 'includes/_admin_sidebar.html' %}
+
+    <main class="admin-main admin-menu-page">
+        <header class="admin-menu-header">
+            <h1 class="admin-page-title">Gestión de Menú</h1>
+            <button type="button" class="admin-menu-add-btn" data-menu-open-drawer>
+                <i class="bi bi-plus-lg"></i>
+                <span>Agregar plato</span>
+            </button>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <section class="admin-menu-flashes" aria-label="Mensajes del sistema">
+                {% for category, message in messages %}
+                <div class="admin-menu-flash is-{{ category or 'info' }}">{{ message }}</div>
+                {% endfor %}
+            </section>
+            {% endif %}
+        {% endwith %}
+
+        <section class="admin-menu-filters" aria-label="Filtros de menú">
+            {% for category in categories %}
+            <button
+                type="button"
+                class="admin-menu-filter {{ 'is-active' if loop.first else '' }}"
+                data-category-filter="{{ category }}"
+            >
+                {{ category }}
+            </button>
+            {% endfor %}
+        </section>
+
+        <section class="admin-card admin-menu-table-card">
+            <div class="table-responsive">
+                <table class="admin-table admin-menu-table">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>Plato</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th>Disponible</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody data-menu-table-body>
+                        {% for item in menu_items %}
+                        <tr data-category="{{ item.category }}">
+                            <td>
+                                <div class="admin-menu-photo" aria-hidden="true">{{ item.photo_label }}</div>
+                            </td>
+                            <td class="admin-menu-name">{{ item.name }}</td>
+                            <td class="admin-menu-category">{{ item.category }}</td>
+                            <td class="admin-menu-price">${{ "{:,.0f}".format(item.price) }}</td>
+                            <td>
+                                <button
+                                    type="button"
+                                    class="admin-menu-switch {{ 'is-on' if item.available else '' }}"
+                                    aria-label="Cambiar disponibilidad de {{ item.name }}"
+                                >
+                                    <span class="admin-menu-switch__thumb"></span>
+                                </button>
+                            </td>
+                            <td>
+                                <div class="admin-menu-actions">
+                                    <button type="button" class="admin-menu-icon-btn" aria-label="Editar {{ item.name }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="admin-menu-icon-btn is-danger" aria-label="Eliminar {{ item.name }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr data-empty-row>
+                            <td colspan="6" class="admin-table__empty">No hay platos cargados todavía.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div class="admin-menu-drawer-backdrop" data-menu-backdrop hidden></div>
+<aside class="admin-menu-drawer" data-menu-drawer aria-hidden="true">
+    <div class="admin-menu-drawer__header">
+        <h2>Agregar plato</h2>
+        <button type="button" class="admin-menu-close-btn" data-menu-close-drawer aria-label="Cerrar panel">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
+    <form class="admin-menu-form" method="POST" action="{{ url_for('admin.menu') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="name" placeholder="Nombre del plato" required>
+        <textarea rows="3" name="description" placeholder="Descripción"></textarea>
+        <input type="number" name="price" placeholder="Precio" min="1" step="0.01" required>
+        <select name="category" required>
+            <option selected disabled>Categoría</option>
+            {% for category in categories if category != 'Todas' %}
+            <option>{{ category }}</option>
+            {% endfor %}
+        </select>
+        <button type="button" class="admin-menu-upload-box">Subir foto</button>
+        <button type="submit" class="admin-menu-save-btn">Guardar plato</button>
+    </form>
+</aside>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    (function () {
+        const filterButtons = Array.from(document.querySelectorAll("[data-category-filter]"));
+        const rows = Array.from(document.querySelectorAll("[data-menu-table-body] tr[data-category]"));
+        const emptyRow = document.querySelector("[data-empty-row]");
+        const drawer = document.querySelector("[data-menu-drawer]");
+        const backdrop = document.querySelector("[data-menu-backdrop]");
+        const openButton = document.querySelector("[data-menu-open-drawer]");
+        const closeButtons = Array.from(document.querySelectorAll("[data-menu-close-drawer]"));
+        const form = document.querySelector(".admin-menu-form");
+
+        function applyFilter(category) {
+            let visibleRows = 0;
+
+            rows.forEach((row) => {
+                const matches = category === "Todas" || row.dataset.category === category;
+                row.hidden = !matches;
+                if (matches) {
+                    visibleRows += 1;
+                }
+            });
+
+            if (emptyRow) {
+                emptyRow.hidden = visibleRows !== 0 || rows.length !== 0;
+            }
+        }
+
+        filterButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                filterButtons.forEach((item) => item.classList.remove("is-active"));
+                button.classList.add("is-active");
+                applyFilter(button.dataset.categoryFilter);
+            });
+        });
+
+        document.querySelectorAll(".admin-menu-switch").forEach((button) => {
+            button.addEventListener("click", () => {
+                button.classList.toggle("is-on");
+            });
+        });
+
+        function setDrawerState(isOpen) {
+            if (!drawer || !backdrop) {
+                return;
+            }
+
+            drawer.classList.toggle("is-open", isOpen);
+            drawer.setAttribute("aria-hidden", String(!isOpen));
+            backdrop.hidden = !isOpen;
+            document.body.classList.toggle("admin-drawer-open", isOpen);
+        }
+
+        if (openButton) {
+            openButton.addEventListener("click", () => setDrawerState(true));
+        }
+
+        closeButtons.forEach((button) => {
+            button.addEventListener("click", () => setDrawerState(false));
+        });
+
+        if (backdrop) {
+            backdrop.addEventListener("click", () => setDrawerState(false));
+        }
+
+        if (form) {
+            form.addEventListener("submit", (event) => {
+                const categoryField = form.querySelector("select[name='category']");
+                if (categoryField && !categoryField.value) {
+                    event.preventDefault();
+                }
+            });
+        }
+
+        applyFilter("Todas");
+
+        {% if open_drawer %}
+        setDrawerState(true);
+        {% endif %}
+    })();
+</script>
+{% endblock %}

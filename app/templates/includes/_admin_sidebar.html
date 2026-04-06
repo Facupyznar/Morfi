@@ -1,7 +1,7 @@
 {% set admin_nav_items = admin_nav_items if admin_nav_items is defined else [
     {'endpoint': 'admin.dashboard', 'label': 'Inicio', 'icon': 'bi-house-door'},
     {'endpoint': 'admin.edit_restaurant_profile', 'label': 'Perfil', 'icon': 'bi-shop'},
-    {'endpoint': 'admin.menu', 'label': 'Menú', 'icon': 'bi-utensils'},
+    {'endpoint': 'admin.menu', 'label': 'Menú', 'icon_svg': 'fork-knife'},
     {'endpoint': 'admin.reservations', 'label': 'Reservas', 'icon': 'bi-calendar3'},
     {'endpoint': 'admin.offers', 'label': 'Ofertas', 'icon': 'bi-tags'},
     {'endpoint': 'admin.reviews', 'label': 'Reseñas', 'icon': 'bi-star'},
@@ -16,10 +16,14 @@
         {% for item in admin_nav_items %}
             {% set is_active = active_admin_section is defined and active_admin_section == item.label %}
             <a
-                href="{% if item.endpoint in ['admin.dashboard', 'admin.edit_restaurant_profile'] %}{{ url_for(item.endpoint) }}{% else %}#{% endif %}"
+                href="{% if item.endpoint in ['admin.dashboard', 'admin.edit_restaurant_profile', 'admin.menu'] %}{{ url_for(item.endpoint) }}{% else %}#{% endif %}"
                 class="admin-sidebar__link {{ 'is-active' if is_active else '' }}"
             >
+                {% if item.icon_svg is defined %}
+                {% include 'includes/icons/' ~ item.icon_svg ~ '.svg' %}
+                {% else %}
                 <i class="bi {{ item.icon }}"></i>
+                {% endif %}
                 <span>{{ item.label }}</span>
             </a>
         {% endfor %}

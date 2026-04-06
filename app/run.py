@@ -11,6 +11,7 @@ from app.routes.admin import admin_bp
 from app.routes.auth import auth_bp
 from app.routes.home import home_bp
 from app.routes.profile import profile_bp
+from app.routes.system import system_bp
 
 
 def create_app():
@@ -37,6 +38,7 @@ def create_app():
     flask_app.register_blueprint(admin_bp)
     flask_app.register_blueprint(home_bp)
     flask_app.register_blueprint(profile_bp)
+    flask_app.register_blueprint(system_bp)
 
 
     return flask_app

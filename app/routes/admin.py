@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from sqlalchemy import and_, or_
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
@@ -6,6 +8,8 @@ from flask_login import current_user, login_required
 from app.database import db
 from app.location import resolve_location_payload
 from app.models.enums import TagCategory
+from app.models.menu import Menu
+from app.models.menu_tags import MenuTags
 from app.models.restaurant import Restaurant
 from app.models.restaurant_tags import RestaurantTags
 from app.models.tag import Tag
@@ -13,6 +17,7 @@ from app.models.user import Role, User
 
 
 admin_bp = Blueprint("admin", __name__)
+MENU_DEFAULT_CATEGORIES = ["Entradas", "Carnes", "Guarniciones", "Postres"]
 
 
 def _admin_required():
@@ -28,11 +33,48 @@ def _get_owned_restaurant():
     )
 
 
+def _build_menu_view_data(restaurant):
+    menus = (
+        db.session.query(Menu)
+        .filter(Menu.id_restaurant == restaurant.id_restaurant)
+        .order_by(Menu.nombre.asc())
+        .all()
+    )
+
+    menu_items = []
+    category_names = []
+    for item in menus:
+        category_tag = next(
+            (
+                relation.tag.name
+                for relation in item.menu_tags
+                if relation.tag and relation.tag.category == TagCategory.COMIDA
+            ),
+            None,
+        )
+        fallback_tag = next((relation.tag.name for relation in item.menu_tags if relation.tag), None)
+        category_name = category_tag or fallback_tag or "Sin categoría"
+        category_names.append(category_name)
+        menu_items.append(
+            {
+                "id": str(item.id_plato),
+                "name": item.nombre,
+                "category": category_name,
+                "price": float(item.precio or 0),
+                "available": bool(item.disponibilidad),
+                "photo_label": (item.nombre or "?")[:1].upper(),
+            }
+        )
+
+    categories = ["Todas"]
+    categories.extend(sorted(set(category_names)) or MENU_DEFAULT_CATEGORIES)
+    return {"menu_items": menu_items, "categories": categories}
+
+
 @admin_bp.route("/admin/dashboard")
 @login_required
 def dashboard():
     if not _admin_required():
-        flash("No tenés permisos para acceder al panel de administración.", "danger")
         return redirect(url_for("profile.profile"))
 
     users = db.session.query(User).order_by(User.is_admin.desc(), User.username.asc()).all()
@@ -73,19 +115,83 @@ def dashboard():
         },
         "profiles": profiles,
     }
-    return render_template("admin_dashboard.html", dashboard=dashboard_data)
+    return render_template(
+        "admin_dashboard.html",
+        dashboard=dashboard_data,
+        active_admin_section="Inicio",
+    )
+
+
+@admin_bp.route("/admin/menu", methods=["GET", "POST"])
+@login_required
+def menu():
+    if not _admin_required():
+        return redirect(url_for("home.home"))
+
+    restaurant = _get_owned_restaurant()
+    if restaurant is None:
+        return redirect(url_for("admin.dashboard"))
+
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        description = (request.form.get("description") or "").strip()
+        category_name = (request.form.get("category") or "").strip()
+        raw_price = (request.form.get("price") or "").strip()
+
+        if not name:
+            return redirect(url_for("admin.menu", open_drawer=1))
+
+        if not category_name:
+            return redirect(url_for("admin.menu", open_drawer=1))
+
+        try:
+            price = Decimal(raw_price)
+        except (InvalidOperation, TypeError):
+            return redirect(url_for("admin.menu", open_drawer=1))
+
+        if price <= 0:
+            return redirect(url_for("admin.menu", open_drawer=1))
+
+        item = Menu(
+            id_restaurant=restaurant.id_restaurant,
+            nombre=name,
+            precio=price,
+            disponibilidad=True,
+            tags=description or None,
+        )
+        db.session.add(item)
+        db.session.flush()
+
+        category_tag = db.session.query(Tag).filter(Tag.name == category_name).first()
+        if category_tag is None:
+            category_tag = Tag(name=category_name, category=TagCategory.COMIDA)
+            db.session.add(category_tag)
+            db.session.flush()
+
+        db.session.add(MenuTags(id_plato=item.id_plato, id_tag=category_tag.id_tag))
+        db.session.commit()
+        return redirect(url_for("admin.menu"))
+
+    view_data = _build_menu_view_data(restaurant)
+
+    return render_template(
+        "admin_menu.html",
+        menu_items=view_data["menu_items"],
+        categories=view_data["categories"],
+        active_admin_section="Menú",
+        open_drawer=request.args.get("open_drawer") == "1",
+    )
+
 
 
 @admin_bp.route("/admin/profile/edit")
 @login_required
 def edit_restaurant_profile():
     if not _admin_required():
-        flash("No tenés permisos para acceder a esta pantalla.", "danger")
         return redirect(url_for("home.home"))
 
     restaurant = _get_owned_restaurant()
     if restaurant is None:
-        flash("No encontramos un restaurante asociado a tu cuenta.", "warning")
         return redirect(url_for("admin.dashboard"))
 
     all_tags = db.session.query(Tag).order_by(Tag.category, Tag.name).all()
@@ -109,12 +215,10 @@ def edit_restaurant_profile():
 @login_required
 def update_restaurant_profile():
     if not _admin_required():
-        flash("No tenés permisos para realizar esta acción.", "danger")
         return redirect(url_for("home.home"))
 
     restaurant = _get_owned_restaurant()
     if restaurant is None:
-        flash("No encontramos un restaurante asociado a tu cuenta.", "warning")
         return redirect(url_for("admin.dashboard"))
 
     name = (request.form.get("name") or "").strip()
@@ -127,13 +231,11 @@ def update_restaurant_profile():
     selected_tag_names = cuisines + ambience + occasions
 
     if not name:
-        flash("El nombre del restaurante es obligatorio.", "warning")
         return redirect(url_for("admin.edit_restaurant_profile"))
 
     try:
         location_payload = resolve_location_payload(address, latitude, longitude)
     except ValueError as ex:
-        flash(str(ex), "warning")
         return redirect(url_for("admin.edit_restaurant_profile"))
 
     restaurant.name = name
@@ -166,7 +268,6 @@ def update_restaurant_profile():
         db.session.add(RestaurantTags(id_restaurant=restaurant.id_restaurant, id_tag=tag.id_tag))
 
     db.session.commit()
-    flash("Perfil del restaurante actualizado correctamente.", "success")
     return redirect(url_for("admin.edit_restaurant_profile"))
 
 
@@ -174,20 +275,16 @@ def update_restaurant_profile():
 @login_required
 def delete_user(user_id):
     if not _admin_required():
-        flash("No tenés permisos para realizar esta acción.", "danger")
         return redirect(url_for("profile.profile"))
 
     user = db.session.get(User, user_id)
     if user is None:
-        flash("El perfil que intentaste eliminar no existe.", "warning")
         return redirect(url_for("admin.dashboard"))
 
     if str(user.user_id) == current_user.get_id():
-        flash("No podés eliminar tu propio perfil desde el panel de administración.", "warning")
         return redirect(url_for("admin.dashboard"))
 
     username = user.username
     db.session.delete(user)
     db.session.commit()
-    flash(f"El perfil de {username} fue eliminado correctamente.", "success")
     return redirect(url_for("admin.dashboard"))

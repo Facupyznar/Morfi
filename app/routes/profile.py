@@ -4,7 +4,7 @@ import uuid
 from sqlalchemy import and_, func, or_
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, logout_user
 from werkzeug.utils import secure_filename
 
 from app.database import db
@@ -37,6 +37,11 @@ SETUP_EXEMPT_ENDPOINTS = {
 def enforce_profile_setup():
     if not current_user.is_authenticated:
         return None
+
+    if not getattr(current_user, "is_active", True):
+        logout_user()
+        flash("Tu cuenta está suspendida. Contactá al equipo de soporte.", "danger")
+        return redirect(url_for("auth.login"))
 
     role_value = getattr(getattr(current_user, "rol", None), "value", None)
     if role_value not in {"comensal", "admin_global"}:
@@ -195,6 +200,8 @@ def profile():
         "dietary_restrictions": restriction_names,
         "recent_activity": recent_activity,
         "is_admin": bool(getattr(user_record, "is_admin", False)),
+        "is_global_admin": getattr(getattr(user_record, "rol", None), "value", None) == "admin_global",
+        "system_panel_href": url_for("system.restaurants"),
     }
     return render_template("profile.html", user=user_data)
 

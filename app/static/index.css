@@ -158,9 +158,15 @@ body > main.container.mt-4 {
     transition: transform 0.3s ease;
 }
 
-.icon-circle i {
+.icon-circle i,
+.icon-circle svg {
     color: #F2673B;
     font-size: 2rem;
+}
+
+.icon-circle svg {
+    width: 2rem;
+    height: 2rem;
 }
 
 .card-benefit:hover .icon-circle {

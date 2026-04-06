@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Alta y Verificación de Restaurantes - Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="system-layout">
+    {% include 'includes/_system_sidebar.html' %}
+
+    <main class="system-main system-split-layout">
+        <section class="system-list-panel {{ 'has-selection' if selected_restaurant else '' }}">
+            <header class="system-page-header">
+                <h1 class="system-page-title">Alta y Verificación de Restaurantes</h1>
+            </header>
+
+            <div class="system-request-list">
+                {% for restaurant in restaurants %}
+                <a href="{{ restaurant.href }}" class="system-request-card {{ 'is-selected' if selected_restaurant and selected_restaurant.id == restaurant.id else '' }}">
+                    <div class="system-request-card__media">
+                        {% if restaurant.logo_url %}
+                        <img src="{{ restaurant.logo_url }}" alt="{{ restaurant.name }}">
+                        {% else %}
+                        <div class="system-avatar-tile">{{ (restaurant.name or 'R')[:1]|upper }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="system-request-card__body">
+                        <p class="system-request-card__title">{{ restaurant.name }}</p>
+                        <p class="system-request-card__meta"><i class="bi bi-geo-alt"></i>{{ restaurant.address or 'Sin dirección' }}</p>
+                        <p class="system-request-card__date">Solicitud: {{ restaurant.requested_at_label or 'Sin fecha' }}</p>
+                    </div>
+                    <span class="system-badge system-badge--{{ restaurant.status_slug or 'pending' }}">{{ restaurant.status_label or 'Pendiente' }}</span>
+                    <i class="bi bi-chevron-right system-request-card__chevron"></i>
+                </a>
+                {% else %}
+                <article class="admin-card admin-empty-state">
+                    <p>No hay restaurantes para revisar.</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% if selected_restaurant %}
+        <aside class="system-detail-panel">
+            <div class="system-detail-head">
+                <div class="system-detail-head__media">
+                    {% if selected_restaurant.logo_url %}
+                    <img src="{{ selected_restaurant.logo_url }}" alt="{{ selected_restaurant.name }}">
+                    {% else %}
+                    <div class="system-avatar-tile system-avatar-tile--lg">{{ (selected_restaurant.name or 'R')[:1]|upper }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <h2>{{ selected_restaurant.name }}</h2>
+                    <p>{{ selected_restaurant.category_name or 'Sin categoría' }}</p>
+                </div>
+            </div>
+
+            <div class="system-detail-grid">
+                <div>
+                    <p class="system-detail-grid__label">Dirección</p>
+                    <p class="system-detail-grid__value">{{ selected_restaurant.address or 'Sin dirección' }}</p>
+                </div>
+                <div>
+                    <p class="system-detail-grid__label">Teléfono</p>
+                    <p class="system-detail-grid__value">{{ selected_restaurant.phone or 'Sin teléfono' }}</p>
+                </div>
+                <div>
+                    <p class="system-detail-grid__label">Email</p>
+                    <p class="system-detail-grid__value">{{ selected_restaurant.email or 'Sin email' }}</p>
+                </div>
+                <div>
+                    <p class="system-detail-grid__label">Fecha solicitud</p>
+                    <p class="system-detail-grid__value">{{ selected_restaurant.requested_at_label or 'Sin fecha' }}</p>
+                </div>
+            </div>
+
+            <div class="system-map-placeholder">
+                <i class="bi bi-geo-alt"></i>
+                <span>Mapa de ubicación</span>
+            </div>
+
+            <section class="system-section-block">
+                <h3>Documentación adjunta</h3>
+                <div class="system-doc-list">
+                    {% for document in selected_restaurant.documents %}
+                    <div class="system-doc-item">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>{{ document.label }}</span>
+                    </div>
+                    {% else %}
+                    <p class="system-muted-copy">No hay documentación adjunta.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="system-section-block">
+                <h3>Checklist de verificación</h3>
+                <div class="system-checklist">
+                    {% for item in verification_checklist %}
+                    <label class="system-checklist__item">
+                        <input type="checkbox" {% if item.checked %}checked{% endif %} disabled>
+                        <span>{{ item.label }}</span>
+                    </label>
+                    {% else %}
+                    <p class="system-muted-copy">No hay checks configurados.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            {% if selected_restaurant.status_slug == 'inactivo' %}
+            <section class="system-section-block">
+                <label class="system-form-label" for="restaurant-reject-reason">Motivo de rechazo</label>
+                <textarea id="restaurant-reject-reason" class="system-textarea" rows="3" placeholder="Detallá el motivo..." disabled></textarea>
+                <div class="system-action-row">
+                    <button type="button" class="system-btn system-btn--success" disabled>
+                        <i class="bi bi-check-circle"></i>
+                        <span>Aprobar y habilitar</span>
+                    </button>
+                    <button type="button" class="system-btn system-btn--danger" disabled>
+                        <i class="bi bi-x-circle"></i>
+                        <span>Rechazar</span>
+                    </button>
+                </div>
+            </section>
+            {% endif %}
+        </aside>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

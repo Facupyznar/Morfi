@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Moderación de Reseñas - Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="system-layout">
+    {% include 'includes/_system_sidebar.html' %}
+
+    <main class="system-main">
+        <header class="system-page-header">
+            <h1 class="system-page-title">Moderación de Reseñas</h1>
+        </header>
+
+        <section class="system-alert-banner">
+            <i class="bi bi-exclamation-triangle"></i>
+            <p>{{ pending_reviews_count or 0 }} reseñas pendientes de revisión</p>
+        </section>
+
+        <section class="system-chip-row">
+            {% for filter_item in review_filters %}
+            <button type="button" class="system-chip {{ 'is-active' if filter_item.active else '' }}" data-filter-chip="{{ filter_item.slug }}">{{ filter_item.label }}</button>
+            {% else %}
+            <button type="button" class="system-chip is-active">Todas</button>
+            {% endfor %}
+        </section>
+
+        <section class="admin-card system-table-card">
+            <div class="table-responsive">
+                <table class="admin-table system-table">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Restaurante</th>
+                            <th>Comentario</th>
+                            <th>Motivo</th>
+                            <th>Reportes</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for review in reviews %}
+                        <tr>
+                            <td>
+                                <div class="system-user-inline">
+                                    <div class="admin-user-cell__avatar">{{ review.user_initials or 'US' }}</div>
+                                    <span>{{ review.user_name }}</span>
+                                </div>
+                            </td>
+                            <td class="system-muted-cell">{{ review.restaurant_name }}</td>
+                            <td class="system-truncate-cell">{{ review.comment }}</td>
+                            <td>
+                                <span class="system-inline-badge">{{ review.reason_label }}</span>
+                            </td>
+                            <td class="system-danger-cell">{{ review.report_count }}</td>
+                            <td class="system-muted-cell">{{ review.created_at_label }}</td>
+                            <td>
+                                {% if review.status_slug == 'pending' %}
+                                <div class="system-table-actions">
+                                    <button type="button" class="system-inline-btn system-inline-btn--danger" disabled>
+                                        <i class="bi bi-trash"></i>
+                                        <span>Eliminar</span>
+                                    </button>
+                                    <button type="button" class="system-inline-btn" disabled>Desestimar</button>
+                                </div>
+                                {% elif review.status_slug == 'removed' %}
+                                <span class="system-removed-label"><i class="bi bi-x-circle"></i>Eliminada</span>
+                                {% else %}
+                                <span class="system-badge system-badge--active">{{ review.status_label or 'Publicada' }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="admin-table__empty">No hay reseñas para mostrar.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

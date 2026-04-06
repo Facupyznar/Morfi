@@ -97,6 +97,9 @@ def login():
 
         user = ModelUser.login(db, username, password)
         if user:
+            if not getattr(user, "is_active", True):
+                flash("Tu cuenta está suspendida. Contactá al equipo de soporte.", "danger")
+                return render_template("auth/login.html")
             if user.role not in {Role.COMENSAL.value, Role.ADMIN_GLOBAL.value}:
                 flash("Esta cuenta no puede iniciar sesión desde el acceso de comensal.", "danger")
                 return render_template("auth/login.html")
