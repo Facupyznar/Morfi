@@ -5,7 +5,7 @@ from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
-from app.database import db
+from app.database import db, ensure_menu_schema
 from app.models.user import User
 from app.routes.admin import admin_bp
 from app.routes.auth import auth_bp
@@ -21,6 +21,10 @@ def create_app():
     csrf = CSRFProtect()
     csrf.init_app(flask_app)
     db.init_app(flask_app)
+
+    with flask_app.app_context():
+        db.create_all()
+        ensure_menu_schema()
 
     login_manager = LoginManager()
     login_manager.login_view = "auth.login"

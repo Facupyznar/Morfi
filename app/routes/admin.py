@@ -1,3 +1,5 @@
+import uuid
+from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 
 from sqlalchemy import and_, or_
@@ -44,22 +46,21 @@ def _build_menu_view_data(restaurant):
     menu_items = []
     category_names = []
     for item in menus:
-        category_tag = next(
-            (
-                relation.tag.name
-                for relation in item.menu_tags
-                if relation.tag and relation.tag.category == TagCategory.COMIDA
-            ),
-            None,
+        selected_tags = sorted(
+            [relation.tag for relation in item.menu_tags if relation.tag],
+            key=lambda tag: (getattr(getattr(tag, "category", None), "value", ""), tag.name or ""),
         )
-        fallback_tag = next((relation.tag.name for relation in item.menu_tags if relation.tag), None)
-        category_name = category_tag or fallback_tag or "Sin categoría"
-        category_names.append(category_name)
+        selected_tag_names = [tag.name for tag in selected_tags]
+        category_label = ", ".join(selected_tag_names) or item.categoria or "Sin tags"
+        category_names.extend(selected_tag_names)
         menu_items.append(
             {
                 "id": str(item.id_plato),
                 "name": item.nombre,
-                "category": category_name,
+                "description": item.descripcion or "",
+                "category": category_label,
+                "selected_tag_ids": [str(tag.id_tag) for tag in selected_tags],
+                "selected_tag_names": selected_tag_names,
                 "price": float(item.precio or 0),
                 "available": bool(item.disponibilidad),
                 "photo_label": (item.nombre or "?")[:1].upper(),
@@ -69,6 +70,95 @@ def _build_menu_view_data(restaurant):
     categories = ["Todas"]
     categories.extend(sorted(set(category_names)) or MENU_DEFAULT_CATEGORIES)
     return {"menu_items": menu_items, "categories": categories}
+
+
+def _get_owned_menu_item(restaurant, item_id):
+    return (
+        db.session.query(Menu)
+        .filter(
+            Menu.id_plato == item_id,
+            Menu.id_restaurant == restaurant.id_restaurant,
+        )
+        .first()
+    )
+
+
+def _menu_tag_group_title(category):
+    labels = {
+        TagCategory.COMIDA: "Tipo de plato",
+        TagCategory.DIETA: "Dietas y restricciones",
+        TagCategory.OTRO: "Otros tags",
+    }
+    return labels.get(category, getattr(category, "value", "Tags").replace("_", " ").title())
+
+
+def _build_available_menu_tags():
+    allowed_categories = [TagCategory.COMIDA, TagCategory.DIETA, TagCategory.OTRO]
+    tag_records = (
+        db.session.query(Tag)
+        .filter(Tag.category.in_(allowed_categories))
+        .order_by(Tag.category.asc(), Tag.name.asc())
+        .all()
+    )
+
+    grouped_tags = defaultdict(list)
+    for tag in tag_records:
+        grouped_tags[tag.category].append(
+            {
+                "id": str(tag.id_tag),
+                "name": tag.name,
+            }
+        )
+
+    ordered_groups = []
+    for category in allowed_categories:
+        tags = grouped_tags.get(category, [])
+        if tags:
+            ordered_groups.append(
+                {
+                    "slug": getattr(category, "value", str(category)),
+                    "title": _menu_tag_group_title(category),
+                    "tags": tags,
+                }
+            )
+    return ordered_groups
+
+
+def _resolve_selected_menu_tags(raw_tag_ids):
+    normalized_ids = []
+    for raw_tag_id in raw_tag_ids:
+        try:
+            normalized_ids.append(uuid.UUID(str(raw_tag_id)))
+        except (TypeError, ValueError, AttributeError):
+            continue
+
+    if not normalized_ids:
+        return []
+
+    selected_tags = (
+        db.session.query(Tag)
+        .filter(Tag.id_tag.in_(normalized_ids))
+        .order_by(Tag.category.asc(), Tag.name.asc())
+        .all()
+    )
+    return selected_tags
+
+
+def _upsert_menu_item(item, *, restaurant, name, description, selected_tags, price, available):
+    item.id_restaurant = restaurant.id_restaurant
+    item.nombre = name
+    item.precio = price
+    item.disponibilidad = available
+    item.descripcion = description or None
+    item.categoria = ", ".join(tag.name for tag in selected_tags) or None
+    db.session.add(item)
+    db.session.flush()
+
+    db.session.query(MenuTags).filter(
+        MenuTags.id_plato == item.id_plato
+    ).delete(synchronize_session=False)
+    for tag in selected_tags:
+        db.session.add(MenuTags(id_plato=item.id_plato, id_tag=tag.id_tag))
 
 
 @admin_bp.route("/admin/dashboard")
@@ -135,13 +225,13 @@ def menu():
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
         description = (request.form.get("description") or "").strip()
-        category_name = (request.form.get("category") or "").strip()
+        selected_tags = _resolve_selected_menu_tags(request.form.getlist("tag_ids"))
         raw_price = (request.form.get("price") or "").strip()
 
         if not name:
             return redirect(url_for("admin.menu", open_drawer=1))
 
-        if not category_name:
+        if not selected_tags:
             return redirect(url_for("admin.menu", open_drawer=1))
 
         try:
@@ -152,24 +242,18 @@ def menu():
         if price <= 0:
             return redirect(url_for("admin.menu", open_drawer=1))
 
-        item = Menu(
-            id_restaurant=restaurant.id_restaurant,
-            nombre=name,
-            precio=price,
-            disponibilidad=True,
-            tags=description or None,
+        item = Menu()
+        _upsert_menu_item(
+            item,
+            restaurant=restaurant,
+            name=name,
+            description=description,
+            selected_tags=selected_tags,
+            price=price,
+            available=True,
         )
-        db.session.add(item)
-        db.session.flush()
-
-        category_tag = db.session.query(Tag).filter(Tag.name == category_name).first()
-        if category_tag is None:
-            category_tag = Tag(name=category_name, category=TagCategory.COMIDA)
-            db.session.add(category_tag)
-            db.session.flush()
-
-        db.session.add(MenuTags(id_plato=item.id_plato, id_tag=category_tag.id_tag))
         db.session.commit()
+        flash("Plato agregado correctamente.", "success")
         return redirect(url_for("admin.menu"))
 
     view_data = _build_menu_view_data(restaurant)
@@ -178,9 +262,100 @@ def menu():
         "admin_menu.html",
         menu_items=view_data["menu_items"],
         categories=view_data["categories"],
+        menu_tag_groups=_build_available_menu_tags(),
         active_admin_section="Menú",
         open_drawer=request.args.get("open_drawer") == "1",
     )
+
+
+@admin_bp.route("/admin/menu/<uuid:item_id>/edit", methods=["POST"])
+@login_required
+def edit_menu_item(item_id):
+    if not _admin_required():
+        return redirect(url_for("home.home"))
+
+    restaurant = _get_owned_restaurant()
+    if restaurant is None:
+        return redirect(url_for("admin.dashboard"))
+
+    item = _get_owned_menu_item(restaurant, item_id)
+    if item is None:
+        flash("No se encontró el plato a editar.", "danger")
+        return redirect(url_for("admin.menu"))
+
+    name = (request.form.get("name") or "").strip()
+    description = (request.form.get("description") or "").strip()
+    selected_tags = _resolve_selected_menu_tags(request.form.getlist("tag_ids"))
+    raw_price = (request.form.get("price") or "").strip()
+
+    if not name or not selected_tags:
+        flash("Completá nombre y al menos un tag para editar el plato.", "warning")
+        return redirect(url_for("admin.menu", open_drawer=1))
+
+    try:
+        price = Decimal(raw_price)
+    except (InvalidOperation, TypeError):
+        flash("Ingresá un precio válido.", "warning")
+        return redirect(url_for("admin.menu", open_drawer=1))
+
+    if price <= 0:
+        flash("El precio debe ser mayor a cero.", "warning")
+        return redirect(url_for("admin.menu", open_drawer=1))
+
+    _upsert_menu_item(
+        item,
+        restaurant=restaurant,
+        name=name,
+        description=description,
+        selected_tags=selected_tags,
+        price=price,
+        available=bool(item.disponibilidad),
+    )
+    db.session.commit()
+    flash("Plato actualizado correctamente.", "success")
+    return redirect(url_for("admin.menu"))
+
+
+@admin_bp.route("/admin/menu/<uuid:item_id>/delete", methods=["POST"])
+@login_required
+def delete_menu_item(item_id):
+    if not _admin_required():
+        return redirect(url_for("home.home"))
+
+    restaurant = _get_owned_restaurant()
+    if restaurant is None:
+        return redirect(url_for("admin.dashboard"))
+
+    item = _get_owned_menu_item(restaurant, item_id)
+    if item is None:
+        flash("No se encontró el plato a eliminar.", "danger")
+        return redirect(url_for("admin.menu"))
+
+    db.session.delete(item)
+    db.session.commit()
+    flash("Plato eliminado correctamente.", "success")
+    return redirect(url_for("admin.menu"))
+
+
+@admin_bp.route("/admin/menu/<uuid:item_id>/availability", methods=["POST"])
+@login_required
+def update_menu_item_availability(item_id):
+    if not _admin_required():
+        return redirect(url_for("home.home"))
+
+    restaurant = _get_owned_restaurant()
+    if restaurant is None:
+        return redirect(url_for("admin.dashboard"))
+
+    item = _get_owned_menu_item(restaurant, item_id)
+    if item is None:
+        flash("No se encontró el plato para actualizar disponibilidad.", "danger")
+        return redirect(url_for("admin.menu"))
+
+    item.disponibilidad = request.form.get("available") == "1"
+    db.session.commit()
+    flash("Disponibilidad actualizada correctamente.", "success")
+    return redirect(url_for("admin.menu"))
 
 
 

@@ -51,7 +51,7 @@
                         <tr>
                             <th>Foto</th>
                             <th>Plato</th>
-                            <th>Categoría</th>
+                            <th>Categorías</th>
                             <th>Precio</th>
                             <th>Disponible</th>
                             <th>Acciones</th>
@@ -59,7 +59,15 @@
                     </thead>
                     <tbody data-menu-table-body>
                         {% for item in menu_items %}
-                        <tr data-category="{{ item.category }}">
+                        <tr
+                            data-category="{{ item.category }}"
+                            data-tags="{{ item.selected_tag_names|join('|') }}"
+                            data-item-id="{{ item.id }}"
+                            data-item-name="{{ item.name }}"
+                            data-item-description="{{ item.description }}"
+                            data-item-price="{{ item.price }}"
+                            data-item-tag-ids="{{ item.selected_tag_ids|join(',') }}"
+                        >
                             <td>
                                 <div class="admin-menu-photo" aria-hidden="true">{{ item.photo_label }}</div>
                             </td>
@@ -67,22 +75,34 @@
                             <td class="admin-menu-category">{{ item.category }}</td>
                             <td class="admin-menu-price">${{ "{:,.0f}".format(item.price) }}</td>
                             <td>
-                                <button
-                                    type="button"
-                                    class="admin-menu-switch {{ 'is-on' if item.available else '' }}"
-                                    aria-label="Cambiar disponibilidad de {{ item.name }}"
-                                >
-                                    <span class="admin-menu-switch__thumb"></span>
-                                </button>
+                                <form method="POST" action="{{ url_for('admin.update_menu_item_availability', item_id=item.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="available" value="{{ '0' if item.available else '1' }}">
+                                    <button
+                                        type="submit"
+                                        class="admin-menu-switch {{ 'is-on' if item.available else '' }}"
+                                        aria-label="Cambiar disponibilidad de {{ item.name }}"
+                                    >
+                                        <span class="admin-menu-switch__thumb"></span>
+                                    </button>
+                                </form>
                             </td>
                             <td>
                                 <div class="admin-menu-actions">
-                                    <button type="button" class="admin-menu-icon-btn" aria-label="Editar {{ item.name }}">
+                                    <button
+                                        type="button"
+                                        class="admin-menu-icon-btn"
+                                        aria-label="Editar {{ item.name }}"
+                                        data-menu-edit
+                                    >
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button type="button" class="admin-menu-icon-btn is-danger" aria-label="Eliminar {{ item.name }}">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    <form method="POST" action="{{ url_for('admin.delete_menu_item', item_id=item.id) }}" onsubmit="return window.confirm('¿Eliminar {{ item.name }}?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="admin-menu-icon-btn is-danger" aria-label="Eliminar {{ item.name }}">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -101,25 +121,36 @@
 <div class="admin-menu-drawer-backdrop" data-menu-backdrop hidden></div>
 <aside class="admin-menu-drawer" data-menu-drawer aria-hidden="true">
     <div class="admin-menu-drawer__header">
-        <h2>Agregar plato</h2>
+        <h2 data-menu-drawer-title>Agregar plato</h2>
         <button type="button" class="admin-menu-close-btn" data-menu-close-drawer aria-label="Cerrar panel">
             <i class="bi bi-x-lg"></i>
         </button>
     </div>
 
-    <form class="admin-menu-form" method="POST" action="{{ url_for('admin.menu') }}">
+    <form class="admin-menu-form" method="POST" action="{{ url_for('admin.menu') }}" data-menu-create-action="{{ url_for('admin.menu') }}" data-menu-edit-action-template="{{ url_for('admin.edit_menu_item', item_id='00000000-0000-0000-0000-000000000000') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="text" name="name" placeholder="Nombre del plato" required>
         <textarea rows="3" name="description" placeholder="Descripción"></textarea>
         <input type="number" name="price" placeholder="Precio" min="1" step="0.01" required>
-        <select name="category" required>
-            <option selected disabled>Categoría</option>
-            {% for category in categories if category != 'Todas' %}
-            <option>{{ category }}</option>
+        <div class="admin-menu-tag-groups">
+            {% for group in menu_tag_groups %}
+            <div class="admin-menu-tag-group">
+                <p class="admin-menu-tag-group__title">{{ group.title }}</p>
+                <div class="admin-menu-tag-options">
+                    {% for tag in group.tags %}
+                    <label class="admin-menu-tag-option">
+                        <input type="checkbox" name="tag_ids" value="{{ tag.id }}">
+                        <span>{{ tag.name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No hay tags disponibles para asignar a platos.</p>
             {% endfor %}
-        </select>
+        </div>
         <button type="button" class="admin-menu-upload-box">Subir foto</button>
-        <button type="submit" class="admin-menu-save-btn">Guardar plato</button>
+        <button type="submit" class="admin-menu-save-btn" data-menu-submit-label>Guardar plato</button>
     </form>
 </aside>
 {% endblock %}
@@ -135,12 +166,17 @@
         const openButton = document.querySelector("[data-menu-open-drawer]");
         const closeButtons = Array.from(document.querySelectorAll("[data-menu-close-drawer]"));
         const form = document.querySelector(".admin-menu-form");
+        const drawerTitle = document.querySelector("[data-menu-drawer-title]");
+        const submitButton = document.querySelector("[data-menu-submit-label]");
+        const createAction = form ? form.dataset.menuCreateAction : "";
+        const editActionTemplate = form ? form.dataset.menuEditActionTemplate : "";
 
         function applyFilter(category) {
             let visibleRows = 0;
 
             rows.forEach((row) => {
-                const matches = category === "Todas" || row.dataset.category === category;
+                const rowTags = (row.dataset.tags || "").split("|").filter(Boolean);
+                const matches = category === "Todas" || rowTags.includes(category);
                 row.hidden = !matches;
                 if (matches) {
                     visibleRows += 1;
@@ -160,11 +196,48 @@
             });
         });
 
-        document.querySelectorAll(".admin-menu-switch").forEach((button) => {
-            button.addEventListener("click", () => {
-                button.classList.toggle("is-on");
+        function resetDrawerForm() {
+            if (!form) {
+                return;
+            }
+
+            form.reset();
+            form.action = createAction;
+
+            if (drawerTitle) {
+                drawerTitle.textContent = "Agregar plato";
+            }
+
+            if (submitButton) {
+                submitButton.textContent = "Guardar plato";
+            }
+        }
+
+        function fillDrawerForm(row) {
+            if (!form || !row) {
+                return;
+            }
+
+            form.action = editActionTemplate.replace(
+                "00000000-0000-0000-0000-000000000000",
+                row.dataset.itemId
+            );
+            form.querySelector("input[name='name']").value = row.dataset.itemName || "";
+            form.querySelector("textarea[name='description']").value = row.dataset.itemDescription || "";
+            form.querySelector("input[name='price']").value = row.dataset.itemPrice || "";
+            const selectedTagIds = (row.dataset.itemTagIds || "").split(",").filter(Boolean);
+            form.querySelectorAll("input[name='tag_ids']").forEach((checkbox) => {
+                checkbox.checked = selectedTagIds.includes(checkbox.value);
             });
-        });
+
+            if (drawerTitle) {
+                drawerTitle.textContent = "Editar plato";
+            }
+
+            if (submitButton) {
+                submitButton.textContent = "Guardar cambios";
+            }
+        }
 
         function setDrawerState(isOpen) {
             if (!drawer || !backdrop) {
@@ -178,26 +251,43 @@
         }
 
         if (openButton) {
-            openButton.addEventListener("click", () => setDrawerState(true));
+            openButton.addEventListener("click", () => {
+                resetDrawerForm();
+                setDrawerState(true);
+            });
         }
 
+        document.querySelectorAll("[data-menu-edit]").forEach((button) => {
+            button.addEventListener("click", () => {
+                fillDrawerForm(button.closest("tr"));
+                setDrawerState(true);
+            });
+        });
+
         closeButtons.forEach((button) => {
-            button.addEventListener("click", () => setDrawerState(false));
+            button.addEventListener("click", () => {
+                setDrawerState(false);
+                resetDrawerForm();
+            });
         });
 
         if (backdrop) {
-            backdrop.addEventListener("click", () => setDrawerState(false));
+            backdrop.addEventListener("click", () => {
+                setDrawerState(false);
+                resetDrawerForm();
+            });
         }
 
         if (form) {
             form.addEventListener("submit", (event) => {
-                const categoryField = form.querySelector("select[name='category']");
-                if (categoryField && !categoryField.value) {
+                const checkedTags = form.querySelectorAll("input[name='tag_ids']:checked");
+                if (checkedTags.length === 0) {
                     event.preventDefault();
                 }
             });
         }
 
+        resetDrawerForm();
         applyFilter("Todas");
 
         {% if open_drawer %}

@@ -12,7 +12,8 @@ class Menu(db.Model):
     id_restaurant = db.Column("IdRestaurant", UUID(as_uuid=True), db.ForeignKey("Restaurant.IdRestaurant"), nullable=False)
     nombre = db.Column("Nombre", db.String(150), nullable=False)
     precio = db.Column("Precio", db.Numeric(10, 2), nullable=False)
-    tags = db.Column("Tags", db.Text)
+    descripcion = db.Column("Descripcion", db.Text)
+    categoria = db.Column("Categoria", db.String(50))
     disponibilidad = db.Column("Disponibilidad", db.Boolean, nullable=False, default=True)
 
     restaurant = db.relationship("Restaurant", back_populates="menus")
