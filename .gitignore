@@ -24,3 +24,5 @@ postgres_data/
 Thumbs.db
 
 *.log
+
+app/static/uploads/profile/
