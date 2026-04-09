@@ -1,105 +1,386 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Morfi</title>
 
-{% block title %}Morfi{% endblock %}
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-{% block customCSS %}
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<style>
-  .modal-login-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 999;
-    align-items: center;
-    justify-content: center;
-  }
-  .modal-login-overlay.active { display: flex; }
+  <style>
+    /* ── index.css (exacto del proyecto) ── */
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      min-height: 100%;
+      width: 100%;
+      overflow-x: hidden;
+      background-color: #FDF9F4;
+      font-family: 'Manrope', sans-serif;
+    }
 
-  .modal-login-box {
-    background: #fff;
-    border-radius: 16px;
-    padding: 28px 24px;
-    width: 100%;
-    max-width: 400px;
-    position: relative;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-  }
-  .modal-login-title {
-    font-family: 'Manrope', sans-serif;
-    font-weight: 700;
-    font-size: 17px;
-    color: #1A1A2E;
-    margin-bottom: 20px;
-  }
-  .modal-close {
-    position: absolute;
-    top: 16px;
-    right: 18px;
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: #B8A99A;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
-  }
-  .modal-close:hover { color: #1A1A2E; }
+    .main-wrapper {
+      width: 100%;
+      min-height: 100vh;
+    }
 
-  .modal-option {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
-    border-radius: 12px;
-    border: 1px solid #EDE6DC;
-    text-decoration: none;
-    color: #1A1A2E;
-    margin-bottom: 12px;
-    transition: background 0.15s, border-color 0.15s;
-    cursor: pointer;
-  }
-  .modal-option:last-child { margin-bottom: 0; }
-  .modal-option:hover { background: #FFF0EB; border-color: #FF9A6C; text-decoration: none; color: #1A1A2E; }
+    .navbar-morfi {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 2;
+      background-color: transparent;
+      box-shadow: none;
+      padding: 24px 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
+    }
 
-  .modal-option-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 20px;
-  }
-  .modal-option-icon.user { background: #1A1A2E; color: #fff; }
-  .modal-option-icon.resto { background: #FF6B35; color: #fff; }
+    .logo-text {
+      font-family: 'Baloo 2', cursive;
+      color: #F2673B;
+      font-weight: 800;
+      font-size: 40px;
+      text-decoration: none;
+    }
 
-  .modal-option-text strong {
-    display: block;
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 2px;
-  }
-  .modal-option-text span {
-    font-size: 12px;
-    color: #6B6B8A;
-  }
-</style>
-{% endblock %}
+    .nav-buttons {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
 
-{% block content %}
+    .btn-login {
+      background: #ffffff;
+      color: #1A1A2E;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 12px 20px;
+      border-radius: 999px;
+      border: 1px solid #D9CEBD;
+      cursor: pointer;
+      font-family: 'Manrope', sans-serif;
+      transition: background 0.2s;
+    }
+    .btn-login:hover { background: #F7F3EE; }
+
+    .btn-register {
+      background-color: #F2673B;
+      color: white;
+      padding: 12px 26px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 15px;
+      text-decoration: none;
+      box-shadow: 0 12px 28px rgba(242, 103, 59, 0.28);
+      font-family: 'Manrope', sans-serif;
+      transition: background 0.2s;
+      display: inline-block;
+    }
+    .btn-register:hover {
+      background-color: #d9552a;
+      color: white;
+      text-decoration: none;
+    }
+
+    /* HERO */
+    .hero-section {
+      background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
+                  url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070');
+      background-size: cover;
+      background-position: center;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: white;
+      padding: 120px 24px 64px;
+    }
+
+    .hero-content {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .hero-title {
+      font-family: 'Baloo 2', cursive;
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      line-height: 0.95;
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+
+    .hero-subtitle {
+      max-width: 680px;
+      margin: 0 auto 28px;
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .search-container {
+      width: min(100%, 650px);
+      margin: 0 auto;
+      background: white;
+      border-radius: 999px;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .search-icon {
+      color: #8f8f8f;
+      margin-left: 18px;
+    }
+
+    .search-input {
+      border: none;
+      flex-grow: 1;
+      padding: 12px 8px;
+      outline: none;
+      font-size: 16px;
+      font-family: 'Manrope', sans-serif;
+      min-width: 0;
+      background: transparent;
+    }
+
+    .search-button {
+      background: #F2673B;
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-family: 'Manrope', sans-serif;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .search-button:hover { background: #d9552a; }
+
+    /* BENEFITS */
+    .benefits-section {
+      width: 100%;
+      padding: 80px 24px 96px;
+      background-color: #FDF9F4;
+    }
+
+    .benefits-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .benefits-title {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 2rem;
+      color: #1A1A2E;
+      margin-bottom: 8px;
+    }
+
+    .benefits-subtitle {
+      color: #9A8F85;
+      font-size: 0.97rem;
+      font-weight: 500;
+    }
+
+    .icon-circle {
+      width: 80px;
+      height: 80px;
+      background-color: #FFF0EB;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto 20px auto;
+      transition: transform 0.3s ease;
+    }
+
+    .icon-circle i,
+    .icon-circle svg {
+      color: #F2673B;
+      font-size: 2rem;
+    }
+
+    .icon-circle svg {
+      width: 2rem;
+      height: 2rem;
+      fill: #F2673B;
+    }
+
+    .card-benefit:hover .icon-circle {
+      transform: scale(1.1);
+    }
+
+    .card-benefit {
+      border: none !important;
+      border-radius: 25px !important;
+      padding: 40px 20px !important;
+      background: white;
+      transition: transform 0.22s, box-shadow 0.22s;
+    }
+    .card-benefit:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.1) !important;
+    }
+
+    .card-benefit h6 {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: #1A1A2E;
+      margin-bottom: 15px;
+    }
+
+    .card-benefit p {
+      color: #6B6B8A;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* MODAL */
+    .modal-login-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-login-overlay.active { display: flex; }
+
+    .modal-login-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 400px;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      animation: modalIn 0.2s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-login-title {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 700;
+      font-size: 17px;
+      color: #1A1A2E;
+      margin-bottom: 20px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #B8A99A;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+    }
+    .modal-close:hover { color: #1A1A2E; }
+
+    .modal-option {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #EDE6DC;
+      text-decoration: none;
+      color: #1A1A2E;
+      margin-bottom: 12px;
+      transition: background 0.15s, border-color 0.15s;
+      cursor: pointer;
+    }
+    .modal-option:last-child { margin-bottom: 0; }
+    .modal-option:hover {
+      background: #FFF0EB;
+      border-color: #FF9A6C;
+      text-decoration: none;
+      color: #1A1A2E;
+    }
+
+    .modal-option-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 20px;
+    }
+    .modal-option-icon.user  { background: #1A1A2E; color: #fff; }
+    .modal-option-icon.resto { background: #F2673B; color: #fff; }
+
+    .modal-option-text strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .modal-option-text span {
+      font-size: 12px;
+      color: #6B6B8A;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 767px) {
+      .navbar-morfi { padding: 18px 20px; }
+      .nav-buttons { gap: 12px; }
+      .btn-register { padding: 10px 18px; }
+      .search-container {
+        border-radius: 24px;
+        flex-wrap: wrap;
+        padding: 14px;
+      }
+      .search-icon { margin-left: 4px; }
+      .search-button { width: 100%; }
+    }
+
+    @media (max-width: 575px) {
+      .navbar-morfi {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+      }
+      .hero-section { padding-top: 160px; }
+    }
+  </style>
+</head>
+<body>
 <div class="main-wrapper">
+
+  <!-- ── NAVBAR ── -->
   <nav class="navbar-morfi">
     <a href="/" class="logo-text">Morfi</a>
     <div class="nav-buttons">
       <button onclick="openLoginModal()" class="btn-login">Iniciar sesión</button>
-      <a href="{{ url_for('auth.register_selection') }}" class="btn-register">Registrarse</a>
+      <a href="/register/selection" class="btn-register">Registrarse</a>
     </div>
   </nav>
 
+  <!-- ── HERO ── -->
   <header class="hero-section">
     <div class="hero-content">
       <h1 class="hero-title">Descubrí. Reservá. Disfrutá.</h1>
@@ -112,42 +393,61 @@
     </div>
   </header>
 
+  <!-- ── BENEFICIOS ── -->
   <section class="benefits-section">
     <div class="benefits-container">
+      <div class="text-center mb-5">
+        <h2 class="benefits-title">Por que Morfi ?</h2>
+        <p class="benefits-subtitle">Todo lo que necesitas para tu proxima salida gastronomica</p>
+      </div>
       <div class="row text-center g-4 justify-content-center">
+
         <div class="col-md-4 col-lg-3">
           <div class="card card-benefit shadow-sm h-100">
-            <div class="icon-circle">{% include 'includes/icons/fork-knife.svg' %}</div>
+            <div class="icon-circle">
+              <!-- fork-knife.svg exacto del proyecto -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-fork-knife" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M13 .5c0-.276-.226-.506-.498-.465-1.703.257-2.94 2.012-3 8.462a.5.5 0 0 0 .498.5c.56.01 1 .13 1 1.003v5.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5zM4.25 0a.25.25 0 0 1 .25.25v5.122a.128.128 0 0 0 .256.006l.233-5.14A.25.25 0 0 1 5.24 0h.522a.25.25 0 0 1 .25.238l.233 5.14a.128.128 0 0 0 .256-.006V.25A.25.25 0 0 1 6.75 0h.29a.5.5 0 0 1 .498.458l.423 5.07a1.69 1.69 0 0 1-1.059 1.711l-.053.022a.92.92 0 0 0-.58.884L6.47 15a.971.971 0 1 1-1.942 0l.202-6.855a.92.92 0 0 0-.58-.884l-.053-.022a1.69 1.69 0 0 1-1.059-1.712L3.462.458A.5.5 0 0 1 3.96 0z"/>
+              </svg>
+            </div>
             <h6>Descubrí</h6>
             <p>Encontrá restaurantes según tus gustos, ubicación y recomendaciones de amigos.</p>
           </div>
         </div>
+
         <div class="col-md-4 col-lg-3">
           <div class="card card-benefit shadow-sm h-100">
-            <div class="icon-circle"><i class="bi bi-calendar4-event"></i></div>
+            <div class="icon-circle">
+              <i class="bi bi-calendar4-event"></i>
+            </div>
             <h6>Reservá</h6>
             <p>Reservá mesa en tiempo real con confirmación instantánea y recordatorios.</p>
           </div>
         </div>
+
         <div class="col-md-4 col-lg-3">
           <div class="card card-benefit shadow-sm h-100">
-            <div class="icon-circle"><i class="bi bi-gift"></i></div>
+            <div class="icon-circle">
+              <i class="bi bi-gift"></i>
+            </div>
             <h6>Beneficios</h6>
             <p>Subí de nivel comiendo. Desbloqueá descuentos, postres gratis y más.</p>
           </div>
         </div>
+
       </div>
     </div>
   </section>
-</div>
 
-<!-- MODAL INICIAR SESIÓN -->
+</div><!-- /.main-wrapper -->
+
+<!-- ── MODAL INICIAR SESIÓN ── -->
 <div class="modal-login-overlay" id="loginModal" onclick="closeOnOverlay(event)">
   <div class="modal-login-box">
     <button class="modal-close" onclick="closeLoginModal()">&#x2715;</button>
     <div class="modal-login-title">Iniciar sesión como...</div>
 
-    <a href="{{ url_for('auth.login') }}" class="modal-option">
+    <a href="/login" class="modal-option">
       <div class="modal-option-icon user">
         <i class="bi bi-person-fill"></i>
       </div>
@@ -157,7 +457,7 @@
       </div>
     </a>
 
-    <a href="{{ url_for('auth.login_restaurante') }}" class="modal-option">
+    <a href="/login/restaurante" class="modal-option">
       <div class="modal-option-icon resto">
         <i class="bi bi-shop"></i>
       </div>
@@ -169,6 +469,8 @@
   </div>
 </div>
 
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   function openLoginModal() {
     document.getElementById('loginModal').classList.add('active');
@@ -183,4 +485,5 @@
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLoginModal(); });
 </script>
-{% endblock %}
+</body>
+</html>

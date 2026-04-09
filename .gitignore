@@ -26,3 +26,4 @@ Thumbs.db
 *.log
 
 app/static/uploads/profile/
+seed.py
