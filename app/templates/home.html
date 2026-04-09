@@ -26,7 +26,7 @@
             <div class="row g-4">
                 {% for rest in restaurants %}
                 <div class="col-md-6 col-xl-4">
-                    <a href="#" class="restaurant-card-link">
+                    <a href="{{ url_for('home.restaurant_detail', restaurant_id=rest.id) }}" class="restaurant-card-link">
                         <div class="restaurant-card">
                             <div class="card-img-wrapper">
                                 <img src="{{ rest.image_url }}" alt="{{ rest.name }}">

@@ -1,127 +1,147 @@
 {% extends 'base.html' %}
-{% block title %}Mi Perfil - Morfi{% endblock %}
+{% block title %}Mi perfil - Morfi{% endblock %}
+
+{% block navbar %}{% include 'includes/_navbar_auth.html' %}{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="baloo text-dark mb-0">Mi perfil</h1>
-        <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-morfi-primary px-4 py-2">Editar perfil</a>
-    </div>
-
+<div class="profile-page-bg">
+  <div class="container-fluid px-4 py-4" style="max-width:1200px; margin:0 auto;">
     <div class="row g-4">
-        <div class="col-lg-4">
-            <div class="card-morfi p-4 text-center mb-4">
-                {% if user.photo_url %}
-                <img src="{{ url_for('static', filename=user.photo_url) }}" alt="Foto de perfil" class="rounded-circle object-fit-cover mx-auto mb-3" style="width: 100px; height: 100px;">
-                {% else %}
-                <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center mx-auto mb-3 baloo" style="width: 100px; height: 100px; font-size: 32px;">
-                    {{ user.name[:2]|upper }}
-                </div>
-                {% endif %}
-                <h2 class="baloo h4 mb-1">{{ user.name }}</h2>
-                <p class="text-muted small mb-1">@{{ user.username }}</p>
-                <p class="text-muted small mb-3">{{ user.member_since }}</p>
-                {% if user.location %}
-                <p class="text-muted small mb-3"><i class="bi bi-geo-alt me-1"></i>{{ user.location }}</p>
-                {% endif %}
 
-                <div class="badge rounded-pill bg-light text-orange border mb-3 p-2 px-3" style="color: var(--morfi-orange)">
-                    Nivel {{ user.level.current }}
-                </div>
+      <!-- ── SIDEBAR ── -->
+      <div class="col-lg-3">
 
-                <div class="px-2 mb-4">
-                    <div class="d-flex justify-content-between small text-muted mb-1">
-                        <span>{{ user.level.current }}</span><span>{{ user.level.next }}</span>
-                    </div>
-                    <div class="progress" style="height: 10px;">
-                        <div class="progress-bar bg-orange" role="progressbar" style="width: {{ user.level.progress }}%; background-color: var(--morfi-orange);"></div>
-                    </div>
-                    <p class="small mt-2 fw-bold" style="color: var(--morfi-orange)">Te faltan {{ user.level.xp_missing }} XP para {{ user.level.next }}</p>
-                </div>
-
-                <div class="d-flex justify-content-center gap-4 border-top pt-3">
-                    <div>
-                        <div class="fw-bold h5 mb-0 text-primary"><i class="bi bi-people-fill me-1"></i>{{ user.stats.friends }}</div>
-                        <small class="text-muted">Amigos</small>
-                    </div>
-                    <div class="vr"></div>
-                    <div>
-                        <div class="fw-bold h5 mb-0 text-orange" style="color: var(--morfi-orange)"><i class="bi bi-utensils-crossed me-1"></i>{{ user.stats.visits }}</div>
-                        <small class="text-muted">Visitados</small>
-                    </div>
-                </div>
+        <!-- User card -->
+        <div class="profile-sidebar-card text-center">
+          <div class="profile-avatar-wrapper mx-auto">
+            <div class="profile-avatar-circle">
+              {% if user.photo_url %}
+                <img src="{{ url_for('static', filename=user.photo_url) }}"
+                     alt="Foto" class="profile-avatar-img">
+              {% else %}
+                {{ (user.name or 'U')[:2]|upper }}
+              {% endif %}
             </div>
+            <div class="profile-avatar-cam"><i class="bi bi-camera-fill"></i></div>
+          </div>
 
-            {% if user.is_global_admin %}
-            <div class="card-morfi p-4">
-                <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
-                    <div>
-                        <p class="text-muted small text-uppercase fw-bold mb-2">Panel del sistema</p>
-                        <h3 class="baloo h5 mb-2">Administración global</h3>
-                        <p class="text-muted small mb-0">Accedé a la moderación de restaurantes, reseñas, tags y usuarios.</p>
-                    </div>
-                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; background: #FFF0EB; color: #C94A1A;">
-                        <i class="bi bi-shield-lock"></i>
-                    </div>
-                </div>
-                <a href="{{ user.system_panel_href }}" class="btn btn-morfi-primary w-100">Ir al panel del system</a>
+          <div class="profile-user-name mt-2">{{ user.name }}</div>
+          <div class="profile-username">@{{ user.username }}</div>
+
+          <div class="profile-level-badge">
+            Nivel {{ current_user.nivel }} · {{ user.level.current }}
+          </div>
+
+          <div class="profile-progress mx-auto" style="max-width:160px;">
+            <div class="profile-progress-fill" style="width:{{ user.level.progress }}%"></div>
+          </div>
+          <div class="profile-xp-hint">{{ user.level.xp_missing }} visitas para {{ user.level.next }}</div>
+
+          <div class="profile-stats-row">
+            <div class="profile-stat-item">
+              <div class="profile-stat-value">{{ user.stats.friends }}</div>
+              <div class="profile-stat-label">Amigos</div>
+            </div>
+            <div class="profile-stat-divider"></div>
+            <div class="profile-stat-item">
+              <div class="profile-stat-value">{{ user.stats.visits }}</div>
+              <div class="profile-stat-label">Visitados</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nav menu -->
+        <div class="profile-nav-card">
+          <a href="{{ url_for('profile.profile') }}" class="profile-nav-item active">
+            <i class="bi bi-person"></i> Mi perfil
+          </a>
+          <a href="#" class="profile-nav-item">
+            <i class="bi bi-heart"></i> Wishlist
+          </a>
+          <a href="{{ url_for('profile.history') }}" class="profile-nav-item">
+            <i class="bi bi-clock-history"></i> Actividad reciente
+          </a>
+          <a href="{{ url_for('profile.security') }}" class="profile-nav-item">
+            <i class="bi bi-shield"></i> Cuenta y seguridad
+          </a>
+        </div>
+      </div>
+
+      <!-- ── MAIN CONTENT ── -->
+      <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2 class="profile-main-title">Mi perfil</h2>
+          <a href="{{ url_for('profile.edit_profile') }}" class="btn-edit-profile">
+            <i class="bi bi-pencil-fill"></i> Editar perfil
+          </a>
+        </div>
+
+        <!-- Información personal -->
+        <div class="profile-info-card">
+          <div class="info-card-title">Información personal</div>
+          <div class="info-grid">
+            <div>
+              <div class="info-field-label">Nombre completo</div>
+              <div class="info-field-value">{{ user.name }}</div>
+            </div>
+            <div>
+              <div class="info-field-label">Email</div>
+              <div class="info-field-value">{{ user.email }}</div>
+            </div>
+            {% if user.location %}
+            <div class="info-grid-full">
+              <div class="info-field-label">Ubicación</div>
+              <div class="info-field-value">{{ user.location }}</div>
             </div>
             {% endif %}
+          </div>
+          <div class="map-placeholder">
+            <i class="bi bi-geo-alt-fill"></i>
+            <span>{{ user.location or 'Sin ubicación' }}</span>
+          </div>
         </div>
 
-        <div class="col-lg-8">
-            <div class="card-morfi p-4 mb-4">
-                <h3 class="baloo h5 mb-3">Mis preferencias</h3>
-                <div class="mb-3">
-                    <p class="text-muted small text-uppercase fw-bold mb-2">Cocinas favoritas</p>
-                    <div class="d-flex flex-wrap gap-2">
-                        {% for pref in user.favorite_cuisines %}
-                        <span class="badge rounded-pill p-2 px-3 border" style="background-color: #FFF0EB; color: #C94A1A;">{{ pref }}</span>
-                        {% else %}
-                        <span class="text-muted small">Todavía no elegiste cocinas favoritas.</span>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div>
-                    <p class="text-muted small text-uppercase fw-bold mb-2">Restricciones</p>
-                    <div class="d-flex flex-wrap gap-2">
-                        {% for restriction in user.dietary_restrictions %}
-                        <span class="badge rounded-pill p-2 px-3 border" style="background-color: #C8F5E2; color: #0B7A56;">{{ restriction }}</span>
-                        {% else %}
-                        <span class="text-muted small">No registraste restricciones alimentarias.</span>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="card-morfi p-4">
-                <h3 class="baloo h5 mb-4">Actividad reciente</h3>
-                {% for activity in user.recent_activity %}
-                <div class="d-flex gap-3 mb-3 pb-3 border-bottom">
-                    <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; flex-shrink: 0;">
-                        <i class="bi bi-shop text-muted"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between">
-                            <h6 class="mb-0 fw-bold">{{ activity.restaurant }}</h6>
-                            <small class="text-muted">{{ activity.date }}</small>
-                        </div>
-                        {% if activity.rating %}
-                        <div class="text-warning mb-1 small">
-                            {% for _ in range(activity.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}
-                        </div>
-                        {% endif %}
-                        <p class="small mb-0">{{ activity.comment }}</p>
-                    </div>
-                </div>
-                {% else %}
-                <p class="text-muted mb-0">Todavía no tenés actividad registrada.</p>
-                {% endfor %}
-                <div class="text-center mt-3">
-                    <a href="{{ url_for('profile.history') }}" class="text-orange fw-bold text-decoration-none" style="color: var(--morfi-orange)">Ver todo el historial →</a>
-                </div>
-            </div>
+        <!-- Preferencias -->
+        <div class="profile-pref-card">
+          <div class="pref-card-title">Preferencias</div>
+          <div class="pref-section-label">Cocinas favoritas</div>
+          <div class="pref-tags">
+            {% for cuisine in user.favorite_cuisines %}
+              <span class="tag-cuisine">{{ cuisine }}</span>
+            {% else %}
+              <span class="text-muted small">Todavía no elegiste cocinas favoritas.</span>
+            {% endfor %}
+          </div>
+          <div class="pref-section-label">Restricciones alimentarias</div>
+          <div class="pref-tags">
+            {% for r in user.dietary_restrictions %}
+              <span class="tag-restriction">{{ r }}</span>
+            {% else %}
+              <span class="text-muted small">No registraste restricciones.</span>
+            {% endfor %}
+          </div>
         </div>
+
+        <!-- Admin panel (solo para admins globales) -->
+        {% if user.is_global_admin %}
+        <div class="profile-info-card mt-4" style="border: 1.5px solid #FF6B35;">
+          <div class="info-card-title" style="color: var(--morfi-orange);">
+            <i class="bi bi-shield-lock-fill me-1"></i> Panel del sistema
+          </div>
+          <p class="text-muted small mb-3">Tenés acceso de administrador global a la plataforma Morfi.</p>
+          <a href="{{ user.system_panel_href }}" class="btn-edit-profile" style="display:inline-flex;">
+            <i class="bi bi-gear-fill"></i> Ir al panel del sistema
+          </a>
+        </div>
+        {% endif %}
+
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}

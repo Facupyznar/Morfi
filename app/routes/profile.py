@@ -7,6 +7,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required, logout_user
 from werkzeug.utils import secure_filename
 
+from app.models.user_favorites import UserFavorites
 from app.database import db
 from app.location import resolve_location_payload
 from app.models.enums import TagCategory
@@ -343,3 +344,95 @@ def update_profile():
 @login_required
 def history():
     return render_template("history.html")
+
+@profile_bp.route("/perfil/seguridad")
+@login_required
+def security():
+    """Página Cuenta y seguridad — reutiliza los mismos datos que profile()."""
+    user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
+    cuisine_names, restriction_names = _selected_tag_names(user_record)
+ 
+    level_names = {
+        1: "Invitado",
+        2: "Foodie Curioso",
+        3: "Catador Urbano",
+        4: "Explorador Gourmet",
+        5: "Leyenda Morfi",
+    }
+    raw_level = float(getattr(user_record, "nivel", 1) or 1)
+    current_level_number = max(1, min(5, int(raw_level)))
+    progress = int(round((raw_level - current_level_number) * 100))
+    progress = max(0, min(100, progress))
+    xp_missing = max(0, 500 - int((progress / 100) * 500))
+ 
+    visits_count = db.session.query(Reserva).filter(
+        Reserva.user_id == user_record.user_id
+    ).count()
+    friends_count = (
+        db.session.query(Friends)
+        .filter(
+            Friends.estado == FriendshipStatus.ACEPTADA,
+            or_(
+                Friends.user_id_1 == user_record.user_id,
+                Friends.user_id_2 == user_record.user_id,
+            ),
+        )
+        .count()
+    )
+ 
+    user_data = {
+        "name": getattr(user_record, "name", None) or getattr(user_record, "username", ""),
+        "username": getattr(user_record, "username", ""),
+        "stats": {"friends": friends_count, "visits": visits_count},
+        "level": {
+            "current": level_names[current_level_number],
+            "next": level_names.get(min(current_level_number + 1, 5), ""),
+            "progress": progress,
+            "xp_missing": xp_missing,
+        },
+        "favorite_cuisines": cuisine_names,
+        "dietary_restrictions": restriction_names,
+    }
+    return render_template("cuenta_seguridad.html", user=user_data)
+ 
+ 
+@profile_bp.route("/perfil/eliminar-cuenta", methods=["POST"])
+@login_required
+def delete_account():
+    """Elimina permanentemente la cuenta del usuario autenticado."""
+    user_id = current_user.user_id
+ 
+    try:
+        # 1. Reviews se eliminan en cascada junto con Reservas (cascade="all, delete-orphan")
+        # 2. Eliminamos Reservas
+        db.session.query(Reserva).filter(Reserva.user_id == user_id).delete(
+            synchronize_session=False
+        )
+ 
+        # 3. Eliminamos relaciones de amistad
+        db.session.query(Friends).filter(
+            or_(Friends.user_id_1 == user_id, Friends.user_id_2 == user_id)
+        ).delete(synchronize_session=False)
+ 
+        # 4. Eliminamos tags del usuario
+        db.session.query(UserTags).filter(UserTags.user_id == user_id).delete(
+            synchronize_session=False
+        )
+ 
+        # 5. Cerramos sesión ANTES de borrar el usuario
+        logout_user()
+ 
+        # 6. Eliminamos el usuario
+        user_record = db.session.query(User).filter(User.user_id == user_id).first()
+        if user_record:
+            db.session.delete(user_record)
+ 
+        db.session.commit()
+        flash("Tu cuenta fue eliminada correctamente.", "info")
+ 
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo eliminar la cuenta. Intentá de nuevo.", "danger")
+        return redirect(url_for("profile.security"))
+ 
+    return redirect(url_for("auth.index"))

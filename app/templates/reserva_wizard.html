@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+
+{% block navbar %}
+{% include 'includes/_navbar_auth.html' %}
+{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='reserva_wizard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="wizard-bg">
+
+  <!-- ── Stepper ─────────────────────────────────────────── -->
+  <div class="wizard-stepper-wrap">
+    <div class="wizard-stepper">
+
+      <div class="step-item active" id="step-nav-1">
+        <div class="step-circle">1</div>
+        <span class="step-label">Fecha</span>
+      </div>
+
+      <div class="step-line" id="line-1-2"></div>
+
+      <div class="step-item" id="step-nav-2">
+        <div class="step-circle">2</div>
+        <span class="step-label">Hora</span>
+      </div>
+
+      <div class="step-line" id="line-2-3"></div>
+
+      <div class="step-item" id="step-nav-3">
+        <div class="step-circle">3</div>
+        <span class="step-label">Confirmación</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Main layout ────────────────────────────────────── -->
+  <div class="wizard-container">
+    <div class="row g-5 align-items-start">
+
+      <!-- Left: Steps -->
+      <div class="col-lg-7">
+
+        <!-- ── STEP 1: Fecha ───────────────────────────── -->
+        <div id="wizard-step-1" class="wizard-step">
+
+          <h2 class="wizard-title">Elegí la fecha</h2>
+
+          <div class="wizard-field">
+            <input type="date" id="fecha-input" class="wizard-date-input"
+                   onchange="onFechaChange(this.value)">
+            <div class="wizard-field-error" id="fecha-error" style="display:none;">
+              Por favor seleccioná una fecha.
+            </div>
+          </div>
+
+          <div class="wizard-nav">
+            <a href="{{ url_for('home.restaurant_detail', restaurant_id=restaurant.id) }}"
+               class="btn-atras">
+              <i class="bi bi-arrow-left me-1"></i> Volver al restaurante
+            </a>
+            <button class="btn-siguiente" onclick="goToStep(2)">
+              Siguiente <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- ── STEP 2: Hora + Comensales ──────────────── -->
+        <div id="wizard-step-2" class="wizard-step" style="display:none;">
+
+          <h2 class="wizard-title">Elegí el horario</h2>
+
+          <div class="time-grid" id="time-grid">
+            {% set slots = ['12:00','12:30','13:00','13:30','14:00','20:00','20:30','21:00','21:30','22:00'] %}
+            {% for slot in slots %}
+            <button type="button" class="time-slot" onclick="selectSlot(this, '{{ slot }}')">
+              {{ slot }}
+            </button>
+            {% endfor %}
+          </div>
+          <div class="wizard-field-error" id="hora-error" style="display:none;">
+            Por favor seleccioná un horario.
+          </div>
+
+          <div class="wizard-section-label">Comensales</div>
+          <div class="qty-row">
+            <button type="button" class="qty-btn" onclick="changeQty(-1)">−</button>
+            <span class="qty-display" id="qty-display">2</span>
+            <button type="button" class="qty-btn" onclick="changeQty(1)">+</button>
+          </div>
+
+          <div class="wizard-section-label mt-4">
+            Solicitudes especiales
+            <span class="wizard-optional">(opcional)</span>
+          </div>
+          <textarea id="notas-input" class="wizard-textarea"
+                    placeholder="Alergias, silla alta, cumpleaños, etc."
+                    rows="3"></textarea>
+
+          <div class="wizard-nav">
+            <button class="btn-atras" onclick="goToStep(1)">
+              <i class="bi bi-arrow-left me-1"></i> Atrás
+            </button>
+            <button class="btn-siguiente" onclick="goToStep(3)">
+              Siguiente <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- ── STEP 3: Confirmación ───────────────────── -->
+        <div id="wizard-step-3" class="wizard-step" style="display:none;">
+
+          <h2 class="wizard-title">Confirmar reserva</h2>
+
+          <form method="POST"
+                action="{{ url_for('home.crear_reserva', restaurant_id=restaurant.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="fecha"      id="form-fecha">
+            <input type="hidden" name="hora"       id="form-hora">
+            <input type="hidden" name="comensales" id="form-comensales">
+            <input type="hidden" name="notas"      id="form-notas">
+
+            <div class="confirm-card">
+              <div class="confirm-row">
+                <span class="confirm-label">Restaurante</span>
+                <span class="confirm-value" id="conf-restaurant">{{ restaurant.name }}</span>
+              </div>
+              <div class="confirm-divider"></div>
+              <div class="confirm-row">
+                <span class="confirm-label">Fecha</span>
+                <span class="confirm-value" id="conf-fecha">—</span>
+              </div>
+              <div class="confirm-divider"></div>
+              <div class="confirm-row">
+                <span class="confirm-label">Hora</span>
+                <span class="confirm-value" id="conf-hora">—</span>
+              </div>
+              <div class="confirm-divider"></div>
+              <div class="confirm-row">
+                <span class="confirm-label">Comensales</span>
+                <span class="confirm-value" id="conf-comensales">2</span>
+              </div>
+              <div class="confirm-divider" id="notas-divider" style="display:none;"></div>
+              <div class="confirm-row" id="notas-row" style="display:none;">
+                <span class="confirm-label">Notas</span>
+                <span class="confirm-value" id="conf-notas"></span>
+              </div>
+
+              {% if current_user.nivel and current_user.nivel >= 3 %}
+              <div class="beneficio-badge mt-3">
+                🎁 Beneficio Nivel {{ current_user.nivel|int }}: accedés a descuentos exclusivos
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="wizard-nav">
+              <button type="button" class="btn-atras" onclick="goToStep(2)">
+                <i class="bi bi-arrow-left me-1"></i> Atrás
+              </button>
+              <button type="submit" class="btn-siguiente btn-confirm">
+                <i class="bi bi-check-lg me-1"></i> Confirmar reserva
+              </button>
+            </div>
+
+          </form>
+        </div>
+
+      </div>
+
+      <!-- Right: Summary card -->
+      <div class="col-lg-4 offset-lg-1">
+        <div class="summary-card">
+          <div class="summary-header">Resumen</div>
+
+          <div class="summary-restaurant">{{ restaurant.name }}</div>
+          <div class="summary-meta">
+            {% if restaurant.tags %}{{ restaurant.tags|join(' · ') }} · {% endif %}$$
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-row" id="sum-fecha-row">
+            <span class="sum-icon">📅</span>
+            <span id="sum-fecha">—</span>
+          </div>
+          <div class="summary-row" id="sum-hora-row">
+            <span class="sum-icon">🕑</span>
+            <span id="sum-hora">—</span>
+          </div>
+          <div class="summary-row" id="sum-comensales-row">
+            <span class="sum-icon">👥</span>
+            <span id="sum-comensales">2 comensales</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────
+  let currentStep   = 1;
+  let selectedFecha = '';
+  let selectedHora  = null;
+  let comensales    = 2;
+
+  // ── Step navigation ────────────────────────────────────────
+  function goToStep(step) {
+    // Validate before advancing
+    if (step === 2 && !validateStep1()) return;
+    if (step === 3 && !validateStep2()) return;
+
+    if (step === 3) populateConfirmation();
+
+    document.querySelectorAll('.wizard-step').forEach(s => s.style.display = 'none');
+    document.getElementById('wizard-step-' + step).style.display = 'block';
+    currentStep = step;
+    updateStepper(step);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateStepper(active) {
+    for (let i = 1; i <= 3; i++) {
+      const nav    = document.getElementById('step-nav-' + i);
+      const circle = nav.querySelector('.step-circle');
+      nav.classList.remove('active', 'done');
+      circle.classList.remove('active', 'done');
+
+      if (i < active) {
+        nav.classList.add('done');
+        circle.innerHTML = '<i class="bi bi-check-lg"></i>';
+      } else if (i === active) {
+        nav.classList.add('active');
+        circle.innerHTML = i;
+      } else {
+        circle.innerHTML = i;
+      }
+    }
+    // lines
+    document.getElementById('line-1-2').classList.toggle('done', active > 1);
+    document.getElementById('line-2-3').classList.toggle('done', active > 2);
+  }
+
+  // ── Validations ────────────────────────────────────────────
+  function validateStep1() {
+    const val = document.getElementById('fecha-input').value;
+    const err = document.getElementById('fecha-error');
+    if (!val) { err.style.display = 'block'; return false; }
+    err.style.display = 'none';
+    selectedFecha = val;
+    return true;
+  }
+
+  function validateStep2() {
+    const err = document.getElementById('hora-error');
+    if (!selectedHora) { err.style.display = 'block'; return false; }
+    err.style.display = 'none';
+    return true;
+  }
+
+  // ── Fecha change ───────────────────────────────────────────
+  function onFechaChange(val) {
+    selectedFecha = val;
+    document.getElementById('fecha-error').style.display = 'none';
+    // Format DD/MM/YYYY for summary
+    const [y, m, d] = val.split('-');
+    const label = d + '/' + m + '/' + y;
+    document.getElementById('sum-fecha').textContent  = label;
+    document.getElementById('fecha-input').style.borderColor = '#FF6B35';
+  }
+
+  // ── Time slot ──────────────────────────────────────────────
+  function selectSlot(el, hora) {
+    document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    selectedHora = hora;
+    document.getElementById('hora-error').style.display = 'none';
+    document.getElementById('sum-hora').textContent = hora;
+  }
+
+  // ── Comensales ────────────────────────────────────────────
+  function changeQty(delta) {
+    comensales = Math.min(20, Math.max(1, comensales + delta));
+    document.getElementById('qty-display').textContent   = comensales;
+    document.getElementById('sum-comensales').textContent = comensales + ' comensales';
+  }
+
+  // ── Populate step 3 ────────────────────────────────────────
+  function populateConfirmation() {
+    // Hidden form fields
+    document.getElementById('form-fecha').value      = selectedFecha;
+    document.getElementById('form-hora').value       = selectedHora;
+    document.getElementById('form-comensales').value = comensales;
+    const notas = document.getElementById('notas-input').value.trim();
+    document.getElementById('form-notas').value      = notas;
+
+    // Visible confirmation
+    const [y, m, d] = selectedFecha.split('-');
+    document.getElementById('conf-fecha').textContent      = d + '/' + m + '/' + y;
+    document.getElementById('conf-hora').textContent       = selectedHora;
+    document.getElementById('conf-comensales').textContent = comensales;
+
+    if (notas) {
+      document.getElementById('conf-notas').textContent    = notas;
+      document.getElementById('notas-row').style.display   = 'flex';
+      document.getElementById('notas-divider').style.display = 'block';
+    }
+  }
+
+  // ── Init: set today as min date ────────────────────────────
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('fecha-input').min = today;
+</script>
+{% endblock %}

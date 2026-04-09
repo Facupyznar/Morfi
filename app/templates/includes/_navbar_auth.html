@@ -1,36 +1,153 @@
 <nav class="morfi-nav-auth">
-    <div class="morfi-nav-inner">
-        <a href="{{ url_for('home.home') }}" class="morfi-brand">Morfi</a>
+  <div class="morfi-nav-inner">
 
-        <form action="{{ url_for('home.home') }}" method="get" class="morfi-search-container">
-            <i class="bi bi-search morfi-search-icon"></i>
-            <input type="text" name="q" placeholder="¿Qué querés comer hoy?" autocomplete="off">
-        </form>
+    <!-- Logo -->
+    <a href="{{ url_for('home.home') }}" class="morfi-brand">Morfi</a>
 
-        <div class="morfi-nav-actions">
-            <button type="button" class="morfi-icon-btn morfi-icon-btn--bell" aria-label="Notificaciones">
-                <i class="bi bi-bell"></i>
-                <span class="morfi-notification-dot" aria-hidden="true"></span>
-            </button>
+    <!-- Search -->
+    <form action="{{ url_for('home.home') }}" method="get" class="morfi-search-container">
+      <i class="bi bi-search morfi-search-icon"></i>
+      <input type="text" name="q" placeholder="¿Qué querés comer hoy?" autocomplete="off">
+    </form>
 
-            <a href="{{ url_for('profile.profile') }}" class="profile-link">
-                <div class="morfi-avatar">
-                    {% if current_user.foto_perfil %}
-                    <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Perfil" class="morfi-avatar-image">
-                    {% else %}
-                    {{ (current_user.name or 'Tu usuario')[:2]|upper }}
-                    {% endif %}
-                </div>
-                <div class="morfi-nivel">
-                    {% if current_user.nivel %}
-                    <span class="morfi-user-chip"> Nivel {{current_user.nivel}}</span>
-                    {% endif %}
-                </div>
+    <!-- Actions -->
+    <div class="morfi-nav-actions">
+
+      <!-- Bell -->
+      <button type="button" class="morfi-icon-btn morfi-icon-btn--bell" aria-label="Notificaciones">
+        <i class="bi bi-bell"></i>
+        <span class="morfi-notification-dot" aria-hidden="true"></span>
+      </button>
+
+      <!-- User dropdown -->
+      <div class="dropdown">
+        <button class="morfi-user-trigger" type="button"
+                data-bs-toggle="dropdown" data-bs-offset="0,8"
+                aria-expanded="false">
+          <div class="morfi-avatar">
+            {% if current_user.foto_perfil %}
+              <img src="{{ url_for('static', filename=current_user.foto_perfil) }}"
+                   alt="Perfil" class="morfi-avatar-image">
+            {% else %}
+              {{ (current_user.name or 'Tu usuario')[:2]|upper }}
+            {% endif %}
+          </div>
+          {% if current_user.nivel %}
+            <span class="morfi-user-chip">Nivel {{ current_user.nivel }}</span>
+          {% endif %}
+          <i class="bi bi-chevron-down morfi-nav-chevron"></i>
+        </button>
+
+        <ul class="dropdown-menu dropdown-menu-end morfi-dropdown-panel">
+          <!-- User info -->
+          <li class="morfi-dd-header">
+            <div class="morfi-dd-name">{{ current_user.name }}</div>
+            <div class="morfi-dd-username">@{{ current_user.username }}</div>
+          </li>
+          <li><hr class="dropdown-divider my-1"></li>
+
+          <!-- Links -->
+          <li>
+            <a class="morfi-dd-item" href="{{ url_for('profile.profile') }}">
+              <i class="bi bi-person"></i> Mi perfil
             </a>
-
-            <a href="{{ url_for('auth.logout') }}" class="morfi-icon-btn morfi-icon-btn--logout" aria-label="Cerrar sesión" title="Cerrar sesión">
-                <i class="bi bi-box-arrow-right"></i>
+          </li>
+          <li>
+            <a class="morfi-dd-item" href="#">
+              <i class="bi bi-heart"></i> Wishlist
             </a>
-        </div>
+          </li>
+          <li>
+            <a class="morfi-dd-item" href="{{ url_for('profile.history') }}">
+              <i class="bi bi-clock-history"></i> Historial
+            </a>
+          </li>
+          <li>
+            <a class="morfi-dd-item" href="{{ url_for('profile.security') }}">
+              <i class="bi bi-shield"></i> Cuenta y seguridad
+            </a>
+          </li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li>
+            <a class="morfi-dd-item morfi-dd-logout" href="{{ url_for('auth.logout') }}">
+              <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+            </a>
+          </li>
+        </ul>
+      </div>
+
     </div>
+  </div>
 </nav>
+
+<style>
+  /* ── Solo CSS nuevo (dropdown) — base.css maneja el resto ── */
+
+  .morfi-user-trigger {
+    background: none;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 6px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .morfi-user-trigger:hover { background: var(--morfi-beige); }
+  .morfi-user-trigger[aria-expanded="true"] .morfi-nav-chevron {
+    transform: rotate(180deg);
+  }
+
+  .morfi-nav-chevron {
+    font-size: 0.8rem;
+    color: var(--morfi-muted);
+    transition: transform 0.2s;
+  }
+
+  .morfi-dropdown-panel {
+    width: 260px;
+    border-radius: 14px !important;
+    border: 1px solid var(--morfi-border) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+    padding: 8px 0 !important;
+  }
+
+  .morfi-dd-header {
+    padding: 12px 16px 10px;
+  }
+  .morfi-dd-name {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--morfi-dark);
+  }
+  .morfi-dd-username {
+    font-size: 0.78rem;
+    color: var(--morfi-muted);
+    margin-top: 2px;
+  }
+
+  .morfi-dd-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    color: var(--morfi-dark);
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .morfi-dd-item:hover {
+    background: #FFF7F4;
+    color: var(--morfi-orange);
+  }
+  .morfi-dd-item i {
+    width: 16px;
+    text-align: center;
+    font-size: 0.95rem;
+  }
+
+  .morfi-dd-logout { color: #dc3545; }
+  .morfi-dd-logout:hover { background: #fff5f5; color: #b02a37; }
+</style>
