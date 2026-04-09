@@ -167,50 +167,101 @@ def dashboard():
     if not _admin_required():
         return redirect(url_for("profile.profile"))
 
-    users = db.session.query(User).order_by(User.is_admin.desc(), User.username.asc()).all()
+    from datetime import date
+    DIAS_ES   = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    MESES_ES  = ["","enero","febrero","marzo","abril","mayo","junio",
+                 "julio","agosto","septiembre","octubre","noviembre","diciembre"]
 
-    total_users = len(users)
-    total_admins = sum(1 for user in users if user.is_admin)
+    hoy = date.today()
+    today_label = f"{DIAS_ES[hoy.weekday()]} {hoy.day} de {MESES_ES[hoy.month]}"
+
+    # ── Restaurante del usuario actual ───────────────────────
+    restaurant_record = _get_owned_restaurant()
+    restaurant = {"name": restaurant_record.name} if restaurant_record else {"name": "Mi restaurante"}
+
+    # ── Usuarios ─────────────────────────────────────────────
+    users = db.session.query(User).order_by(User.is_admin.desc(), User.username.asc()).all()
+    total_users   = len(users)
+    total_admins  = sum(1 for u in users if u.is_admin)
     role_labels = {
-        Role.COMENSAL.value: "Comensal",
+        Role.COMENSAL.value:    "Comensal",
         Role.SOCIO_ADMIN.value: "Socio admin",
-        Role.ADMIN_GLOBAL.value: "Admin global",
+        Role.ADMIN_GLOBAL.value:"Admin global",
     }
     profiles = []
     for user in users:
         role_value = getattr(getattr(user, "rol", None), "value", Role.COMENSAL.value)
-        profiles.append(
-            {
-                "id": str(user.user_id),
-                "route_id": user.user_id,
-                "username": user.username,
-                "name": user.name or "Sin nombre cargado",
-                "email": user.email,
-                "role": role_labels.get(role_value, role_value.replace("_", " ").title()),
-                "level": float(user.nivel or 1),
-                "age": user.age,
-                "is_admin": bool(user.is_admin),
-                "can_delete": str(user.user_id) != current_user.get_id(),
-            }
+        profiles.append({
+            "id":        str(user.user_id),
+            "route_id":  user.user_id,
+            "username":  user.username,
+            "name":      user.name or "Sin nombre",
+            "email":     user.email,
+            "role":      role_labels.get(role_value, role_value),
+            "level":     float(user.nivel or 1),
+            "is_admin":  bool(user.is_admin),
+            "can_delete":str(user.user_id) != current_user.get_id(),
+        })
+
+    # ── Reservas de hoy ──────────────────────────────────────
+    reservas_hoy = []
+    if restaurant_record:
+        from app.models.reserva import Reserva
+        from sqlalchemy import cast, Date
+
+    reservas_db = (
+        db.session.query(Reserva)
+        .filter(
+            Reserva.id_restaurant == restaurant_record.id_restaurant,
+            cast(Reserva.fecha_hora, Date) == hoy
         )
+        .order_by(Reserva.fecha_hora)
+        .limit(10)
+        .all()
+    )
+    for r in reservas_db:
+        u = db.session.query(User).filter_by(user_id=r.user_id).first()
+        nombre = u.name if u else "Cliente"
+        reservas_hoy.append({
+            "initials": nombre[:2].upper(),
+            "nombre":   nombre,
+            "hora":     r.fecha_hora.strftime('%H:%M'),
+            "personas": r.cant_personas,
+            "estado":   "Confirmada" if r.estado_reserva.value == "CONFIRMADA" else "Pendiente",
+        })
+
+    # ── Ocupación semanal (mock por ahora) ───────────────────
+    ocupacion_semanal = [
+        {"dia": d, "pct": p, "hoy": i == hoy.weekday()}
+        for i, (d, p) in enumerate(zip(
+            DIAS_ES, [65, 58, 72, 85, 92, 78, 40]
+        ))
+    ]
 
     dashboard_data = {
         "stats": {
-            "pending_reviews": 12,
-            "partners_in_review": 5,
-            "active_restaurants": 247,
-            "total_users": total_users,
-            "total_admins": total_admins,
-            "total_comensales": sum(1 for user in users if getattr(user.rol, "value", None) == Role.COMENSAL.value),
+            "reservas_hoy":        len(reservas_hoy),
+            "reservas_delta":      len(reservas_hoy),
+            "pending_reviews":     12,
+            "partners_in_review":  5,
+            "active_restaurants":  247,
+            "total_users":         total_users,
+            "total_admins":        total_admins,
+            "total_comensales":    sum(1 for u in users if getattr(u.rol, "value", None) == Role.COMENSAL.value),
         },
         "profiles": profiles,
     }
+
     return render_template(
         "admin_dashboard.html",
         dashboard=dashboard_data,
+        restaurant=restaurant,
+        today_label=today_label,
+        reservas_hoy=reservas_hoy,
+        ocupacion_semanal=ocupacion_semanal,
+        alert=None,
         active_admin_section="Inicio",
     )
-
 
 @admin_bp.route("/admin/menu", methods=["GET", "POST"])
 @login_required

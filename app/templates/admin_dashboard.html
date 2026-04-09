@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
-
-{% block title %}Panel de Administración - Morfi{% endblock %}
+{% block title %}Panel - Morfi{% endblock %}
 
 {% block customCSS %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='restaurant_dashboard.css') }}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 {% endblock %}
 
@@ -11,108 +11,249 @@
 
 {% block content %}
 <div class="admin-layout">
-    {% include 'includes/_admin_sidebar.html' %}
 
-    <main class="admin-main">
-        <header class="admin-page-header">
-            <h1 class="admin-page-title">Dashboard</h1>
-        </header>
+  {% include 'includes/_admin_sidebar.html' %}
 
-        <section class="admin-kpi-grid">
-            {% for kpi in dashboard.kpis %}
-            <article class="admin-card admin-kpi-card">
-                <div class="admin-kpi-card__top">
-                    <span class="admin-kpi-card__label">{{ kpi.label }}</span>
-                    <span class="admin-kpi-card__icon" style="--kpi-color: {{ kpi.color or '#FF6B35' }};">
-                        <i class="bi {{ kpi.icon }}"></i>
-                    </span>
+  <main class="admin-main rd-main" style="background:#F5F0EB; min-height:100vh; overflow-y:auto;">
+
+    <!-- ── Header ──────────────────────────────────── -->
+    <div class="rd-header">
+      <div>
+        <h1 class="rd-title">Dashboard</h1>
+        <p class="rd-subtitle">{{ today_label }} · {{ restaurant.name if restaurant else 'Mi restaurante' }}</p>
+      </div>
+      <div class="rd-header-actions">
+        <a href="{{ url_for('admin.menu') }}" class="rd-btn-primary">
+          <i class="bi bi-plus me-1"></i> Nuevo plato
+        </a>
+      </div>
+    </div>
+
+    <!-- ── KPI cards ────────────────────────────────── -->
+    <div class="rd-stats-row">
+
+      <div class="rd-stat-card">
+        <div class="rd-stat-icon" style="background:#FEE9E1;">
+          <i class="bi bi-calendar-check" style="color:#FF6B35;"></i>
+        </div>
+        <div class="rd-stat-body">
+          <span class="rd-stat-label">Reservas hoy</span>
+          <span class="rd-stat-value">{{ dashboard.stats.reservas_hoy | default(0) }}</span>
+          <span class="rd-stat-delta {% if dashboard.stats.reservas_delta | default(0) >= 0 %}positive{% else %}negative{% endif %}">
+            <i class="bi bi-arrow-{% if dashboard.stats.reservas_delta | default(0) >= 0 %}up{% else %}down{% endif %}-short"></i>
+            {{ dashboard.stats.reservas_delta | default(0) }} vs ayer
+          </span>
+        </div>
+      </div>
+
+      <div class="rd-stat-card">
+        <div class="rd-stat-icon" style="background:#E0F5EE;">
+          <i class="bi bi-people-fill" style="color:#1A9E6B;"></i>
+        </div>
+        <div class="rd-stat-body">
+          <span class="rd-stat-label">Total usuarios</span>
+          <span class="rd-stat-value">{{ dashboard.stats.total_users }}</span>
+          <span class="rd-stat-delta neutral">
+            {{ dashboard.stats.total_comensales }} comensales
+          </span>
+        </div>
+      </div>
+
+      <div class="rd-stat-card">
+        <div class="rd-stat-icon" style="background:#EDE9FE;">
+          <i class="bi bi-shop" style="color:#7C5CFC;"></i>
+        </div>
+        <div class="rd-stat-body">
+          <span class="rd-stat-label">Restaurantes activos</span>
+          <span class="rd-stat-value">{{ dashboard.stats.active_restaurants }}</span>
+          <span class="rd-stat-delta neutral">En la plataforma</span>
+        </div>
+      </div>
+
+      <div class="rd-stat-card">
+        <div class="rd-stat-icon" style="background:#FEF9E1;">
+          <i class="bi bi-clock-history" style="color:#F5A623;"></i>
+        </div>
+        <div class="rd-stat-body">
+          <span class="rd-stat-label">Socios en revisión</span>
+          <span class="rd-stat-value">{{ dashboard.stats.partners_in_review }}</span>
+          <span class="rd-stat-delta neutral">Pendientes de aprobación</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Middle row ────────────────────────────────── -->
+    <div class="rd-middle-row">
+
+      <!-- Reservas de hoy -->
+      <div class="rd-card rd-reservas-card">
+        <div class="rd-card-header">
+          <h2 class="rd-card-title">Reservas de hoy</h2>
+          <a href="{{ url_for('admin.reservas') if 'admin.reservas' in url_map else '#' }}" class="rd-card-link">Ver todas</a>
+        </div>
+        <table class="rd-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Hora</th>
+              <th>Pers.</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in reservas_hoy %}
+            <tr>
+              <td>
+                <div class="rd-client-cell">
+                  <div class="rd-avatar">{{ r.initials }}</div>
+                  {{ r.nombre }}
                 </div>
-                <strong class="admin-kpi-card__value">{{ kpi.value }}</strong>
-            </article>
+              </td>
+              <td class="rd-hora">{{ r.hora }}</td>
+              <td class="rd-pers">{{ r.personas }}</td>
+              <td>
+                {% if r.estado == 'Confirmada' %}
+                <span class="rd-badge rd-badge--green">Confirmada</span>
+                {% else %}
+                <span class="rd-badge rd-badge--orange">Pendiente</span>
+                {% endif %}
+              </td>
+            </tr>
             {% else %}
-            <article class="admin-card admin-empty-state">
-                <p>No hay métricas para mostrar.</p>
-            </article>
+            <tr>
+              <td colspan="4" class="rd-empty">No hay reservas para hoy.</td>
+            </tr>
             {% endfor %}
-        </section>
+          </tbody>
+        </table>
+      </div>
 
-        <section class="admin-panels-grid">
-            <article class="admin-card admin-panel">
-                <div class="admin-panel__header">
-                    <h2>Reservas de hoy</h2>
-                </div>
+      <!-- Ocupación semanal -->
+      <div class="rd-card rd-chart-card">
+        <div class="rd-card-header">
+          <h2 class="rd-card-title">Ocupación semanal</h2>
+        </div>
+        {% if ocupacion_semanal %}
+        <div class="rd-chart">
+          {% for day in ocupacion_semanal %}
+          <div class="rd-bar-col {{ 'hoy' if day.hoy else '' }}">
+            <span class="rd-bar-pct {{ 'hoy' if day.hoy else '' }}">{{ day.pct }}%</span>
+            <div class="rd-bar-outer">
+              <div class="rd-bar-inner" style="height: {{ day.pct }}%;"></div>
+            </div>
+            <span class="rd-bar-day">{{ day.dia }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="display:flex;align-items:center;justify-content:center;height:180px;color:#9A8F85;font-size:0.88rem;">
+          No hay datos de ocupación.
+        </div>
+        {% endif %}
+      </div>
 
-                <div class="table-responsive">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Hora</th>
-                                <th>Pers.</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for reservation in dashboard.today_reservations %}
-                            <tr>
-                                <td>
-                                    <div class="admin-user-cell">
-                                        <div class="admin-user-cell__avatar">
-                                            {{ reservation.avatar or reservation.customer_name[:2]|upper }}
-                                        </div>
-                                        <span>{{ reservation.customer_name }}</span>
-                                    </div>
-                                </td>
-                                <td>{{ reservation.time }}</td>
-                                <td>{{ reservation.guests }}</td>
-                                <td>
-                                    <span class="admin-status admin-status--{{ reservation.status_slug }}">
-                                        {{ reservation.status_label }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="4" class="admin-table__empty">No hay reservas para hoy.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </article>
+    </div>
 
-            <article class="admin-card admin-panel">
-                <div class="admin-panel__header">
-                    <h2>Ocupación semanal</h2>
-                </div>
+    <!-- ── Quick actions ─────────────────────────────── -->
+    <div class="rd-actions-row">
 
-                <div class="admin-chart">
-                    {% for point in dashboard.weekly_occupancy %}
-                    <div class="admin-chart__item">
-                        <div class="admin-chart__bar-wrap">
-                            <div class="admin-chart__bar" style="height: {{ point.percentage }}%;"></div>
-                        </div>
-                        <span class="admin-chart__label">{{ point.label }}</span>
-                    </div>
-                    {% else %}
-                    <p class="admin-chart__empty">No hay datos de ocupación.</p>
-                    {% endfor %}
-                </div>
-            </article>
-        </section>
+      <a href="{{ url_for('admin.menu') }}" class="rd-action-card">
+        <div class="rd-action-icon" style="background:#FEE9E1;">
+          <i class="bi bi-journal-text" style="color:#FF6B35;"></i>
+        </div>
+        <div>
+          <span class="rd-action-title">Gestionar menú</span>
+          <span class="rd-action-link">Ver detalle</span>
+        </div>
+      </a>
 
-        <section class="admin-actions-grid">
-            {% for action in dashboard.quick_actions %}
-            <a href="{{ action.href }}" class="admin-card admin-action-card">
-                <span>{{ action.label }}</span>
-                <i class="bi bi-arrow-right"></i>
-            </a>
-            {% else %}
-            <article class="admin-card admin-empty-state">
-                <p>No hay acciones rápidas disponibles.</p>
-            </article>
-            {% endfor %}
-        </section>
-    </main>
+      <a href="#" class="rd-action-card">
+        <div class="rd-action-icon" style="background:#E0F5EE;">
+          <i class="bi bi-calendar3" style="color:#1A9E6B;"></i>
+        </div>
+        <div>
+          <span class="rd-action-title">Ver reservas</span>
+          <span class="rd-action-link">Ver detalle</span>
+        </div>
+      </a>
+
+      <a href="#" class="rd-action-card">
+        <div class="rd-action-icon" style="background:#EDE9FE;">
+          <i class="bi bi-tag-fill" style="color:#7C5CFC;"></i>
+        </div>
+        <div>
+          <span class="rd-action-title">Activar oferta</span>
+          <span class="rd-action-link">Ver detalle</span>
+        </div>
+      </a>
+
+      <a href="#" class="rd-action-card">
+        <div class="rd-action-icon" style="background:#FEF9E1;">
+          <i class="bi bi-star-fill" style="color:#F5A623;"></i>
+        </div>
+        <div>
+          <span class="rd-action-title">Responder reseñas</span>
+          <span class="rd-action-link">Ver detalle</span>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- ── Alert banner ──────────────────────────────── -->
+    {% if alert %}
+    <div class="rd-alert">
+      <div class="rd-alert-body">
+        <span class="rd-alert-title">{{ alert.title }}</span>
+        <span class="rd-alert-msg">{{ alert.message }}</span>
+      </div>
+      <a href="{{ alert.action_url }}" class="rd-alert-btn">{{ alert.action_label }}</a>
+    </div>
+    {% endif %}
+
+    <!-- ── Usuarios recientes (tabla pequeña) ──────────── -->
+    {% if dashboard.profiles %}
+    <div class="rd-card mt-4">
+      <div class="rd-card-header">
+        <h2 class="rd-card-title">Usuarios recientes</h2>
+        <a href="{{ url_for('admin.dashboard') }}" class="rd-card-link">Ver todos</a>
+      </div>
+      <table class="rd-table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th style="text-align:left;">Email</th>
+            <th>Rol</th>
+            <th>Nivel</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in dashboard.profiles[:8] %}
+          <tr>
+            <td>
+              <div class="rd-client-cell">
+                <div class="rd-avatar">{{ p.username[:2]|upper }}</div>
+                {{ p.name }}
+              </div>
+            </td>
+            <td style="color:#9A8F85; font-size:0.83rem;">{{ p.email }}</td>
+            <td style="text-align:center;">
+              {% if p.is_admin %}
+              <span class="rd-badge rd-badge--orange">{{ p.role }}</span>
+              {% else %}
+              <span class="rd-badge" style="background:#F0EBE3;color:#6B6B8A;">{{ p.role }}</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center; font-weight:700; color:#1A1A2E;">
+              {{ "%.1f"|format(p.level) }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+  </main>
 </div>
 {% endblock %}
