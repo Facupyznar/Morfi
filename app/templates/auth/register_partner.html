@@ -10,42 +10,90 @@
 
 {% block content %}
 <div class="split-container-fixed">
-    <div class="brand-panel">
-        <div class="text-center">
-            <h1 class="logo-morf-white">Morfi</h1>
-            <p class="tagline-white">Configurá tu restaurante y empezá a gestionar reservas</p>
-        </div>
+
+  <!-- Panel izquierdo naranja -->
+  <div class="brand-panel d-none d-lg-flex">
+    <div class="text-center">
+      <h1 class="logo-morf-white">Morfi</h1>
+      <p class="tagline-white">Sumá tu restaurante a Morfi</p>
     </div>
+  </div>
 
-    <div class="form-panel">
-        <div class="form-content-box">
-            <h2 class="form-main-title">Crear cuenta partner</h2>
+  <!-- Panel derecho formulario -->
+  <div class="form-panel">
+    <div class="form-content-box">
+      <h2 class="form-main-title">Registrar restaurante</h2>
 
-            <form action="{{ url_for('auth.register_partner') }}" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
 
-                <input type="text" name="name" class="morfi-custom-input" placeholder="Nombre del restaurante" required>
-                <input type="text" name="username" class="morfi-custom-input" placeholder="Nombre de usuario" required>
-                <input type="email" name="email" class="morfi-custom-input" placeholder="Email" required>
-                <input type="password" name="password" class="morfi-custom-input" placeholder="Contraseña" required>
-                <input type="password" name="confirm_password" class="morfi-custom-input" placeholder="Confirmar contraseña" required>
+      <form action="{{ url_for('auth.register_partner') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                <input type="text" id="partner-address" name="address" class="morfi-custom-input" placeholder="Dirección del local" required>
-                <input type="hidden" id="partner-lat" name="latitude">
-                <input type="hidden" id="partner-lng" name="longitude">
+        <input type="text"  name="name"     class="morfi-custom-input" placeholder="Nombre del restaurante" required>
+        <input type="text"  name="username" class="morfi-custom-input" placeholder="Nombre de usuario" required>
+        <input type="text"  name="address"  class="morfi-custom-input" id="partner-address" placeholder="Dirección" required>
+        <input type="hidden" id="partner-lat" name="latitude">
+        <input type="hidden" id="partner-lng" name="longitude">
+        <input type="email" name="email"    class="morfi-custom-input" placeholder="Email de contacto" required>
 
-                <button type="submit" class="btn-morfi-primary-full">Crear cuenta y restaurante</button>
-
-                <div class="text-center mt-3">
-                    <p class="switch-auth-text" style="font-size: 0.85rem;">
-                        ¿Ya tenés cuenta? <a href="{{ url_for('auth.login') }}">Iniciar sesión</a>
-                    </p>
-                    <p class="switch-auth-text" style="font-size: 0.85rem;">
-                        <a href="{{ url_for('auth.register_selection') }}">Elegir otro tipo de cuenta</a>
-                    </p>
-                </div>
-            </form>
+        <!-- Contraseña -->
+        <div class="input-eye-wrapper">
+          <input type="password" name="password" id="password" class="morfi-custom-input" placeholder="Contraseña" required>
+          <button type="button" class="toggle-eye" onclick="togglePass('password','eyePass')">
+            <i class="bi bi-eye" id="eyePass"></i>
+          </button>
         </div>
+
+        <!-- Confirmar contraseña -->
+        <div class="input-eye-wrapper">
+          <input type="password" name="confirm_password" id="confirm_password" class="morfi-custom-input" placeholder="Confirmar contraseña" required>
+          <button type="button" class="toggle-eye" onclick="togglePass('confirm_password','eyeConfirm')">
+            <i class="bi bi-eye" id="eyeConfirm"></i>
+          </button>
+        </div>
+
+        <!-- Upload documentación legal -->
+        <label class="dashed-upload" for="doc_legal">
+          <i class="bi bi-upload upload-icon"></i>
+          <span class="upload-label">Documentación legal</span>
+          <input type="file" id="doc_legal" name="doc_legal" accept=".pdf,.jpg,.png" style="display:none">
+        </label>
+
+        <button type="submit" class="btn-morfi-primary-full">Enviar para verificación</button>
+
+        <div class="text-center mt-3">
+          <p class="switch-auth-text mb-1">
+            ¿Ya tenés cuenta? <a href="{{ url_for('auth.login_restaurante') }}">Iniciar sesión</a>
+          </p>
+          <p class="switch-auth-text">
+            <a href="{{ url_for('auth.register_selection') }}">Elegir otro tipo de cuenta</a>
+          </p>
+        </div>
+
+      </form>
     </div>
+  </div>
+
 </div>
+
+<script>
+  function togglePass(fieldId, iconId) {
+    const input = document.getElementById(fieldId);
+    const icon  = document.getElementById(iconId);
+    input.type = input.type === 'password' ? 'text' : 'password';
+    icon.className = input.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+  }
+
+  // Mostrar nombre del archivo seleccionado
+  document.getElementById('doc_legal').addEventListener('change', function () {
+    const label = this.closest('.dashed-upload').querySelector('.upload-label');
+    label.textContent = this.files[0] ? this.files[0].name : 'Documentación legal';
+  });
+</script>
 {% endblock %}
