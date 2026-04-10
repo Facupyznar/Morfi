@@ -1,22 +1,22 @@
 {% set admin_nav_items = admin_nav_items if admin_nav_items is defined else [
-    {'endpoint': 'admin.dashboard', 'label': 'Inicio', 'icon': 'bi-house-door'},
-    {'endpoint': 'admin.edit_restaurant_profile', 'label': 'Perfil', 'icon': 'bi-shop'},
-    {'endpoint': 'admin.menu', 'label': 'Menú', 'icon_svg': 'fork-knife'},
-    {'endpoint': 'admin.reservations', 'label': 'Reservas', 'icon': 'bi-calendar3'},
-    {'endpoint': 'admin.offers', 'label': 'Ofertas', 'icon': 'bi-tags'},
-    {'endpoint': 'admin.reviews', 'label': 'Reseñas', 'icon': 'bi-star'},
-    {'endpoint': 'admin.benefits', 'label': 'Beneficios', 'icon': 'bi-gift'},
-    {'endpoint': 'admin.metrics', 'label': 'Métricas', 'icon': 'bi-bar-chart'}
+    {'endpoint': 'restaurante.dashboard', 'label': 'Inicio', 'icon': 'bi-house-door'},
+    {'endpoint': 'restaurante.edit_restaurant_profile', 'label': 'Perfil', 'icon': 'bi-shop'},
+    {'endpoint': 'restaurante.menu', 'label': 'Menú', 'icon_svg': 'fork-knife'},
+    {'endpoint': 'restaurante.reservations', 'label': 'Reservas', 'icon': 'bi-calendar3'},
+    {'endpoint': 'restaurante.offers', 'label': 'Ofertas', 'icon': 'bi-tags'},
+    {'endpoint': 'restaurante.reviews', 'label': 'Reseñas', 'icon': 'bi-star'},
+    {'endpoint': 'restaurante.benefits', 'label': 'Beneficios', 'icon': 'bi-gift'},
+    {'endpoint': 'restaurante.metrics', 'label': 'Métricas', 'icon': 'bi-bar-chart'}
 ] %}
 
 <aside class="admin-sidebar">
-    <a href="{{ url_for('admin.dashboard') }}" class="admin-sidebar__brand">Morfi</a>
+    <a href="{{ url_for('restaurante.dashboard') }}" class="admin-sidebar__brand">Morfi</a>
 
     <nav class="admin-sidebar__nav">
         {% for item in admin_nav_items %}
             {% set is_active = active_admin_section is defined and active_admin_section == item.label %}
             <a
-                href="{% if item.endpoint in ['admin.dashboard', 'admin.edit_restaurant_profile', 'admin.menu'] %}{{ url_for(item.endpoint) }}{% else %}#{% endif %}"
+                href="{% if item.endpoint in ['restaurante.dashboard', 'restaurante.edit_restaurant_profile', 'restaurante.menu'] %}{{ url_for(item.endpoint) }}{% else %}#{% endif %}"
                 class="admin-sidebar__link {{ 'is-active' if is_active else '' }}"
             >
                 {% if item.icon_svg is defined %}

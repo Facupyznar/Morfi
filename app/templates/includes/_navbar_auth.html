@@ -2,10 +2,10 @@
   <div class="morfi-nav-inner">
 
     <!-- Logo -->
-    <a href="{{ url_for('home.home') }}" class="morfi-brand">Morfi</a>
+    <a href="{{ url_for('usuario.home') }}" class="morfi-brand">Morfi</a>
 
     <!-- Search -->
-    <form action="{{ url_for('home.home') }}" method="get" class="morfi-search-container">
+    <form action="{{ url_for('usuario.home') }}" method="get" class="morfi-search-container">
       <i class="bi bi-search morfi-search-icon"></i>
       <input type="text" name="q" placeholder="¿Qué querés comer hoy?" autocomplete="off">
     </form>
@@ -48,7 +48,7 @@
 
           <!-- Links -->
           <li>
-            <a class="morfi-dd-item" href="{{ url_for('profile.profile') }}">
+            <a class="morfi-dd-item" href="{{ url_for('usuario.profile') }}">
               <i class="bi bi-person"></i> Mi perfil
             </a>
           </li>
@@ -58,12 +58,12 @@
             </a>
           </li>
           <li>
-            <a class="morfi-dd-item" href="{{ url_for('profile.history') }}">
+            <a class="morfi-dd-item" href="{{ url_for('usuario.history') }}">
               <i class="bi bi-clock-history"></i> Historial
             </a>
           </li>
           <li>
-            <a class="morfi-dd-item" href="{{ url_for('profile.security') }}">
+            <a class="morfi-dd-item" href="{{ url_for('usuario.security') }}">
               <i class="bi bi-shield"></i> Cuenta y seguridad
             </a>
           </li>

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request,redirect ,url_for, flash, abort
+from flask import render_template, request,redirect ,url_for, flash, abort
 from flask_login import current_user, login_required
 from sqlalchemy.orm import joinedload
 
@@ -8,12 +8,11 @@ from app.models.restaurant import Restaurant
 from app.models.restaurant_tags import RestaurantTags
 from app.models.reserva import Reserva
 from app.models.menu import Menu
-
-home_bp = Blueprint("home", __name__)
-
+from app.routes.usuario import usuario_bp
 
 
-@home_bp.route('/home')
+
+@usuario_bp.route('/home')
 @login_required
 def home():
     try:
@@ -79,14 +78,14 @@ def home():
         restaurant_cards.sort(key=lambda item: item["distance"] if item["distance"] is not None else 999999)
 
     return render_template(
-        'home.html',
+        'usuario/home.html',
         restaurants=restaurant_cards,
         nearby_active=nearby_active,
         user_lat=default_user_lat,
         user_lng=default_user_lng,
     )
 
-@home_bp.route("/restaurante/<restaurant_id>")
+@usuario_bp.route("/restaurante/<restaurant_id>")
 @login_required
 def restaurant_detail(restaurant_id):
     restaurant_record = (
@@ -123,13 +122,13 @@ def restaurant_detail(restaurant_id):
     }
 
     return render_template(
-        "restaurant_detail.html",
+        "usuario/restaurant_detail.html",
         restaurant=restaurant_data,
         menu_items=menu_items,
     )
  
  
-@home_bp.route("/restaurante/<restaurant_id>/reservar", methods=["POST"])
+@usuario_bp.route("/restaurante/<restaurant_id>/reservar", methods=["POST"])
 @login_required
 def crear_reserva(restaurant_id):
     restaurant_record = db.session.query(Restaurant).filter_by(
@@ -142,7 +141,7 @@ def crear_reserva(restaurant_id):
 
     if not fecha or not hora:
         flash("Por favor completá la fecha y hora.", "warning")
-        return redirect(url_for("home.restaurant_detail", restaurant_id=restaurant_id))
+        return redirect(url_for("usuario.restaurant_detail", restaurant_id=restaurant_id))
 
     try:
         nueva = Reserva(
@@ -159,9 +158,9 @@ def crear_reserva(restaurant_id):
         db.session.rollback()
         flash("No se pudo crear la reserva. Intentá de nuevo.", "danger")
 
-    return redirect(url_for("home.restaurant_detail", restaurant_id=restaurant_id))
+    return redirect(url_for("usuario.restaurant_detail", restaurant_id=restaurant_id))
 
-@home_bp.route("/restaurante/<restaurant_id>/reserva")
+@usuario_bp.route("/restaurante/<restaurant_id>/reserva")
 @login_required
 def reserva_wizard(restaurant_id):
     """Wizard de reserva en 3 pasos (Fecha → Hora → Confirmación)."""
@@ -186,4 +185,4 @@ def reserva_wizard(restaurant_id):
         "address":     restaurant_record.address or "",
     }
  
-    return render_template("reserva_wizard.html", restaurant=restaurant_data)
+    return render_template("usuario/reserva_wizard.html", restaurant=restaurant_data)

@@ -5,7 +5,7 @@
 
 {% block customCSS %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/profile.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -57,16 +57,16 @@
 
         <!-- Nav menu -->
         <div class="profile-nav-card">
-          <a href="{{ url_for('profile.profile') }}" class="profile-nav-item active">
+          <a href="{{ url_for('usuario.profile') }}" class="profile-nav-item active">
             <i class="bi bi-person"></i> Mi perfil
           </a>
           <a href="#" class="profile-nav-item">
             <i class="bi bi-heart"></i> Wishlist
           </a>
-          <a href="{{ url_for('profile.history') }}" class="profile-nav-item">
+          <a href="{{ url_for('usuario.history') }}" class="profile-nav-item">
             <i class="bi bi-clock-history"></i> Actividad reciente
           </a>
-          <a href="{{ url_for('profile.security') }}" class="profile-nav-item">
+          <a href="{{ url_for('usuario.security') }}" class="profile-nav-item">
             <i class="bi bi-shield"></i> Cuenta y seguridad
           </a>
         </div>
@@ -76,7 +76,7 @@
       <div class="col-lg-9">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h2 class="profile-main-title">Mi perfil</h2>
-          <a href="{{ url_for('profile.edit_profile') }}" class="btn-edit-profile">
+          <a href="{{ url_for('usuario.edit_profile') }}" class="btn-edit-profile">
             <i class="bi bi-pencil-fill"></i> Editar perfil
           </a>
         </div>

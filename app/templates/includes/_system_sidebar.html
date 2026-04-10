@@ -1,12 +1,12 @@
 {% set system_nav_items = system_nav_items if system_nav_items is defined else [
-    {'href': url_for('system.restaurants'), 'label': 'Restaurantes', 'icon': 'bi-shop'},
-    {'href': url_for('system.reviews'), 'label': 'Reseñas', 'icon': 'bi-chat-square-text'},
-    {'href': url_for('system.tags'), 'label': 'Tags', 'icon': 'bi-tags'},
-    {'href': url_for('system.users'), 'label': 'Usuarios', 'icon': 'bi-people'}
+    {'href': url_for('admin.restaurants'), 'label': 'Restaurantes', 'icon': 'bi-shop'},
+    {'href': url_for('admin.reviews'), 'label': 'Reseñas', 'icon': 'bi-chat-square-text'},
+    {'href': url_for('admin.tags'), 'label': 'Tags', 'icon': 'bi-tags'},
+    {'href': url_for('admin.users'), 'label': 'Usuarios', 'icon': 'bi-people'}
 ] %}
 
 <aside class="system-sidebar">
-    <a href="{{ url_for('system.restaurants') }}" class="system-sidebar__brand">Morfi</a>
+    <a href="{{ url_for('admin.restaurants') }}" class="system-sidebar__brand">Morfi</a>
     <p class="system-sidebar__eyebrow">Admin Sistema</p>
 
     <nav class="system-sidebar__nav">
@@ -19,7 +19,7 @@
     </nav>
 
     <div class="system-sidebar__footer">
-        <a href="{{ url_for('home.home') }}" class="system-sidebar__back-link">
+        <a href="{{ url_for('usuario.home') }}" class="system-sidebar__back-link">
             <i class="bi bi-arrow-left-circle"></i>
             <span>Volver al home</span>
         </a>

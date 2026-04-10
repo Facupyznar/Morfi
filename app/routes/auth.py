@@ -30,9 +30,9 @@ def _resolve_post_login_redirect(user):
     role_value = getattr(user, "role", None)
     try:
         if role_value in {Role.COMENSAL.value, Role.ADMIN_GLOBAL.value}:
-            return url_for("home.home")
+            return url_for("usuario.home")
         if role_value == Role.SOCIO_ADMIN.value:
-            return url_for("admin.dashboard")
+            return url_for("restaurante.dashboard")
         return url_for("auth.index")
     except BuildError:
         return url_for("auth.index")

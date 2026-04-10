@@ -7,7 +7,7 @@
 {% block title %}Home - Morfi{% endblock %}
 
 {% block customCSS %}
-<link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/home.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -26,7 +26,7 @@
             <div class="row g-4">
                 {% for rest in restaurants %}
                 <div class="col-md-6 col-xl-4">
-                    <a href="{{ url_for('home.restaurant_detail', restaurant_id=rest.id) }}" class="restaurant-card-link">
+                    <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=rest.id) }}" class="restaurant-card-link">
                         <div class="restaurant-card">
                             <div class="card-img-wrapper">
                                 <img src="{{ rest.image_url }}" alt="{{ rest.name }}">
@@ -116,7 +116,7 @@
                 const params = new URLSearchParams(window.location.search);
                 params.set("user_lat", position.coords.latitude);
                 params.set("user_lng", position.coords.longitude);
-                window.location.href = "{{ url_for('home.home') }}?" + params.toString();
+                window.location.href = "{{ url_for('usuario.home') }}?" + params.toString();
             },
             function () {
                 window.alert("No pudimos obtener tu ubicación actual.");

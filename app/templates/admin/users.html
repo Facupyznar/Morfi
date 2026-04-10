@@ -3,7 +3,7 @@
 {% block title %}Gestión de Usuarios - Morfi{% endblock %}
 
 {% block customCSS %}
-<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin/dashboard.css') }}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 {% endblock %}
 
@@ -79,14 +79,14 @@
                             </td>
                             <td>
                                 <div class="system-table-actions">
-                                    <form method="POST" action="{{ url_for('system.toggle_user_suspension', user_id=user.id) }}">
+                                    <form method="POST" action="{{ url_for('admin.toggle_user_suspension', user_id=user.id) }}">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="system-inline-btn {{ 'system-inline-btn--success' if user.status_slug == 'suspended' else 'system-inline-btn--warning' }}" {% if not user.can_manage %}disabled{% endif %}>
                                             <i class="bi {{ 'bi-shield-check' if user.status_slug == 'suspended' else 'bi-shield-x' }}"></i>
                                             <span>{{ 'Activar' if user.status_slug == 'suspended' else 'Suspender' }}</span>
                                         </button>
                                     </form>
-                                    <form method="POST" action="{{ url_for('system.delete_user', user_id=user.id) }}">
+                                    <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="system-inline-btn system-inline-btn--danger" data-delete-user {% if not user.can_manage %}disabled{% endif %}>
                                             <i class="bi bi-trash"></i>

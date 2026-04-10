@@ -3,7 +3,7 @@ import uuid
 
 from sqlalchemy import and_, func, or_
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, logout_user
 from werkzeug.utils import secure_filename
 
@@ -20,21 +20,21 @@ from app.models.user import User
 from app.models.user_tags import UserTags
 
 
-profile_bp = Blueprint("profile", __name__)
+from app.routes.usuario import usuario_bp
 ALLOWED_PROFILE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
 SETUP_EXEMPT_ENDPOINTS = {
     "auth.logout",
-    "profile.setup_gustos",
-    "profile.save_gustos",
-    "profile.save_setup",
-    "profile.sync_contacts",
-    "profile.complete_setup",
-    "profile.do_sync",
+    "usuario.setup_gustos",
+    "usuario.save_gustos",
+    "usuario.save_setup",
+    "usuario.sync_contacts",
+    "usuario.complete_setup",
+    "usuario.do_sync",
 }
 
 
-@profile_bp.before_app_request
+@usuario_bp.before_app_request
 def enforce_profile_setup():
     if not current_user.is_authenticated:
         return None
@@ -69,7 +69,7 @@ def enforce_profile_setup():
     )
 
     if not has_tags:
-        return redirect(url_for("profile.setup_gustos"))
+        return redirect(url_for("usuario.setup_gustos"))
 
     return None
 
@@ -113,8 +113,8 @@ def _save_profile_photo(uploaded_file):
     return f"uploads/profile/{generated_name}"
 
 
-@profile_bp.route("/profile")
-@profile_bp.route("/perfil")
+@usuario_bp.route("/profile")
+@usuario_bp.route("/perfil")
 @login_required
 def profile():
     user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
@@ -192,36 +192,36 @@ def profile():
             for number, name in level_names.items()
         ],
         "quick_actions": [
-            {"label": "Editar Perfil", "icon": "bi-pencil-square", "href": url_for("profile.edit_profile")},
-            {"label": "Historial", "icon": "bi-clock-history", "href": url_for("profile.history")},
+            {"label": "Editar Perfil", "icon": "bi-pencil-square", "href": url_for("usuario.edit_profile")},
+            {"label": "Historial", "icon": "bi-clock-history", "href": url_for("usuario.history")},
             {"label": "Wishlist", "icon": "bi-bookmark-heart", "href": "#"},
-            {"label": "Admin", "icon": "bi-shield-lock", "href": url_for("admin.dashboard"), "admin_only": True},
+            {"label": "Admin", "icon": "bi-shield-lock", "href": url_for("restaurante.dashboard"), "admin_only": True},
         ],
         "favorite_cuisines": cuisine_names,
         "dietary_restrictions": restriction_names,
         "recent_activity": recent_activity,
         "is_admin": bool(getattr(user_record, "is_admin", False)),
         "is_global_admin": getattr(getattr(user_record, "rol", None), "value", None) == "admin_global",
-        "system_panel_href": url_for("system.restaurants"),
+        "system_panel_href": url_for("admin.restaurants"),
     }
-    return render_template("profile.html", user=user_data)
+    return render_template("usuario/profile.html", user=user_data)
 
 
-@profile_bp.route("/setup-gustos")
+@usuario_bp.route("/setup-gustos")
 @login_required
 def setup_gustos():
     all_tags, cuisine_tags, restriction_tags = _load_tag_options()
 
     return render_template(
-        "profile_setup.html",
+        "usuario/profile_setup.html",
         all_tags=all_tags,
         cuisine_tags=cuisine_tags,
         restriction_tags=restriction_tags,
     )
 
 
-@profile_bp.route("/save-gustos", methods=["POST"])
-@profile_bp.route("/save-setup", methods=["POST"])
+@usuario_bp.route("/save-gustos", methods=["POST"])
+@usuario_bp.route("/save-setup", methods=["POST"])
 @login_required
 def save_gustos():
     cuisines = [value.strip() for value in request.form.getlist("cuisines") if value.strip()]
@@ -246,24 +246,24 @@ def save_gustos():
         db.session.add(UserTags(user_id=current_user.user_id, id_tag=tag.id_tag))
 
     db.session.commit()
-    return redirect(url_for("profile.sync_contacts"))
+    return redirect(url_for("usuario.sync_contacts"))
 
 
-@profile_bp.route("/sync-contacts")
+@usuario_bp.route("/sync-contacts")
 @login_required
 def sync_contacts():
-    return render_template("sync_contacts.html")
+    return render_template("usuario/sync_contacts.html")
 
 
-@profile_bp.route("/complete-setup", methods=["POST"])
-@profile_bp.route("/do-sync", methods=["POST"])
+@usuario_bp.route("/complete-setup", methods=["POST"])
+@usuario_bp.route("/do-sync", methods=["POST"])
 @login_required
 def complete_setup():
     db.session.commit()
-    return redirect(url_for("home.home"))
+    return redirect(url_for("usuario.home"))
 
 
-@profile_bp.route("/perfil/editar")
+@usuario_bp.route("/perfil/editar")
 @login_required
 def edit_profile():
     user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
@@ -271,7 +271,7 @@ def edit_profile():
     selected_cuisines, selected_restrictions = _selected_tag_names(user_record)
 
     return render_template(
-        "edit_profile.html",
+        "usuario/edit_profile.html",
         user=user_record,
         location_text=getattr(user_record, "address", ""),
         cuisine_tags=cuisine_tags,
@@ -281,7 +281,7 @@ def edit_profile():
     )
 
 
-@profile_bp.route("/perfil/editar", methods=["POST"])
+@usuario_bp.route("/perfil/editar", methods=["POST"])
 @login_required
 def update_profile():
     user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
@@ -297,13 +297,13 @@ def update_profile():
         user_record.name = updated_name
     else:
         flash("El nombre no puede estar vacío.", "warning")
-        return redirect(url_for("profile.edit_profile"))
+        return redirect(url_for("usuario.edit_profile"))
 
     try:
         location_payload = resolve_location_payload(updated_location, updated_latitude, updated_longitude)
     except ValueError as ex:
         flash(str(ex), "warning")
-        return redirect(url_for("profile.edit_profile"))
+        return redirect(url_for("usuario.edit_profile"))
 
     user_record.address = location_payload["address"]
     user_record.latitude = location_payload["latitude"]
@@ -314,7 +314,7 @@ def update_profile():
             user_record.foto_perfil = _save_profile_photo(uploaded_photo)
         except ValueError as ex:
             flash(str(ex), "warning")
-            return redirect(url_for("profile.edit_profile"))
+            return redirect(url_for("usuario.edit_profile"))
 
     db.session.query(UserTags).filter(UserTags.user_id == user_record.user_id).delete(
         synchronize_session=False
@@ -337,15 +337,15 @@ def update_profile():
     db.session.commit()
     flash("Perfil actualizado correctamente.", "success")
 
-    return redirect(url_for("profile.profile"))
+    return redirect(url_for("usuario.profile"))
 
 
-@profile_bp.route("/perfil/historial")
+@usuario_bp.route("/perfil/historial")
 @login_required
 def history():
-    return render_template("history.html")
+    return render_template("usuario/history.html")
 
-@profile_bp.route("/perfil/seguridad")
+@usuario_bp.route("/perfil/seguridad")
 @login_required
 def security():
     """Página Cuenta y seguridad — reutiliza los mismos datos que profile()."""
@@ -393,10 +393,10 @@ def security():
         "favorite_cuisines": cuisine_names,
         "dietary_restrictions": restriction_names,
     }
-    return render_template("cuenta_seguridad.html", user=user_data)
+    return render_template("usuario/cuenta_seguridad.html", user=user_data)
  
  
-@profile_bp.route("/perfil/eliminar-cuenta", methods=["POST"])
+@usuario_bp.route("/perfil/eliminar-cuenta", methods=["POST"])
 @login_required
 def delete_account():
     """Elimina permanentemente la cuenta del usuario autenticado."""
@@ -433,6 +433,6 @@ def delete_account():
     except Exception:
         db.session.rollback()
         flash("No se pudo eliminar la cuenta. Intentá de nuevo.", "danger")
-        return redirect(url_for("profile.security"))
+        return redirect(url_for("usuario.security"))
  
     return redirect(url_for("auth.index"))

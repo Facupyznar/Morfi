@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 
 from sqlalchemy import and_, or_
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.database import db
@@ -18,7 +18,7 @@ from app.models.tag import Tag
 from app.models.user import Role, User
 
 
-admin_bp = Blueprint("admin", __name__)
+from app.routes.restaurante import restaurante_bp
 MENU_DEFAULT_CATEGORIES = ["Entradas", "Carnes", "Guarniciones", "Postres"]
 
 
@@ -161,11 +161,11 @@ def _upsert_menu_item(item, *, restaurant, name, description, selected_tags, pri
         db.session.add(MenuTags(id_plato=item.id_plato, id_tag=tag.id_tag))
 
 
-@admin_bp.route("/admin/dashboard")
+@restaurante_bp.route("/restaurante/dashboard")
 @login_required
 def dashboard():
     if not _admin_required():
-        return redirect(url_for("profile.profile"))
+        return redirect(url_for("usuario.profile"))
 
     from datetime import date
     DIAS_ES   = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
@@ -253,7 +253,7 @@ def dashboard():
     }
 
     return render_template(
-        "admin_dashboard.html",
+        "restaurante/dashboard.html",
         dashboard=dashboard_data,
         restaurant=restaurant,
         today_label=today_label,
@@ -263,15 +263,15 @@ def dashboard():
         active_admin_section="Inicio",
     )
 
-@admin_bp.route("/admin/menu", methods=["GET", "POST"])
+@restaurante_bp.route("/restaurante/menu", methods=["GET", "POST"])
 @login_required
 def menu():
     if not _admin_required():
-        return redirect(url_for("home.home"))
+        return redirect(url_for("usuario.home"))
 
     restaurant = _get_owned_restaurant()
     if restaurant is None:
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("restaurante.dashboard"))
 
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
@@ -280,18 +280,18 @@ def menu():
         raw_price = (request.form.get("price") or "").strip()
 
         if not name:
-            return redirect(url_for("admin.menu", open_drawer=1))
+            return redirect(url_for("restaurante.menu", open_drawer=1))
 
         if not selected_tags:
-            return redirect(url_for("admin.menu", open_drawer=1))
+            return redirect(url_for("restaurante.menu", open_drawer=1))
 
         try:
             price = Decimal(raw_price)
         except (InvalidOperation, TypeError):
-            return redirect(url_for("admin.menu", open_drawer=1))
+            return redirect(url_for("restaurante.menu", open_drawer=1))
 
         if price <= 0:
-            return redirect(url_for("admin.menu", open_drawer=1))
+            return redirect(url_for("restaurante.menu", open_drawer=1))
 
         item = Menu()
         _upsert_menu_item(
@@ -305,12 +305,12 @@ def menu():
         )
         db.session.commit()
         flash("Plato agregado correctamente.", "success")
-        return redirect(url_for("admin.menu"))
+        return redirect(url_for("restaurante.menu"))
 
     view_data = _build_menu_view_data(restaurant)
 
     return render_template(
-        "admin_menu.html",
+        "restaurante/menu.html",
         menu_items=view_data["menu_items"],
         categories=view_data["categories"],
         menu_tag_groups=_build_available_menu_tags(),
@@ -319,20 +319,20 @@ def menu():
     )
 
 
-@admin_bp.route("/admin/menu/<uuid:item_id>/edit", methods=["POST"])
+@restaurante_bp.route("/restaurante/menu/<uuid:item_id>/edit", methods=["POST"])
 @login_required
 def edit_menu_item(item_id):
     if not _admin_required():
-        return redirect(url_for("home.home"))
+        return redirect(url_for("usuario.home"))
 
     restaurant = _get_owned_restaurant()
     if restaurant is None:
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("restaurante.dashboard"))
 
     item = _get_owned_menu_item(restaurant, item_id)
     if item is None:
         flash("No se encontró el plato a editar.", "danger")
-        return redirect(url_for("admin.menu"))
+        return redirect(url_for("restaurante.menu"))
 
     name = (request.form.get("name") or "").strip()
     description = (request.form.get("description") or "").strip()
@@ -341,17 +341,17 @@ def edit_menu_item(item_id):
 
     if not name or not selected_tags:
         flash("Completá nombre y al menos un tag para editar el plato.", "warning")
-        return redirect(url_for("admin.menu", open_drawer=1))
+        return redirect(url_for("restaurante.menu", open_drawer=1))
 
     try:
         price = Decimal(raw_price)
     except (InvalidOperation, TypeError):
         flash("Ingresá un precio válido.", "warning")
-        return redirect(url_for("admin.menu", open_drawer=1))
+        return redirect(url_for("restaurante.menu", open_drawer=1))
 
     if price <= 0:
         flash("El precio debe ser mayor a cero.", "warning")
-        return redirect(url_for("admin.menu", open_drawer=1))
+        return redirect(url_for("restaurante.menu", open_drawer=1))
 
     _upsert_menu_item(
         item,
@@ -364,61 +364,61 @@ def edit_menu_item(item_id):
     )
     db.session.commit()
     flash("Plato actualizado correctamente.", "success")
-    return redirect(url_for("admin.menu"))
+    return redirect(url_for("restaurante.menu"))
 
 
-@admin_bp.route("/admin/menu/<uuid:item_id>/delete", methods=["POST"])
+@restaurante_bp.route("/restaurante/menu/<uuid:item_id>/delete", methods=["POST"])
 @login_required
 def delete_menu_item(item_id):
     if not _admin_required():
-        return redirect(url_for("home.home"))
+        return redirect(url_for("usuario.home"))
 
     restaurant = _get_owned_restaurant()
     if restaurant is None:
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("restaurante.dashboard"))
 
     item = _get_owned_menu_item(restaurant, item_id)
     if item is None:
         flash("No se encontró el plato a eliminar.", "danger")
-        return redirect(url_for("admin.menu"))
+        return redirect(url_for("restaurante.menu"))
 
     db.session.delete(item)
     db.session.commit()
     flash("Plato eliminado correctamente.", "success")
-    return redirect(url_for("admin.menu"))
+    return redirect(url_for("restaurante.menu"))
 
 
-@admin_bp.route("/admin/menu/<uuid:item_id>/availability", methods=["POST"])
+@restaurante_bp.route("/restaurante/menu/<uuid:item_id>/availability", methods=["POST"])
 @login_required
 def update_menu_item_availability(item_id):
     if not _admin_required():
-        return redirect(url_for("home.home"))
+        return redirect(url_for("usuario.home"))
 
     restaurant = _get_owned_restaurant()
     if restaurant is None:
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("restaurante.dashboard"))
 
     item = _get_owned_menu_item(restaurant, item_id)
     if item is None:
         flash("No se encontró el plato para actualizar disponibilidad.", "danger")
-        return redirect(url_for("admin.menu"))
+        return redirect(url_for("restaurante.menu"))
 
     item.disponibilidad = request.form.get("available") == "1"
     db.session.commit()
     flash("Disponibilidad actualizada correctamente.", "success")
-    return redirect(url_for("admin.menu"))
+    return redirect(url_for("restaurante.menu"))
 
 
 
-@admin_bp.route("/admin/profile/edit")
+@restaurante_bp.route("/restaurante/profile/edit")
 @login_required
 def edit_restaurant_profile():
     if not _admin_required():
-        return redirect(url_for("home.home"))
+        return redirect(url_for("usuario.home"))
 
     restaurant = _get_owned_restaurant()
     if restaurant is None:
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("restaurante.dashboard"))
 
     all_tags = db.session.query(Tag).order_by(Tag.category, Tag.name).all()
     cuisine_tags = [tag for tag in all_tags if tag.category == TagCategory.COMIDA]
@@ -427,7 +427,7 @@ def edit_restaurant_profile():
     selected_tag_names = [item.tag.name for item in restaurant.restaurant_tags if item.tag]
 
     return render_template(
-        "admin_edit_profile.html",
+        "restaurante/edit_profile.html",
         restaurant=restaurant,
         cuisine_tags=cuisine_tags,
         ambience_tags=ambience_tags,
@@ -437,15 +437,15 @@ def edit_restaurant_profile():
     )
 
 
-@admin_bp.route("/admin/profile/edit", methods=["POST"])
+@restaurante_bp.route("/restaurante/profile/edit", methods=["POST"])
 @login_required
 def update_restaurant_profile():
     if not _admin_required():
-        return redirect(url_for("home.home"))
+        return redirect(url_for("usuario.home"))
 
     restaurant = _get_owned_restaurant()
     if restaurant is None:
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("restaurante.dashboard"))
 
     name = (request.form.get("name") or "").strip()
     address = (request.form.get("address") or "").strip()
@@ -457,12 +457,12 @@ def update_restaurant_profile():
     selected_tag_names = cuisines + ambience + occasions
 
     if not name:
-        return redirect(url_for("admin.edit_restaurant_profile"))
+        return redirect(url_for("restaurante.edit_restaurant_profile"))
 
     try:
         location_payload = resolve_location_payload(address, latitude, longitude)
     except ValueError as ex:
-        return redirect(url_for("admin.edit_restaurant_profile"))
+        return redirect(url_for("restaurante.edit_restaurant_profile"))
 
     restaurant.name = name
     restaurant.address = location_payload["address"]
@@ -494,23 +494,23 @@ def update_restaurant_profile():
         db.session.add(RestaurantTags(id_restaurant=restaurant.id_restaurant, id_tag=tag.id_tag))
 
     db.session.commit()
-    return redirect(url_for("admin.edit_restaurant_profile"))
+    return redirect(url_for("restaurante.edit_restaurant_profile"))
 
 
-@admin_bp.route("/admin/users/<uuid:user_id>/delete", methods=["POST"])
+@restaurante_bp.route("/restaurante/users/<uuid:user_id>/delete", methods=["POST"])
 @login_required
 def delete_user(user_id):
     if not _admin_required():
-        return redirect(url_for("profile.profile"))
+        return redirect(url_for("usuario.profile"))
 
     user = db.session.get(User, user_id)
     if user is None:
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("restaurante.dashboard"))
 
     if str(user.user_id) == current_user.get_id():
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("restaurante.dashboard"))
 
     username = user.username
     db.session.delete(user)
     db.session.commit()
-    return redirect(url_for("admin.dashboard"))
+    return redirect(url_for("restaurante.dashboard"))

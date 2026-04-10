@@ -6,7 +6,7 @@
 
 {% block customCSS %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-<link rel="stylesheet" href="{{ url_for('static', filename='reserva_wizard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/reserva_wizard.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -59,7 +59,7 @@
           </div>
 
           <div class="wizard-nav">
-            <a href="{{ url_for('home.restaurant_detail', restaurant_id=restaurant.id) }}"
+            <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=restaurant.id) }}"
                class="btn-atras">
               <i class="bi bi-arrow-left me-1"></i> Volver al restaurante
             </a>
@@ -119,7 +119,7 @@
           <h2 class="wizard-title">Confirmar reserva</h2>
 
           <form method="POST"
-                action="{{ url_for('home.crear_reserva', restaurant_id=restaurant.id) }}">
+                action="{{ url_for('usuario.crear_reserva', restaurant_id=restaurant.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="fecha"      id="form-fecha">
             <input type="hidden" name="hora"       id="form-hora">

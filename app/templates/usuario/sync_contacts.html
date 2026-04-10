@@ -31,12 +31,12 @@
             Sincronizá tus contactos para ver qué restaurantes visitan tus amigos y compartir recomendaciones.
         </p>
 
-        <form action="{{ url_for('profile.complete_setup') }}" method="POST">
+        <form action="{{ url_for('usuario.complete_setup') }}" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-morfi-primary w-100 py-3 mb-3 shadow-sm" style="border-radius: 12px;">
                 Sincronizar contactos
             </button>
-            <a href="{{ url_for('home.home') }}" class="d-block text-decoration-none py-2" style="color: var(--morfi-muted);">
+            <a href="{{ url_for('usuario.home') }}" class="d-block text-decoration-none py-2" style="color: var(--morfi-muted);">
                 Omitir por ahora
             </a >
         </form>

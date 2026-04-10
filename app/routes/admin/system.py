@@ -1,7 +1,7 @@
 import uuid
 from collections import defaultdict
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
@@ -14,7 +14,7 @@ from app.models.tag import Tag
 from app.models.user import Role, User
 
 
-system_bp = Blueprint("system", __name__)
+from app.routes.admin import admin_bp
 
 
 def _system_required():
@@ -25,7 +25,7 @@ def _system_required():
 def _require_system_access():
     if _system_required():
         return None
-    return redirect(url_for("profile.profile"))
+    return redirect(url_for("usuario.profile"))
 
 
 def _initials_from_name(value, fallback="U"):
@@ -65,16 +65,16 @@ def _category_title(category_value):
     return labels.get(category_value, category_value.replace("_", " ").title())
 
 
-@system_bp.route("/system")
+@admin_bp.route("/admin")
 @login_required
 def index():
     denied_response = _require_system_access()
     if denied_response is not None:
         return denied_response
-    return redirect(url_for("system.restaurants"))
+    return redirect(url_for("admin.restaurants"))
 
 
-@system_bp.route("/system/restaurants")
+@admin_bp.route("/admin/restaurants")
 @login_required
 def restaurants():
     denied_response = _require_system_access()
@@ -120,7 +120,7 @@ def restaurants():
                 {"label": "Contacto del socio disponible", "checked": bool(getattr(owner, "email", None))},
                 {"label": "Tags del restaurante asignados", "checked": any(relation.tag for relation in getattr(restaurant, "restaurant_tags", []))},
             ],
-            "href": url_for("system.restaurants", restaurant_id=restaurant.id_restaurant),
+            "href": url_for("admin.restaurants", restaurant_id=restaurant.id_restaurant),
         }
         restaurants_payload.append(payload)
         if normalized_selected_id and restaurant.id_restaurant == normalized_selected_id:
@@ -130,7 +130,7 @@ def restaurants():
         selected_restaurant = restaurants_payload[0]
 
     return render_template(
-        "system/system_restaurants.html",
+        "admin/restaurants.html",
         restaurants=restaurants_payload,
         selected_restaurant=selected_restaurant,
         verification_checklist=selected_restaurant["verification_checklist"] if selected_restaurant else [],
@@ -138,7 +138,7 @@ def restaurants():
     )
 
 
-@system_bp.route("/system/reviews")
+@admin_bp.route("/admin/reviews")
 @login_required
 def reviews():
     denied_response = _require_system_access()
@@ -175,7 +175,7 @@ def reviews():
         )
 
     return render_template(
-        "system/system_reviews.html",
+        "admin/reviews.html",
         reviews=reviews_payload,
         pending_reviews_count=0,
         review_filters=[
@@ -187,7 +187,7 @@ def reviews():
     )
 
 
-@system_bp.route("/system/tags")
+@admin_bp.route("/admin/tags")
 @login_required
 def tags():
     denied_response = _require_system_access()
@@ -224,12 +224,12 @@ def tags():
                 "tag_count": len(tags_in_category),
                 "restaurant_count": sum(tag["restaurant_count"] for tag in tags_in_category),
                 "active": category_value == selected_category,
-                "href": url_for("system.tags", category=category_value),
+                "href": url_for("admin.tags", category=category_value),
             }
         )
 
     return render_template(
-        "system/system_tags.html",
+        "admin/tags.html",
         tag_categories=categories_payload,
         selected_category_name=_category_title(selected_category),
         tags=grouped_tags.get(selected_category, []),
@@ -237,7 +237,7 @@ def tags():
     )
 
 
-@system_bp.route("/system/users")
+@admin_bp.route("/admin/users")
 @login_required
 def users():
     denied_response = _require_system_access()
@@ -298,7 +298,7 @@ def users():
     suspended_users = sum(1 for user in users_payload if user["status_slug"] == "suspended")
 
     return render_template(
-        "system/system_users.html",
+        "admin/users.html",
         users=users_payload,
         user_stats={
             "total_users": len(users_payload),
@@ -314,7 +314,7 @@ def users():
     )
 
 
-@system_bp.route("/system/users/<uuid:user_id>/delete", methods=["POST"])
+@admin_bp.route("/admin/users/<uuid:user_id>/delete", methods=["POST"])
 @login_required
 def delete_user(user_id):
     denied_response = _require_system_access()
@@ -323,18 +323,18 @@ def delete_user(user_id):
 
     user = db.session.get(User, user_id)
     if user is None:
-        return redirect(url_for("system.users"))
+        return redirect(url_for("admin.users"))
 
     if str(user.user_id) == current_user.get_id():
-        return redirect(url_for("system.users"))
+        return redirect(url_for("admin.users"))
 
     username = user.username
     db.session.delete(user)
     db.session.commit()
-    return redirect(url_for("system.users"))
+    return redirect(url_for("admin.users"))
 
 
-@system_bp.route("/system/users/<uuid:user_id>/toggle-suspension", methods=["POST"])
+@admin_bp.route("/admin/users/<uuid:user_id>/toggle-suspension", methods=["POST"])
 @login_required
 def toggle_user_suspension(user_id):
     denied_response = _require_system_access()
@@ -343,12 +343,12 @@ def toggle_user_suspension(user_id):
 
     user = db.session.get(User, user_id)
     if user is None:
-        return redirect(url_for("system.users"))
+        return redirect(url_for("admin.users"))
 
     if str(user.user_id) == current_user.get_id():
-        return redirect(url_for("system.users"))
+        return redirect(url_for("admin.users"))
 
     user.is_active = not bool(getattr(user, "is_active", True))
     db.session.commit()
 
-    return redirect(url_for("system.users"))
+    return redirect(url_for("admin.users"))
