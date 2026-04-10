@@ -17,8 +17,17 @@ class Restaurant(db.Model):
     longitude = db.Column("Longitude", db.Float, nullable=False)
     capacidad = db.Column("Capacidad", db.Integer, nullable=False, default=0)
     puntaje = db.Column("Puntaje", db.Numeric(3, 2), nullable=False, default=0)
-    horario = db.Column("Horario", db.Text)
-    estado = db.Column("Estado", db.Enum(RestaurantStatus, name="restaurant_status"), nullable=False, default=RestaurantStatus.ACTIVO)
+    horario      = db.Column("Horario",      db.Text)
+    estado       = db.Column("Estado",       db.Enum(RestaurantStatus, name="restaurant_status"), nullable=False, default=RestaurantStatus.ACTIVO)
+    # Campos nuevos — correr migration.sql después de actualizar el modelo
+    descripcion  = db.Column("Descripcion",  db.Text,          nullable=True)
+    precio_rango = db.Column("PrecioRango",  db.String(5),     nullable=True)
+    cover_url    = db.Column("CoverUrl",     db.String(255),   nullable=True)
+    logo_url     = db.Column("LogoUrl",      db.String(255),   nullable=True)
+    gallery_json = db.Column("GalleryJson",  db.Text,          nullable=True)  # JSON array de paths
+    telefono     = db.Column("Telefono",     db.String(30),    nullable=True)
+    sitio_web    = db.Column("SitioWeb",     db.String(200),   nullable=True)
+    instagram    = db.Column("Instagram",    db.String(60),    nullable=True)
 
     owner = db.relationship("User", foreign_keys=[id_owner], backref=db.backref("owned_restaurants", lazy=True))
     restaurant_tags = db.relationship("RestaurantTags", back_populates="restaurant", cascade="all, delete-orphan", lazy=True)

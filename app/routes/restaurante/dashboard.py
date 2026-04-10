@@ -1,10 +1,13 @@
+import json
+import os
 import uuid
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, extract, or_
+from werkzeug.utils import secure_filename
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.database import db
@@ -12,10 +15,34 @@ from app.location import resolve_location_payload
 from app.models.enums import TagCategory
 from app.models.menu import Menu
 from app.models.menu_tags import MenuTags
+from app.models.reserva import Reserva
 from app.models.restaurant import Restaurant
 from app.models.restaurant_tags import RestaurantTags
 from app.models.tag import Tag
 from app.models.user import Role, User
+
+# ── File upload helpers ──────────────────────────────────────────────────────
+_ALLOWED_IMG = {"png", "jpg", "jpeg", "webp"}
+_MAX_GALLERY  = 10
+
+
+def _allowed_img(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in _ALLOWED_IMG
+
+
+def _save_img(file, subfolder: str, prefix: str) -> str | None:
+    """Guarda un FileStorage en static/uploads/restaurants/<subfolder>/ y
+    devuelve el path relativo a static/ (para usar con url_for('static', ...))."""
+    if not file or not file.filename:
+        return None
+    if not _allowed_img(file.filename):
+        return None
+    ext  = secure_filename(file.filename).rsplit(".", 1)[-1].lower()
+    name = f"{prefix}_{uuid.uuid4().hex[:10]}.{ext}"
+    folder = os.path.join(current_app.static_folder, "uploads", "restaurants", subfolder)
+    os.makedirs(folder, exist_ok=True)
+    file.save(os.path.join(folder, name))
+    return f"uploads/restaurants/{subfolder}/{name}"
 
 
 from app.routes.restaurante import restaurante_bp
@@ -410,6 +437,75 @@ def update_menu_item_availability(item_id):
 
 
 
+def _parse_horario(restaurant):
+    """Devuelve la lista de slots de horario desde el JSON guardado en restaurant.horario."""
+    if not restaurant.horario:
+        return []
+    try:
+        data = json.loads(restaurant.horario)
+        return data if isinstance(data, list) else []
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+
+@restaurante_bp.route("/restaurante/profile")
+@login_required
+def profile_view():
+    """Vista pública del perfil del restaurante (solo lectura)."""
+    if not _admin_required():
+        return redirect(url_for("usuario.home"))
+
+    restaurant = _get_owned_restaurant()
+    if restaurant is None:
+        return redirect(url_for("restaurante.dashboard"))
+
+    # Tags agrupados por categoría
+    cuisine_tags  = [rt.tag.name for rt in restaurant.restaurant_tags if rt.tag and rt.tag.category == TagCategory.COMIDA]
+    ambience_tags = [rt.tag.name for rt in restaurant.restaurant_tags if rt.tag and rt.tag.category == TagCategory.AMBIENTE]
+    occasion_tags = [rt.tag.name for rt in restaurant.restaurant_tags if rt.tag and rt.tag.category == TagCategory.OCASION]
+
+    horario = _parse_horario(restaurant)
+
+    # Stats: reservas reales + mocks hasta implementar métricas completas
+    from datetime import date
+    hoy = date.today()
+    reservas_mes = (
+        db.session.query(Reserva)
+        .filter(
+            Reserva.id_restaurant == restaurant.id_restaurant,
+            extract("month", Reserva.fecha_hora) == hoy.month,
+            extract("year",  Reserva.fecha_hora) == hoy.year,
+        )
+        .count()
+    )
+
+    stats = {
+        "reservas_mes":      reservas_mes,
+        "ocupacion_pct":     78,   # TODO: calcular de reservas vs capacidad
+        "platos_vistos":     len(restaurant.menus) * 12,  # TODO: implementar conteo real
+        "tasa_retorno_pct":  34,   # TODO: implementar lógica de retorno
+    }
+
+    reviews_count = 0
+    try:
+        gallery = json.loads(restaurant.gallery_json or "[]")
+    except (json.JSONDecodeError, TypeError):
+        gallery = []
+
+    return render_template(
+        "restaurante/profile.html",
+        restaurant=restaurant,
+        cuisine_tags=cuisine_tags,
+        ambience_tags=ambience_tags,
+        occasion_tags=occasion_tags,
+        horario=horario,
+        stats=stats,
+        reviews_count=reviews_count,
+        gallery=gallery,
+        active_admin_section="Perfil",
+    )
+
+
 @restaurante_bp.route("/restaurante/profile/edit")
 @login_required
 def edit_restaurant_profile():
@@ -421,10 +517,18 @@ def edit_restaurant_profile():
         return redirect(url_for("restaurante.dashboard"))
 
     all_tags = db.session.query(Tag).order_by(Tag.category, Tag.name).all()
-    cuisine_tags = [tag for tag in all_tags if tag.category == TagCategory.COMIDA]
+    cuisine_tags  = [tag for tag in all_tags if tag.category == TagCategory.COMIDA]
     ambience_tags = [tag for tag in all_tags if tag.category == TagCategory.AMBIENTE]
     occasion_tags = [tag for tag in all_tags if tag.category == TagCategory.OCASION]
     selected_tag_names = [item.tag.name for item in restaurant.restaurant_tags if item.tag]
+
+    horario      = _parse_horario(restaurant)
+    horario_json = restaurant.horario or "[]"
+
+    try:
+        gallery = json.loads(restaurant.gallery_json or "[]")
+    except (json.JSONDecodeError, TypeError):
+        gallery = []
 
     return render_template(
         "restaurante/edit_profile.html",
@@ -433,6 +537,9 @@ def edit_restaurant_profile():
         ambience_tags=ambience_tags,
         occasion_tags=occasion_tags,
         selected_tag_names=selected_tag_names,
+        horario=horario,
+        horario_json=horario_json,
+        gallery=gallery,
         active_admin_section="Perfil",
     )
 
@@ -447,33 +554,90 @@ def update_restaurant_profile():
     if restaurant is None:
         return redirect(url_for("restaurante.dashboard"))
 
-    name = (request.form.get("name") or "").strip()
-    address = (request.form.get("address") or "").strip()
-    latitude = request.form.get("latitude")
-    longitude = request.form.get("longitude")
-    cuisines = [value.strip() for value in request.form.getlist("cuisines") if value.strip()]
-    ambience = [value.strip() for value in request.form.getlist("ambience") if value.strip()]
-    occasions = [value.strip() for value in request.form.getlist("occasions") if value.strip()]
-    selected_tag_names = cuisines + ambience + occasions
+    # ── Texto ────────────────────────────────────────────────────────────────
+    name          = (request.form.get("name")         or "").strip()
+    address       = (request.form.get("address")      or "").strip()
+    latitude      = request.form.get("latitude")
+    longitude     = request.form.get("longitude")
+    descripcion   = (request.form.get("descripcion")  or "").strip() or None
+    precio_rango  = (request.form.get("precio_rango") or "").strip() or None
+    capacidad_raw = (request.form.get("capacidad")    or "").strip()
+    telefono      = (request.form.get("telefono")     or "").strip() or None
+    sitio_web     = (request.form.get("sitio_web")    or "").strip() or None
+    instagram     = (request.form.get("instagram")    or "").strip() or None
+    horario_raw   = (request.form.get("horario")      or "[]").strip()
+    cuisines      = [v.strip() for v in request.form.getlist("cuisines")  if v.strip()]
+    ambience      = [v.strip() for v in request.form.getlist("ambience")  if v.strip()]
+    occasions     = [v.strip() for v in request.form.getlist("occasions") if v.strip()]
 
     if not name:
+        flash("El nombre del restaurante es requerido.", "warning")
         return redirect(url_for("restaurante.edit_restaurant_profile"))
 
     try:
         location_payload = resolve_location_payload(address, latitude, longitude)
-    except ValueError as ex:
+    except ValueError:
+        flash("No se pudo resolver la ubicación.", "warning")
         return redirect(url_for("restaurante.edit_restaurant_profile"))
 
-    restaurant.name = name
-    restaurant.address = location_payload["address"]
-    restaurant.latitude = location_payload["latitude"]
+    # ── Campos base ──────────────────────────────────────────────────────────
+    restaurant.name      = name
+    restaurant.address   = location_payload["address"]
+    restaurant.latitude  = location_payload["latitude"]
     restaurant.longitude = location_payload["longitude"]
 
-    current_user.name = name
-    current_user.address = location_payload["address"]
-    current_user.latitude = location_payload["latitude"]
+    if capacidad_raw.isdigit():
+        restaurant.capacidad = int(capacidad_raw)
+
+    # ── Horario (JSON en columna Text existente) ──────────────────────────
+    try:
+        restaurant.horario = json.dumps(json.loads(horario_raw), ensure_ascii=False)
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # ── Campos nuevos (requieren migration.sql corrido primero) ──────────────
+    restaurant.descripcion  = descripcion
+    restaurant.precio_rango = precio_rango
+    restaurant.telefono     = telefono
+    restaurant.sitio_web    = sitio_web
+    restaurant.instagram    = instagram
+
+    # ── Foto de portada ───────────────────────────────────────────────────────
+    cover_file = request.files.get("cover_photo")
+    new_cover  = _save_img(cover_file, "covers", str(restaurant.id_restaurant))
+    if new_cover:
+        restaurant.cover_url = new_cover
+
+    # ── Logo / avatar ─────────────────────────────────────────────────────────
+    logo_file = request.files.get("logo_photo")
+    new_logo  = _save_img(logo_file, "logos", str(restaurant.id_restaurant))
+    if new_logo:
+        restaurant.logo_url = new_logo
+
+    # ── Galería ───────────────────────────────────────────────────────────────
+    gallery_files = request.files.getlist("gallery_photos")
+    current_gallery: list = []
+    try:
+        current_gallery = json.loads(restaurant.gallery_json or "[]")
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    for gf in gallery_files:
+        if len(current_gallery) >= _MAX_GALLERY:
+            break
+        path = _save_img(gf, "gallery", str(restaurant.id_restaurant))
+        if path:
+            current_gallery.append(path)
+
+    restaurant.gallery_json = json.dumps(current_gallery, ensure_ascii=False)
+
+    # ── Sincronizar nombre al owner ──────────────────────────────────────────
+    current_user.name      = name
+    current_user.address   = location_payload["address"]
+    current_user.latitude  = location_payload["latitude"]
     current_user.longitude = location_payload["longitude"]
 
+    # ── Tags ──────────────────────────────────────────────────────────────────
     db.session.query(RestaurantTags).filter(
         RestaurantTags.id_restaurant == restaurant.id_restaurant
     ).delete(synchronize_session=False)
@@ -482,19 +646,19 @@ def update_restaurant_profile():
         db.session.query(Tag)
         .filter(
             or_(
-                and_(Tag.category == TagCategory.COMIDA, Tag.name.in_(cuisines)),
+                and_(Tag.category == TagCategory.COMIDA,   Tag.name.in_(cuisines)),
                 and_(Tag.category == TagCategory.AMBIENTE, Tag.name.in_(ambience)),
-                and_(Tag.category == TagCategory.OCASION, Tag.name.in_(occasions)),
+                and_(Tag.category == TagCategory.OCASION,  Tag.name.in_(occasions)),
             )
         )
         .all()
     )
-
     for tag in selected_tags:
         db.session.add(RestaurantTags(id_restaurant=restaurant.id_restaurant, id_tag=tag.id_tag))
 
     db.session.commit()
-    return redirect(url_for("restaurante.edit_restaurant_profile"))
+    flash("Perfil actualizado correctamente.", "success")
+    return redirect(url_for("restaurante.profile_view"))
 
 
 @restaurante_bp.route("/restaurante/users/<uuid:user_id>/delete", methods=["POST"])

@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% block title %}Perfil — {{ restaurant.name }}{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/profile.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+  {% include 'includes/_admin_sidebar.html' %}
+
+  <main class="rp-main">
+
+    {# ── Cover ──────────────────────────────────────────────────── #}
+    <div class="rp-cover"
+         style="{% if restaurant.cover_url %}background-image:url('{{ url_for('static', filename=restaurant.cover_url) }}');{% endif %}">
+      <div class="rp-cover-overlay">
+        <div class="rp-cover-identity">
+          <div class="rp-avatar">
+            {% if restaurant.logo_url %}
+              <img src="{{ url_for('static', filename=restaurant.logo_url) }}" alt="{{ restaurant.name }}">
+            {% else %}
+              {{ restaurant.name[:2]|upper }}
+            {% endif %}
+          </div>
+          <div class="rp-cover-info">
+            <h1 class="rp-name">{{ restaurant.name }}</h1>
+            <div class="rp-meta">
+              <span class="rp-stars">
+                {% set score = restaurant.puntaje|float %}
+                {% for i in range(1, 6) %}
+                  <i class="bi bi-star{% if score >= i %}-fill{% elif score >= i - 0.5 %}-half{% endif %}"></i>
+                {% endfor %}
+              </span>
+              <span class="rp-score">{{ "%.1f"|format(restaurant.puntaje|float) }}</span>
+              {% if reviews_count %}
+                <span class="rp-dot">·</span>
+                <span class="rp-reviews">{{ reviews_count }} reseñas</span>
+              {% endif %}
+              {% if restaurant.precio_rango %}
+                <span class="rp-dot">·</span>
+                <span class="rp-price">{{ restaurant.precio_rango }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <a href="{{ url_for('restaurante.edit_restaurant_profile') }}" class="rp-edit-btn">
+          <i class="bi bi-pencil"></i> Editar perfil
+        </a>
+      </div>
+    </div>
+
+    {# ── Content grid ───────────────────────────────────────────── #}
+    <div class="rp-content">
+
+      {# Left column #}
+      <div class="rp-col-left">
+
+        {# Acerca de #}
+        <div class="rp-card">
+          <h2 class="rp-card-title">Acerca de</h2>
+          <p class="rp-description">
+            {{ restaurant.descripcion if restaurant.descripcion else 'Sin descripción.' }}
+          </p>
+          <div class="rp-info-pills">
+            <div class="rp-pill">
+              <i class="bi bi-geo-alt"></i>
+              <div>
+                <span class="rp-pill-label">Ubicación</span>
+                <span class="rp-pill-value">{{ restaurant.address }}</span>
+              </div>
+            </div>
+            <div class="rp-pill">
+              <i class="bi bi-people"></i>
+              <div>
+                <span class="rp-pill-label">Capacidad</span>
+                <span class="rp-pill-value">{{ restaurant.capacidad }} personas</span>
+              </div>
+            </div>
+            {% if restaurant.precio_rango %}
+            <div class="rp-pill">
+              <i class="bi bi-currency-dollar"></i>
+              <div>
+                <span class="rp-pill-label">Rango de precios</span>
+                <span class="rp-pill-value">{{ restaurant.precio_rango }}</span>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        {# Categorías #}
+        {% if cuisine_tags or ambience_tags or occasion_tags %}
+        <div class="rp-card">
+          <h2 class="rp-card-title">Categorías</h2>
+
+          {% if cuisine_tags %}
+          <div class="rp-tag-group">
+            <span class="rp-tag-group-label">
+              <i class="bi bi-fire"></i> Cocina
+            </span>
+            <div class="rp-tags">
+              {% for tag in cuisine_tags %}
+              <span class="rp-tag">{{ tag }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if ambience_tags %}
+          <div class="rp-tag-group">
+            <span class="rp-tag-group-label">
+              <i class="bi bi-stars"></i> Ambiente
+            </span>
+            <div class="rp-tags">
+              {% for tag in ambience_tags %}
+              <span class="rp-tag">{{ tag }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if occasion_tags %}
+          <div class="rp-tag-group">
+            <span class="rp-tag-group-label">
+              <i class="bi bi-gift"></i> Ocasiones
+            </span>
+            <div class="rp-tags">
+              {% for tag in occasion_tags %}
+              <span class="rp-tag rp-tag--green">{{ tag }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {# Horarios #}
+        <div class="rp-card">
+          <h2 class="rp-card-title">
+            <i class="bi bi-clock" style="color:var(--morfi-orange);"></i>
+            Horarios de atención
+          </h2>
+          {% if horario %}
+          <div class="rp-schedule">
+            {% for entry in horario %}
+            <div class="rp-schedule-row">
+              <span class="rp-schedule-day">{{ entry.label }}</span>
+              {% if entry.active %}
+              <span class="rp-schedule-active-dot"></span>
+              <span class="rp-schedule-hours">{{ entry.open }} – {{ entry.close }}</span>
+              {% else %}
+              <span class="rp-schedule-closed">Cerrado</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="rp-empty-hint">Sin horarios cargados todavía.</p>
+          {% endif %}
+        </div>
+
+      </div>{# /col-left #}
+
+      {# Right column #}
+      <div class="rp-col-right">
+
+        {# Contacto #}
+        <div class="rp-card">
+          <h2 class="rp-card-title">Contacto</h2>
+          <ul class="rp-contact-list">
+            {% if restaurant.telefono %}
+            <li>
+              <i class="bi bi-telephone"></i>
+              <div>
+                <span class="rp-contact-label">Teléfono</span>
+                <span class="rp-contact-value">{{ restaurant.telefono }}</span>
+              </div>
+            </li>
+            {% endif %}
+            <li>
+              <i class="bi bi-envelope"></i>
+              <div>
+                <span class="rp-contact-label">Email</span>
+                <span class="rp-contact-value">{{ restaurant.owner.email if restaurant.owner else '—' }}</span>
+              </div>
+            </li>
+            {% if restaurant.sitio_web %}
+            <li>
+              <i class="bi bi-globe"></i>
+              <div>
+                <span class="rp-contact-label">Sitio web</span>
+                <a href="{{ restaurant.sitio_web }}" target="_blank" class="rp-contact-link">
+                  {{ restaurant.sitio_web }} <i class="bi bi-box-arrow-up-right" style="font-size:0.7rem;"></i>
+                </a>
+              </div>
+            </li>
+            {% endif %}
+            {% if restaurant.instagram %}
+            <li>
+              <i class="bi bi-instagram"></i>
+              <div>
+                <span class="rp-contact-label">Instagram</span>
+                <a href="https://instagram.com/{{ restaurant.instagram }}" target="_blank" class="rp-contact-link">
+                  @{{ restaurant.instagram }} <i class="bi bi-box-arrow-up-right" style="font-size:0.7rem;"></i>
+                </a>
+              </div>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+
+        {# Galería #}
+        <div class="rp-card">
+          <h2 class="rp-card-title">Galería</h2>
+          {% if gallery %}
+          <div class="rp-gallery">
+            {% for photo in gallery[:5] %}
+            <div class="rp-gallery-thumb">
+              <img src="{{ url_for('static', filename=photo) }}" alt="Foto {{ loop.index }}">
+            </div>
+            {% endfor %}
+            {% if gallery|length > 5 %}
+            <div class="rp-gallery-thumb rp-gallery-more">
+              <span>+{{ gallery|length - 5 }}</span>
+            </div>
+            {% endif %}
+          </div>
+          {% else %}
+          <div class="rp-gallery-empty">
+            <i class="bi bi-image" style="font-size:1.5rem;color:#C5BFBA;"></i>
+            <span>Sin fotos todavía.</span>
+          </div>
+          {% endif %}
+        </div>
+
+        {# Estadísticas rápidas #}
+        <div class="rp-card rp-card--dark">
+          <h2 class="rp-card-title rp-card-title--light">Estadísticas rápidas</h2>
+          <ul class="rp-stats-list">
+            <li>
+              <span>Reservas este mes</span>
+              <strong>{{ stats.reservas_mes }}</strong>
+            </li>
+            <li>
+              <span>Ocupación promedio</span>
+              <strong>{{ stats.ocupacion_pct }}%</strong>
+            </li>
+            <li>
+              <span>Platos más vistos</span>
+              <strong>{{ stats.platos_vistos }}</strong>
+            </li>
+            <li class="rp-stats-highlight">
+              <span>Tasa de retorno</span>
+              <strong>{{ stats.tasa_retorno_pct }}%</strong>
+            </li>
+          </ul>
+        </div>
+
+      </div>{# /col-right #}
+    </div>{# /rp-content #}
+  </main>
+</div>
+{% endblock %}
