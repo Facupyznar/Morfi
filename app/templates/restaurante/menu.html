@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
-
-{% block title %}Gestión de Menú - Morfi{% endblock %}
+{% block title %}Gestión de Menú — Morfi{% endblock %}
 
 {% block customCSS %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/menu.css') }}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 {% endblock %}
 
@@ -11,288 +11,749 @@
 
 {% block content %}
 <div class="admin-layout">
-    {% include 'includes/_admin_sidebar.html' %}
+  {% include 'includes/_admin_sidebar.html' %}
 
-    <main class="admin-main admin-menu-page">
-        <header class="admin-menu-header">
-            <h1 class="admin-page-title">Gestión de Menú</h1>
-            <button type="button" class="admin-menu-add-btn" data-menu-open-drawer>
-                <i class="bi bi-plus-lg"></i>
-                <span>Agregar plato</span>
-            </button>
-        </header>
+  <main class="mn-main">
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <section class="admin-menu-flashes" aria-label="Mensajes del sistema">
-                {% for category, message in messages %}
-                <div class="admin-menu-flash is-{{ category or 'info' }}">{{ message }}</div>
-                {% endfor %}
-            </section>
-            {% endif %}
-        {% endwith %}
-
-        <section class="admin-menu-filters" aria-label="Filtros de menú">
-            {% for category in categories %}
-            <button
-                type="button"
-                class="admin-menu-filter {{ 'is-active' if loop.first else '' }}"
-                data-category-filter="{{ category }}"
-            >
-                {{ category }}
-            </button>
-            {% endfor %}
-        </section>
-
-        <section class="admin-card admin-menu-table-card">
-            <div class="table-responsive">
-                <table class="admin-table admin-menu-table">
-                    <thead>
-                        <tr>
-                            <th>Foto</th>
-                            <th>Plato</th>
-                            <th>Categorías</th>
-                            <th>Precio</th>
-                            <th>Disponible</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody data-menu-table-body>
-                        {% for item in menu_items %}
-                        <tr
-                            data-category="{{ item.category }}"
-                            data-tags="{{ item.selected_tag_names|join('|') }}"
-                            data-item-id="{{ item.id }}"
-                            data-item-name="{{ item.name }}"
-                            data-item-description="{{ item.description }}"
-                            data-item-price="{{ item.price }}"
-                            data-item-tag-ids="{{ item.selected_tag_ids|join(',') }}"
-                        >
-                            <td>
-                                <div class="admin-menu-photo" aria-hidden="true">{{ item.photo_label }}</div>
-                            </td>
-                            <td class="admin-menu-name">{{ item.name }}</td>
-                            <td class="admin-menu-category">{{ item.category }}</td>
-                            <td class="admin-menu-price">${{ "{:,.0f}".format(item.price) }}</td>
-                            <td>
-                                <form method="POST" action="{{ url_for('restaurante.update_menu_item_availability', item_id=item.id) }}">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <input type="hidden" name="available" value="{{ '0' if item.available else '1' }}">
-                                    <button
-                                        type="submit"
-                                        class="admin-menu-switch {{ 'is-on' if item.available else '' }}"
-                                        aria-label="Cambiar disponibilidad de {{ item.name }}"
-                                    >
-                                        <span class="admin-menu-switch__thumb"></span>
-                                    </button>
-                                </form>
-                            </td>
-                            <td>
-                                <div class="admin-menu-actions">
-                                    <button
-                                        type="button"
-                                        class="admin-menu-icon-btn"
-                                        aria-label="Editar {{ item.name }}"
-                                        data-menu-edit
-                                    >
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <form method="POST" action="{{ url_for('restaurante.delete_menu_item', item_id=item.id) }}" onsubmit="return window.confirm('¿Eliminar {{ item.name }}?');">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="admin-menu-icon-btn is-danger" aria-label="Eliminar {{ item.name }}">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr data-empty-row>
-                            <td colspan="6" class="admin-table__empty">No hay platos cargados todavía.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    {# ── Flash messages ───────────────────────────────────────────── #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mn-flash-container">
+          {% for category, message in messages %}
+            <div class="mn-flash mn-flash--{{ category }}">
+              <i class="bi {% if category == 'success' %}bi-check-circle{% elif category == 'danger' %}bi-x-circle{% else %}bi-exclamation-triangle{% endif %}"></i>
+              {{ message }}
+              <button type="button" class="mn-flash-close" onclick="this.parentElement.remove()">
+                <i class="bi bi-x"></i>
+              </button>
             </div>
-        </section>
-    </main>
-</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
 
-<div class="admin-menu-drawer-backdrop" data-menu-backdrop hidden></div>
-<aside class="admin-menu-drawer" data-menu-drawer aria-hidden="true">
-    <div class="admin-menu-drawer__header">
-        <h2 data-menu-drawer-title>Agregar plato</h2>
-        <button type="button" class="admin-menu-close-btn" data-menu-close-drawer aria-label="Cerrar panel">
-            <i class="bi bi-x-lg"></i>
-        </button>
+    {# ── Header ─────────────────────────────────────────────────── #}
+    <div class="mn-header">
+      <div>
+        <h1 class="mn-title">Gestión de Menú</h1>
+        <p class="mn-subtitle">Administrá los platos de tu restaurante</p>
+      </div>
+      <button class="mn-btn-primary" id="btn-nuevo-plato" onclick="openDrawer()">
+        <i class="bi bi-plus-lg"></i> Nuevo plato
+      </button>
     </div>
 
-    <form class="admin-menu-form" method="POST" action="{{ url_for('restaurante.menu') }}" data-menu-create-action="{{ url_for('restaurante.menu') }}" data-menu-edit-action-template="{{ url_for('restaurante.edit_menu_item', item_id='00000000-0000-0000-0000-000000000000') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="text" name="name" placeholder="Nombre del plato" required>
-        <textarea rows="3" name="description" placeholder="Descripción"></textarea>
-        <input type="number" name="price" placeholder="Precio" min="1" step="0.01" required>
-        <div class="admin-menu-tag-groups">
-            {% for group in menu_tag_groups %}
-            <div class="admin-menu-tag-group">
-                <p class="admin-menu-tag-group__title">{{ group.title }}</p>
-                <div class="admin-menu-tag-options">
-                    {% for tag in group.tags %}
-                    <label class="admin-menu-tag-option">
-                        <input type="checkbox" name="tag_ids" value="{{ tag.id }}">
-                        <span>{{ tag.name }}</span>
-                    </label>
-                    {% endfor %}
-                </div>
-            </div>
+    {# ── Stats ──────────────────────────────────────────────────── #}
+    {% set total_platos = menu_items | length %}
+    {% set disponibles = menu_items | selectattr('available') | list | length %}
+    {% set no_disponibles = total_platos - disponibles %}
+    {% set num_categorias = categories | length - 1 %}
+
+    <div class="mn-stats-row">
+      <div class="mn-stat-card">
+        <span class="mn-stat-label">Total platos</span>
+        <span class="mn-stat-value">{{ total_platos }}</span>
+      </div>
+      <div class="mn-stat-card">
+        <span class="mn-stat-label">Disponibles</span>
+        <span class="mn-stat-value mn-stat-value--green">{{ disponibles }}</span>
+      </div>
+      <div class="mn-stat-card">
+        <span class="mn-stat-label">No disponibles</span>
+        <span class="mn-stat-value mn-stat-value--red">{{ no_disponibles }}</span>
+      </div>
+      <div class="mn-stat-card">
+        <span class="mn-stat-label">Categorías</span>
+        <span class="mn-stat-value">{{ num_categorias }}</span>
+      </div>
+    </div>
+
+    {# ── Filter bar ─────────────────────────────────────────────── #}
+    <div class="mn-filter-bar">
+      <div class="mn-search-wrapper">
+        <i class="bi bi-search mn-search-icon"></i>
+        <input
+          type="text"
+          id="mn-search"
+          class="mn-search"
+          placeholder="Buscar plato..."
+          oninput="filterMenu()"
+        >
+      </div>
+
+      <div class="mn-category-pills" id="category-pills">
+        {% for cat in categories %}
+          <button
+            class="mn-pill {% if loop.first %}mn-pill--active{% endif %}"
+            data-category="{{ cat }}"
+            onclick="setCategory(this, '{{ cat }}')"
+          >{{ cat }}</button>
+        {% endfor %}
+      </div>
+
+      <div class="mn-view-toggle">
+        <button class="mn-view-btn mn-view-btn--active" id="btn-grid" onclick="setView('grid')">
+          <i class="bi bi-grid"></i>
+        </button>
+        <button class="mn-view-btn" id="btn-list" onclick="setView('list')">
+          <i class="bi bi-list-ul"></i>
+        </button>
+      </div>
+    </div>
+
+    {# ── Menu grid ──────────────────────────────────────────────── #}
+    <div class="mn-grid" id="mn-grid">
+
+      {% if menu_items %}
+        {% for item in menu_items %}
+        <div
+          class="mn-card"
+          data-name="{{ item.name | lower }}"
+          data-category="{{ item.category }}"
+          data-available="{{ '1' if item.available else '0' }}"
+          data-item='{"id":"{{ item.id }}","name":{{ item.name | tojson }},"description":{{ (item.description or "") | tojson }},"price":{{ item.price }},"categoria":{{ item.category | tojson }},"tag_ids":{{ item.selected_tag_ids | tojson }},"available":{{ "true" if item.available else "false" }}}'
+        >
+          {# ── Foto ──────────────────────────────────────── #}
+          <div class="mn-card-photo">
+            {% if item.foto_url %}
+              <img src="{{ url_for('static', filename=item.foto_url) }}" alt="{{ item.name }}">
             {% else %}
-            <p class="text-muted mb-0">No hay tags disponibles para asignar a platos.</p>
-            {% endfor %}
+              <div class="mn-card-photo-placeholder">
+                <span>{{ item.photo_label }}</span>
+              </div>
+            {% endif %}
+
+            {# Tag badges — esquina superior izquierda #}
+            {% if item.selected_tag_names %}
+            <div class="mn-card-badges">
+              {% for tag_name in item.selected_tag_names[:3] %}
+                <span class="mn-badge">{{ tag_name }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            {# Botones editar/eliminar — esquina superior derecha #}
+            <div class="mn-card-photo-actions">
+              <button
+                type="button"
+                class="mn-photo-action-btn"
+                onclick="openEditDrawer(this.closest('.mn-card'))"
+                title="Editar plato"
+              >
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button
+                type="button"
+                class="mn-photo-action-btn mn-photo-action-btn--delete"
+                onclick="openConfirmDelete('{{ item.id }}', '{{ item.name | e }}')"
+                title="Eliminar plato"
+              >
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+
+            {# No disponible overlay #}
+            {% if not item.available %}
+            <div class="mn-card-unavailable-overlay">
+              <span class="mn-badge-unavailable">No disponible</span>
+            </div>
+            {% endif %}
+          </div>
+
+          {# ── Body ──────────────────────────────────────── #}
+          <div class="mn-card-body">
+            <div class="mn-card-title-row">
+              <span class="mn-card-name">{{ item.name }}</span>
+              <span class="mn-card-price">${{ "%.0f"|format(item.price) }}</span>
+            </div>
+            <p class="mn-card-desc">{{ item.description }}</p>
+
+            <div class="mn-card-footer">
+              <span class="mn-card-category">{{ item.category | upper }}</span>
+
+              {# Availability toggle #}
+              <form
+                method="POST"
+                action="{{ url_for('restaurante.update_menu_item_availability', item_id=item.id) }}"
+                class="mn-toggle-form"
+                id="toggle-form-{{ item.id }}"
+              >
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="available" value="{{ '0' if item.available else '1' }}">
+                <button
+                  type="button"
+                  class="mn-toggle {% if item.available %}mn-toggle--on{% endif %}"
+                  onclick="submitToggle('{{ item.id }}')"
+                  title="{{ 'Deshabilitar' if item.available else 'Habilitar' }}"
+                >
+                  <span class="mn-toggle-thumb"></span>
+                </button>
+              </form>
+
+              {# Hidden delete form #}
+              <form
+                method="POST"
+                action="{{ url_for('restaurante.delete_menu_item', item_id=item.id) }}"
+                id="delete-form-{{ item.id }}"
+                style="display:none;"
+              >
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              </form>
+            </div>
+          </div>
         </div>
-        <button type="button" class="admin-menu-upload-box">Subir foto</button>
-        <button type="submit" class="admin-menu-save-btn" data-menu-submit-label>Guardar plato</button>
+        {% endfor %}
+
+      {% else %}
+        <div class="mn-empty">
+          <i class="bi bi-journal-x"></i>
+          <p>Todavía no hay platos en el menú.</p>
+          <button class="mn-btn-primary" onclick="openDrawer()">
+            <i class="bi bi-plus-lg"></i> Agregar primer plato
+          </button>
+        </div>
+      {% endif %}
+
+    </div>{# /mn-grid #}
+  </main>
+</div>
+
+{# ═══════════════════════════════════════════════════════
+   MODAL — Nuevo plato
+═══════════════════════════════════════════════════════ #}
+<div class="mn-modal-backdrop" id="modal-backdrop" onclick="closeDrawerOnBackdrop(event)">
+  <div class="mn-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+
+    <div class="mn-modal-header">
+      <div>
+        <h2 class="mn-modal-title" id="modal-title">Nuevo plato</h2>
+        <p class="mn-modal-subtitle">Completá la información del nuevo plato</p>
+      </div>
+      <button class="mn-modal-close" onclick="closeDrawer()" aria-label="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <form
+      method="POST"
+      action="{{ url_for('restaurante.menu') }}"
+      enctype="multipart/form-data"
+      id="new-item-form"
+      onsubmit="handleSubmit(event)"
+    >
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="available" id="form-available" value="1">
+
+      <div class="mn-modal-body">
+
+        {# ── Foto ─────────────────────────────────── #}
+        <div class="mn-form-group">
+          <label class="mn-form-label">FOTO DEL PLATO</label>
+          <div class="mn-photo-upload" id="photo-drop" onclick="document.getElementById('foto-input').click()">
+            <div class="mn-photo-upload-inner" id="photo-preview-wrapper">
+              <i class="bi bi-image-alt mn-photo-icon"></i>
+              <span class="mn-photo-hint">Click para subir una foto</span>
+              <span class="mn-photo-sub">JPG o PNG, máx. 5MB</span>
+            </div>
+            <img id="photo-preview-img" class="mn-photo-preview-img" src="" alt="Preview" style="display:none;">
+          </div>
+          <input type="file" id="foto-input" name="foto" accept="image/png, image/jpeg, image/jpg, image/webp"
+                 style="display:none;" onchange="previewPhoto(this)">
+        </div>
+
+        {# ── Nombre + Precio ──────────────────────── #}
+        <div class="mn-form-row">
+          <div class="mn-form-group mn-form-group--grow">
+            <label for="item-name" class="mn-form-label">NOMBRE DEL PLATO <span class="mn-required">*</span></label>
+            <input
+              type="text"
+              id="item-name"
+              name="name"
+              class="mn-input"
+              placeholder="Ej: Bife de Chorizo"
+              required
+              maxlength="100"
+            >
+          </div>
+          <div class="mn-form-group mn-form-group--price">
+            <label for="item-price" class="mn-form-label">PRECIO <span class="mn-required">*</span></label>
+            <div class="mn-price-wrapper">
+              <span class="mn-price-prefix">$</span>
+              <input
+                type="number"
+                id="item-price"
+                name="price"
+                class="mn-input mn-input--price"
+                placeholder="0"
+                min="1"
+                step="1"
+                required
+              >
+            </div>
+          </div>
+        </div>
+
+        {# ── Descripción ──────────────────────────── #}
+        <div class="mn-form-group">
+          <label for="item-desc" class="mn-form-label">DESCRIPCIÓN</label>
+          <textarea
+            id="item-desc"
+            name="description"
+            class="mn-textarea"
+            placeholder="Describí los ingredientes y preparación del plato..."
+            maxlength="200"
+            oninput="updateCharCount(this)"
+          ></textarea>
+          <div class="mn-char-count"><span id="desc-count">0</span>/200</div>
+        </div>
+
+        {# ── Categoría ────────────────────────────── #}
+        <div class="mn-form-group">
+          <label class="mn-form-label">CATEGORÍA</label>
+          <div class="mn-category-buttons" id="category-buttons">
+            {% set cat_options = ["Entradas", "Carnes", "Guarniciones", "Postres"] %}
+            {% for cat in cat_options %}
+            <button
+              type="button"
+              class="mn-cat-btn {% if loop.first %}mn-cat-btn--active{% endif %}"
+              data-value="{{ cat }}"
+              onclick="selectCategory(this)"
+            >{{ cat }}</button>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="categoria" id="categoria-hidden" value="{{ cat_options[0] }}">
+        </div>
+
+        {# ── Tags ─────────────────────────────────── #}
+        {% if menu_tag_groups %}
+        <div class="mn-form-group">
+          <label class="mn-form-label">ETIQUETAS</label>
+          <div class="mn-tags-container">
+            {% for group in menu_tag_groups %}
+              {% for tag in group.tags %}
+              <label class="mn-tag-chip">
+                <input type="checkbox" name="tag_ids" value="{{ tag.id }}" class="mn-tag-checkbox">
+                <span>{{ tag.name }}</span>
+              </label>
+              {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# ── Disponibilidad ───────────────────────── #}
+        <div class="mn-availability-row">
+          <div>
+            <span class="mn-avail-title">Disponible en el menú</span>
+            <span class="mn-avail-sub">Los clientes podrán ver este plato al buscar tu restaurante</span>
+          </div>
+          <button
+            type="button"
+            class="mn-toggle mn-toggle--on mn-toggle--lg"
+            id="avail-toggle"
+            onclick="toggleAvailability(this)"
+          >
+            <span class="mn-toggle-thumb"></span>
+          </button>
+        </div>
+
+      </div>{# /mn-modal-body #}
+
+      <div class="mn-modal-footer">
+        <button type="button" class="mn-btn-secondary" onclick="closeDrawer()">Cancelar</button>
+        <button type="submit" class="mn-btn-primary" id="submit-btn">
+          <i class="bi bi-check-lg"></i> Crear plato
+        </button>
+      </div>
+
     </form>
-</aside>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════
+   MODAL — Editar plato
+═══════════════════════════════════════════════════════ #}
+<div class="mn-modal-backdrop" id="edit-modal-backdrop" onclick="closeEditDrawerOnBackdrop(event)">
+  <div class="mn-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+
+    <div class="mn-modal-header">
+      <div>
+        <h2 class="mn-modal-title" id="edit-modal-title">Editar plato</h2>
+        <p class="mn-modal-subtitle">Modificá la información del plato</p>
+      </div>
+      <button class="mn-modal-close" onclick="closeEditDrawer()" aria-label="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <form
+      method="POST"
+      action=""
+      enctype="multipart/form-data"
+      id="edit-item-form"
+      onsubmit="handleEditSubmit(event)"
+    >
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="available" id="edit-form-available" value="1">
+
+      <div class="mn-modal-body">
+
+        {# ── Foto ─────────────────────────────────── #}
+        <div class="mn-form-group">
+          <label class="mn-form-label">FOTO DEL PLATO</label>
+          <div class="mn-photo-upload" id="edit-photo-drop" onclick="document.getElementById('edit-foto-input').click()">
+            <div class="mn-photo-upload-inner" id="edit-photo-preview-wrapper">
+              <i class="bi bi-image-alt mn-photo-icon"></i>
+              <span class="mn-photo-hint">Click para cambiar la foto</span>
+              <span class="mn-photo-sub">JPG o PNG, máx. 5MB</span>
+            </div>
+            <img id="edit-photo-preview-img" class="mn-photo-preview-img" src="" alt="Preview" style="display:none;">
+          </div>
+          <input type="file" id="edit-foto-input" name="foto" accept="image/png, image/jpeg, image/jpg, image/webp"
+                 style="display:none;" onchange="previewEditPhoto(this)">
+        </div>
+
+        {# ── Nombre + Precio ──────────────────────── #}
+        <div class="mn-form-row">
+          <div class="mn-form-group mn-form-group--grow">
+            <label for="edit-item-name" class="mn-form-label">NOMBRE DEL PLATO <span class="mn-required">*</span></label>
+            <input type="text" id="edit-item-name" name="name" class="mn-input"
+                   placeholder="Ej: Bife de Chorizo" required maxlength="100">
+          </div>
+          <div class="mn-form-group mn-form-group--price">
+            <label for="edit-item-price" class="mn-form-label">PRECIO <span class="mn-required">*</span></label>
+            <div class="mn-price-wrapper">
+              <span class="mn-price-prefix">$</span>
+              <input type="number" id="edit-item-price" name="price" class="mn-input mn-input--price"
+                     placeholder="0" min="1" step="1" required>
+            </div>
+          </div>
+        </div>
+
+        {# ── Descripción ──────────────────────────── #}
+        <div class="mn-form-group">
+          <label for="edit-item-desc" class="mn-form-label">DESCRIPCIÓN</label>
+          <textarea id="edit-item-desc" name="description" class="mn-textarea"
+                    placeholder="Describí los ingredientes y preparación del plato..."
+                    maxlength="200" oninput="updateEditCharCount(this)"></textarea>
+          <div class="mn-char-count"><span id="edit-desc-count">0</span>/200</div>
+        </div>
+
+        {# ── Categoría ────────────────────────────── #}
+        <div class="mn-form-group">
+          <label class="mn-form-label">CATEGORÍA</label>
+          <div class="mn-category-buttons" id="edit-category-buttons">
+            {% for cat in ["Entradas", "Carnes", "Guarniciones", "Postres"] %}
+            <button type="button" class="mn-cat-btn" data-value="{{ cat }}"
+                    onclick="selectEditCategory(this)">{{ cat }}</button>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="categoria" id="edit-categoria-hidden" value="">
+        </div>
+
+        {# ── Tags ─────────────────────────────────── #}
+        {% if menu_tag_groups %}
+        <div class="mn-form-group">
+          <label class="mn-form-label">ETIQUETAS</label>
+          <div class="mn-tags-container" id="edit-tags-container">
+            {% for group in menu_tag_groups %}
+              {% for tag in group.tags %}
+              <label class="mn-tag-chip">
+                <input type="checkbox" name="tag_ids" value="{{ tag.id }}" class="mn-tag-checkbox edit-tag-cb">
+                <span>{{ tag.name }}</span>
+              </label>
+              {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# ── Disponibilidad ───────────────────────── #}
+        <div class="mn-availability-row">
+          <div>
+            <span class="mn-avail-title">Disponible en el menú</span>
+            <span class="mn-avail-sub">Los clientes podrán ver este plato al buscar tu restaurante</span>
+          </div>
+          <button type="button" class="mn-toggle mn-toggle--on mn-toggle--lg"
+                  id="edit-avail-toggle" onclick="toggleEditAvailability(this)">
+            <span class="mn-toggle-thumb"></span>
+          </button>
+        </div>
+
+      </div>{# /mn-modal-body #}
+
+      <div class="mn-modal-footer">
+        <button type="button" class="mn-btn-secondary" onclick="closeEditDrawer()">Cancelar</button>
+        <button type="submit" class="mn-btn-primary" id="edit-submit-btn">
+          <i class="bi bi-check-lg"></i> Guardar cambios
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════
+   MODAL — Confirmar eliminación
+═══════════════════════════════════════════════════════ #}
+<div class="mn-confirm-backdrop" id="confirm-backdrop">
+  <div class="mn-confirm-box">
+    <div class="mn-confirm-icon"><i class="bi bi-trash3"></i></div>
+    <h3 class="mn-confirm-title">¿Eliminar plato?</h3>
+    <p class="mn-confirm-msg">
+      Estás por eliminar <strong id="confirm-name"></strong>. Esta acción no se puede deshacer.
+    </p>
+    <div class="mn-confirm-actions">
+      <button class="mn-btn-secondary" onclick="closeConfirmDelete()">Cancelar</button>
+      <button class="mn-btn-danger" onclick="executeDelete()">
+        <i class="bi bi-trash3"></i> Eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block page_scripts %}
 <script>
-    (function () {
-        const filterButtons = Array.from(document.querySelectorAll("[data-category-filter]"));
-        const rows = Array.from(document.querySelectorAll("[data-menu-table-body] tr[data-category]"));
-        const emptyRow = document.querySelector("[data-empty-row]");
-        const drawer = document.querySelector("[data-menu-drawer]");
-        const backdrop = document.querySelector("[data-menu-backdrop]");
-        const openButton = document.querySelector("[data-menu-open-drawer]");
-        const closeButtons = Array.from(document.querySelectorAll("[data-menu-close-drawer]"));
-        const form = document.querySelector(".admin-menu-form");
-        const drawerTitle = document.querySelector("[data-menu-drawer-title]");
-        const submitButton = document.querySelector("[data-menu-submit-label]");
-        const createAction = form ? form.dataset.menuCreateAction : "";
-        const editActionTemplate = form ? form.dataset.menuEditActionTemplate : "";
+/* ═══════════════════════════════════════════════
+   MODAL NUEVO PLATO
+═══════════════════════════════════════════════ */
+const backdrop = document.getElementById('modal-backdrop');
 
-        function applyFilter(category) {
-            let visibleRows = 0;
+function openDrawer() {
+  backdrop.classList.add('mn-modal-backdrop--visible');
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  backdrop.classList.remove('mn-modal-backdrop--visible');
+  document.body.style.overflow = '';
+}
+function closeDrawerOnBackdrop(e) {
+  if (e.target === backdrop) closeDrawer();
+}
 
-            rows.forEach((row) => {
-                const rowTags = (row.dataset.tags || "").split("|").filter(Boolean);
-                const matches = category === "Todas" || rowTags.includes(category);
-                row.hidden = !matches;
-                if (matches) {
-                    visibleRows += 1;
-                }
-            });
+{% if open_drawer %}
+window.addEventListener('DOMContentLoaded', () => openDrawer());
+{% endif %}
 
-            if (emptyRow) {
-                emptyRow.hidden = visibleRows !== 0 || rows.length !== 0;
-            }
-        }
+function selectCategory(btn) {
+  document.querySelectorAll('#category-buttons .mn-cat-btn').forEach(b => b.classList.remove('mn-cat-btn--active'));
+  btn.classList.add('mn-cat-btn--active');
+  document.getElementById('categoria-hidden').value = btn.dataset.value;
+}
 
-        filterButtons.forEach((button) => {
-            button.addEventListener("click", () => {
-                filterButtons.forEach((item) => item.classList.remove("is-active"));
-                button.classList.add("is-active");
-                applyFilter(button.dataset.categoryFilter);
-            });
-        });
+function toggleAvailability(btn) {
+  const isOn = btn.classList.toggle('mn-toggle--on');
+  document.getElementById('form-available').value = isOn ? '1' : '0';
+}
 
-        function resetDrawerForm() {
-            if (!form) {
-                return;
-            }
+function previewPhoto(input) {
+  _doPreview(input, 'photo-preview-img', 'photo-preview-wrapper');
+}
 
-            form.reset();
-            form.action = createAction;
+function updateCharCount(el) {
+  document.getElementById('desc-count').textContent = el.value.length;
+}
 
-            if (drawerTitle) {
-                drawerTitle.textContent = "Agregar plato";
-            }
+function handleSubmit(e) {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="mn-spinner"></span> Guardando...';
+}
 
-            if (submitButton) {
-                submitButton.textContent = "Guardar plato";
-            }
-        }
+/* Drag & drop nuevo plato */
+_setupDrop('photo-drop', 'foto-input', previewPhoto);
 
-        function fillDrawerForm(row) {
-            if (!form || !row) {
-                return;
-            }
+/* ═══════════════════════════════════════════════
+   MODAL EDITAR PLATO
+═══════════════════════════════════════════════ */
+const editBackdrop = document.getElementById('edit-modal-backdrop');
 
-            form.action = editActionTemplate.replace(
-                "00000000-0000-0000-0000-000000000000",
-                row.dataset.itemId
-            );
-            form.querySelector("input[name='name']").value = row.dataset.itemName || "";
-            form.querySelector("textarea[name='description']").value = row.dataset.itemDescription || "";
-            form.querySelector("input[name='price']").value = row.dataset.itemPrice || "";
-            const selectedTagIds = (row.dataset.itemTagIds || "").split(",").filter(Boolean);
-            form.querySelectorAll("input[name='tag_ids']").forEach((checkbox) => {
-                checkbox.checked = selectedTagIds.includes(checkbox.value);
-            });
+function openEditDrawer(card) {
+  const data = JSON.parse(card.dataset.item);
 
-            if (drawerTitle) {
-                drawerTitle.textContent = "Editar plato";
-            }
+  /* Acción del form → endpoint de edición */
+  document.getElementById('edit-item-form').action =
+    '/restaurante/menu/' + data.id + '/edit';
 
-            if (submitButton) {
-                submitButton.textContent = "Guardar cambios";
-            }
-        }
+  /* Campos de texto */
+  document.getElementById('edit-item-name').value  = data.name;
+  document.getElementById('edit-item-price').value = data.price;
+  document.getElementById('edit-item-desc').value  = data.description;
+  document.getElementById('edit-desc-count').textContent = (data.description || '').length;
 
-        function setDrawerState(isOpen) {
-            if (!drawer || !backdrop) {
-                return;
-            }
+  /* Categoría */
+  const catBtns = document.querySelectorAll('#edit-category-buttons .mn-cat-btn');
+  catBtns.forEach(b => {
+    b.classList.toggle('mn-cat-btn--active', b.dataset.value === data.categoria);
+  });
+  document.getElementById('edit-categoria-hidden').value = data.categoria || '';
 
-            drawer.classList.toggle("is-open", isOpen);
-            drawer.setAttribute("aria-hidden", String(!isOpen));
-            backdrop.hidden = !isOpen;
-            document.body.classList.toggle("admin-drawer-open", isOpen);
-        }
+  /* Tags */
+  document.querySelectorAll('.edit-tag-cb').forEach(cb => {
+    cb.checked = data.tag_ids.includes(cb.value);
+  });
 
-        if (openButton) {
-            openButton.addEventListener("click", () => {
-                resetDrawerForm();
-                setDrawerState(true);
-            });
-        }
+  /* Disponibilidad */
+  const avToggle = document.getElementById('edit-avail-toggle');
+  avToggle.classList.toggle('mn-toggle--on', data.available);
+  document.getElementById('edit-form-available').value = data.available ? '1' : '0';
 
-        document.querySelectorAll("[data-menu-edit]").forEach((button) => {
-            button.addEventListener("click", () => {
-                fillDrawerForm(button.closest("tr"));
-                setDrawerState(true);
-            });
-        });
+  /* Foto — mostrar la existente si la hay */
+  const editImg     = document.getElementById('edit-photo-preview-img');
+  const editWrapper = document.getElementById('edit-photo-preview-wrapper');
+  const fotoUrl = card.querySelector('.mn-card-photo img');
+  if (fotoUrl) {
+    editImg.src = fotoUrl.src;
+    editImg.style.display = 'block';
+    editWrapper.style.display = 'none';
+  } else {
+    editImg.style.display = 'none';
+    editWrapper.style.display = 'flex';
+  }
 
-        closeButtons.forEach((button) => {
-            button.addEventListener("click", () => {
-                setDrawerState(false);
-                resetDrawerForm();
-            });
-        });
+  editBackdrop.classList.add('mn-modal-backdrop--visible');
+  document.body.style.overflow = 'hidden';
+}
 
-        if (backdrop) {
-            backdrop.addEventListener("click", () => {
-                setDrawerState(false);
-                resetDrawerForm();
-            });
-        }
+function closeEditDrawer() {
+  editBackdrop.classList.remove('mn-modal-backdrop--visible');
+  document.body.style.overflow = '';
+  /* Limpiar input de archivo para que no quede el anterior */
+  document.getElementById('edit-foto-input').value = '';
+}
 
-        if (form) {
-            form.addEventListener("submit", (event) => {
-                const checkedTags = form.querySelectorAll("input[name='tag_ids']:checked");
-                if (checkedTags.length === 0) {
-                    event.preventDefault();
-                }
-            });
-        }
+function closeEditDrawerOnBackdrop(e) {
+  if (e.target === editBackdrop) closeEditDrawer();
+}
 
-        resetDrawerForm();
-        applyFilter("Todas");
+function selectEditCategory(btn) {
+  document.querySelectorAll('#edit-category-buttons .mn-cat-btn').forEach(b => b.classList.remove('mn-cat-btn--active'));
+  btn.classList.add('mn-cat-btn--active');
+  document.getElementById('edit-categoria-hidden').value = btn.dataset.value;
+}
 
-        {% if open_drawer %}
-        setDrawerState(true);
-        {% endif %}
-    })();
+function toggleEditAvailability(btn) {
+  const isOn = btn.classList.toggle('mn-toggle--on');
+  document.getElementById('edit-form-available').value = isOn ? '1' : '0';
+}
+
+function previewEditPhoto(input) {
+  _doPreview(input, 'edit-photo-preview-img', 'edit-photo-preview-wrapper');
+}
+
+function updateEditCharCount(el) {
+  document.getElementById('edit-desc-count').textContent = el.value.length;
+}
+
+function handleEditSubmit(e) {
+  const btn = document.getElementById('edit-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="mn-spinner"></span> Guardando...';
+}
+
+/* Drag & drop editar plato */
+_setupDrop('edit-photo-drop', 'edit-foto-input', previewEditPhoto);
+
+/* ═══════════════════════════════════════════════
+   TOGGLE DISPONIBILIDAD (card)
+═══════════════════════════════════════════════ */
+function submitToggle(itemId) {
+  document.getElementById('toggle-form-' + itemId).submit();
+}
+
+/* ═══════════════════════════════════════════════
+   CONFIRMAR ELIMINACIÓN
+═══════════════════════════════════════════════ */
+let _pendingDeleteId = null;
+
+function openConfirmDelete(itemId, itemName) {
+  _pendingDeleteId = itemId;
+  document.getElementById('confirm-name').textContent = itemName;
+  document.getElementById('confirm-backdrop').classList.add('mn-confirm-backdrop--visible');
+}
+function closeConfirmDelete() {
+  _pendingDeleteId = null;
+  document.getElementById('confirm-backdrop').classList.remove('mn-confirm-backdrop--visible');
+}
+function executeDelete() {
+  if (!_pendingDeleteId) return;
+  document.getElementById('delete-form-' + _pendingDeleteId).submit();
+}
+
+/* ═══════════════════════════════════════════════
+   FILTROS Y VISTA
+═══════════════════════════════════════════════ */
+let activeCategory = 'Todas';
+
+function setCategory(pill, cat) {
+  document.querySelectorAll('#category-pills .mn-pill').forEach(p => p.classList.remove('mn-pill--active'));
+  pill.classList.add('mn-pill--active');
+  activeCategory = cat;
+  filterMenu();
+}
+
+function filterMenu() {
+  const query = (document.getElementById('mn-search').value || '').toLowerCase();
+  document.querySelectorAll('.mn-card').forEach(card => {
+    const nameMatch = card.dataset.name.includes(query);
+    const catMatch  = activeCategory === 'Todas' || card.dataset.category === activeCategory;
+    card.style.display = (nameMatch && catMatch) ? '' : 'none';
+  });
+}
+
+function setView(mode) {
+  const grid    = document.getElementById('mn-grid');
+  const btnGrid = document.getElementById('btn-grid');
+  const btnList = document.getElementById('btn-list');
+  if (mode === 'grid') {
+    grid.classList.remove('mn-grid--list');
+    btnGrid.classList.add('mn-view-btn--active');
+    btnList.classList.remove('mn-view-btn--active');
+  } else {
+    grid.classList.add('mn-grid--list');
+    btnList.classList.add('mn-view-btn--active');
+    btnGrid.classList.remove('mn-view-btn--active');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   UTILIDADES COMPARTIDAS
+═══════════════════════════════════════════════ */
+function _doPreview(input, imgId, wrapperId) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if (file.size > 5 * 1024 * 1024) {
+    alert('La imagen no puede superar los 5MB.');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img     = document.getElementById(imgId);
+    const wrapper = document.getElementById(wrapperId);
+    img.src = ev.target.result;
+    img.style.display = 'block';
+    if (wrapper) wrapper.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function _setupDrop(dropZoneId, inputId, previewFn) {
+  const zone = document.getElementById(dropZoneId);
+  if (!zone) return;
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('mn-photo-upload--drag'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('mn-photo-upload--drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('mn-photo-upload--drag');
+    const input = document.getElementById(inputId);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      input.files = e.dataTransfer.files;
+      previewFn(input);
+    }
+  });
+}
 </script>
-{% endblock %}
+{% endblock page_scripts %}

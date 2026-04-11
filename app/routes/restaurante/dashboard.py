@@ -71,15 +71,18 @@ def _build_menu_view_data(restaurant):
     )
 
     menu_items = []
-    category_names = []
+    category_set = set()
     for item in menus:
         selected_tags = sorted(
             [relation.tag for relation in item.menu_tags if relation.tag],
             key=lambda tag: (getattr(getattr(tag, "category", None), "value", ""), tag.name or ""),
         )
         selected_tag_names = [tag.name for tag in selected_tags]
-        category_label = ", ".join(selected_tag_names) or item.categoria or "Sin tags"
-        category_names.extend(selected_tag_names)
+        # Priorizar item.categoria (campo directo del formulario); si no hay, derivar de tags
+        category_label = item.categoria or ", ".join(selected_tag_names) or "Sin categoría"
+        if category_label:
+            category_set.add(category_label)
+        foto_url = getattr(item, "foto_url", None)
         menu_items.append(
             {
                 "id": str(item.id_plato),
@@ -91,11 +94,12 @@ def _build_menu_view_data(restaurant):
                 "price": float(item.precio or 0),
                 "available": bool(item.disponibilidad),
                 "photo_label": (item.nombre or "?")[:1].upper(),
+                "foto_url": foto_url,
             }
         )
 
     categories = ["Todas"]
-    categories.extend(sorted(set(category_names)) or MENU_DEFAULT_CATEGORIES)
+    categories.extend(sorted(category_set) if category_set else MENU_DEFAULT_CATEGORIES)
     return {"menu_items": menu_items, "categories": categories}
 
 
@@ -171,13 +175,16 @@ def _resolve_selected_menu_tags(raw_tag_ids):
     return selected_tags
 
 
-def _upsert_menu_item(item, *, restaurant, name, description, selected_tags, price, available):
+def _upsert_menu_item(item, *, restaurant, name, description, selected_tags, price, available, categoria=None, foto_url=None):
     item.id_restaurant = restaurant.id_restaurant
     item.nombre = name
     item.precio = price
     item.disponibilidad = available
     item.descripcion = description or None
-    item.categoria = ", ".join(tag.name for tag in selected_tags) or None
+    # Si se pasa categoria explícita (nuevo campo del formulario), usarla; si no, derivar de tags
+    item.categoria = categoria or ", ".join(tag.name for tag in selected_tags) or None
+    if foto_url:
+        item.foto_url = foto_url
     db.session.add(item)
     db.session.flush()
 
@@ -303,22 +310,30 @@ def menu():
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
         description = (request.form.get("description") or "").strip()
+        categoria = (request.form.get("categoria") or "").strip() or None
         selected_tags = _resolve_selected_menu_tags(request.form.getlist("tag_ids"))
         raw_price = (request.form.get("price") or "").strip()
+        available = request.form.get("available", "1") == "1"
 
         if not name:
-            return redirect(url_for("restaurante.menu", open_drawer=1))
-
-        if not selected_tags:
+            flash("El nombre del plato es requerido.", "warning")
             return redirect(url_for("restaurante.menu", open_drawer=1))
 
         try:
             price = Decimal(raw_price)
         except (InvalidOperation, TypeError):
+            flash("Ingresá un precio válido.", "warning")
             return redirect(url_for("restaurante.menu", open_drawer=1))
 
         if price <= 0:
+            flash("El precio debe ser mayor a cero.", "warning")
             return redirect(url_for("restaurante.menu", open_drawer=1))
+
+        # Guardar foto del plato si se subió una
+        foto_url = None
+        foto_file = request.files.get("foto")
+        if foto_file and foto_file.filename:
+            foto_url = _save_img(foto_file, "menu", str(restaurant.id_restaurant))
 
         item = Menu()
         _upsert_menu_item(
@@ -328,7 +343,9 @@ def menu():
             description=description,
             selected_tags=selected_tags,
             price=price,
-            available=True,
+            available=available,
+            categoria=categoria,
+            foto_url=foto_url,
         )
         db.session.commit()
         flash("Plato agregado correctamente.", "success")
@@ -363,22 +380,29 @@ def edit_menu_item(item_id):
 
     name = (request.form.get("name") or "").strip()
     description = (request.form.get("description") or "").strip()
+    categoria = (request.form.get("categoria") or "").strip() or None
     selected_tags = _resolve_selected_menu_tags(request.form.getlist("tag_ids"))
     raw_price = (request.form.get("price") or "").strip()
 
-    if not name or not selected_tags:
-        flash("Completá nombre y al menos un tag para editar el plato.", "warning")
-        return redirect(url_for("restaurante.menu", open_drawer=1))
+    if not name:
+        flash("El nombre del plato es requerido.", "warning")
+        return redirect(url_for("restaurante.menu"))
 
     try:
         price = Decimal(raw_price)
     except (InvalidOperation, TypeError):
         flash("Ingresá un precio válido.", "warning")
-        return redirect(url_for("restaurante.menu", open_drawer=1))
+        return redirect(url_for("restaurante.menu"))
 
     if price <= 0:
         flash("El precio debe ser mayor a cero.", "warning")
-        return redirect(url_for("restaurante.menu", open_drawer=1))
+        return redirect(url_for("restaurante.menu"))
+
+    # Guardar nueva foto si se subió una
+    foto_url = None
+    foto_file = request.files.get("foto")
+    if foto_file and foto_file.filename:
+        foto_url = _save_img(foto_file, "menu", str(restaurant.id_restaurant))
 
     _upsert_menu_item(
         item,
@@ -388,6 +412,8 @@ def edit_menu_item(item_id):
         selected_tags=selected_tags,
         price=price,
         available=bool(item.disponibilidad),
+        categoria=categoria,
+        foto_url=foto_url,
     )
     db.session.commit()
     flash("Plato actualizado correctamente.", "success")

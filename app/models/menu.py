@@ -15,6 +15,7 @@ class Menu(db.Model):
     descripcion = db.Column("Descripcion", db.Text)
     categoria = db.Column("Categoria", db.String(50))
     disponibilidad = db.Column("Disponibilidad", db.Boolean, nullable=False, default=True)
+    foto_url = db.Column("FotoUrl", db.String(255), nullable=True)
 
     restaurant = db.relationship("Restaurant", back_populates="menus")
     menu_tags = db.relationship("MenuTags", back_populates="menu", cascade="all, delete-orphan", lazy=True)
