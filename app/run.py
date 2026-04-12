@@ -10,6 +10,7 @@ from app.models.user import User
 from app.routes.admin import admin_bp
 from app.routes.admin import system as admin_routes
 from app.routes.auth import auth_bp
+from app.routes.restaurante import reservas_routes as restaurante_reservas_routes
 from app.routes.restaurante import restaurante_bp
 from app.routes.restaurante import dashboard as restaurante_routes
 from app.routes.usuario import usuario_bp

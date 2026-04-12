@@ -21,6 +21,7 @@ from app.models.restaurant_tags import RestaurantTags
 from app.models.tag import Tag
 from app.models.user import Role, User
 
+
 # ── File upload helpers ──────────────────────────────────────────────────────
 _ALLOWED_IMG = {"png", "jpg", "jpeg", "webp"}
 _MAX_GALLERY  = 10

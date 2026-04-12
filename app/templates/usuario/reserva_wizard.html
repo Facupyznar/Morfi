@@ -76,12 +76,9 @@
           <h2 class="wizard-title">Elegí el horario</h2>
 
           <div class="time-grid" id="time-grid">
-            {% set slots = ['12:00','12:30','13:00','13:30','14:00','20:00','20:30','21:00','21:30','22:00'] %}
-            {% for slot in slots %}
-            <button type="button" class="time-slot" onclick="selectSlot(this, '{{ slot }}')">
-              {{ slot }}
-            </button>
-            {% endfor %}
+            <p class="slots-hint" id="slots-hint" style="color:#9A8F85; font-size:0.85rem; grid-column:1/-1;">
+              Primero elegí una fecha para ver los horarios disponibles.
+            </p>
           </div>
           <div class="wizard-field-error" id="hora-error" style="display:none;">
             Por favor seleccioná un horario.
@@ -186,15 +183,15 @@
           <div class="summary-divider"></div>
 
           <div class="summary-row" id="sum-fecha-row">
-            <span class="sum-icon">📅</span>
+            <span class="sum-icon"></span>
             <span id="sum-fecha">—</span>
           </div>
           <div class="summary-row" id="sum-hora-row">
-            <span class="sum-icon">🕑</span>
+            <span class="sum-icon"></span>
             <span id="sum-hora">—</span>
           </div>
           <div class="summary-row" id="sum-comensales-row">
-            <span class="sum-icon">👥</span>
+            <span class="sum-icon"></span>
             <span id="sum-comensales">2 comensales</span>
           </div>
         </div>
@@ -265,15 +262,51 @@
     return true;
   }
 
-  // ── Fecha change ───────────────────────────────────────────
-  function onFechaChange(val) {
+  // ── Fecha change → carga slots desde API ──────────────────
+  async function onFechaChange(val) {
     selectedFecha = val;
+    selectedHora  = null;
     document.getElementById('fecha-error').style.display = 'none';
-    // Format DD/MM/YYYY for summary
-    const [y, m, d] = val.split('-');
-    const label = d + '/' + m + '/' + y;
-    document.getElementById('sum-fecha').textContent  = label;
     document.getElementById('fecha-input').style.borderColor = '#FF6B35';
+
+    // Resumen
+    const [y, m, d] = val.split('-');
+    document.getElementById('sum-fecha').textContent = d + '/' + m + '/' + y;
+    document.getElementById('sum-hora').textContent  = '—';
+
+    // Fetch slots
+    const grid = document.getElementById('time-grid');
+    grid.innerHTML = '<p style="color:#9A8F85;font-size:0.85rem;grid-column:1/-1;">Cargando horarios…</p>';
+
+    try {
+      const res  = await fetch(`/restaurante/{{ restaurant.id }}/disponibilidad?fecha=${val}`);
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        grid.innerHTML = `<p style="color:#C0392B;font-size:0.85rem;grid-column:1/-1;">${data.error || 'Error al cargar horarios.'}</p>`;
+        return;
+      }
+
+      if (!data.slots || data.slots.length === 0) {
+        grid.innerHTML = '<p style="color:#9A8F85;font-size:0.85rem;grid-column:1/-1;">El restaurante no tiene horarios disponibles para esta fecha.</p>';
+        return;
+      }
+
+      grid.innerHTML = '';
+      data.slots.forEach(slot => {
+        const btn = document.createElement('button');
+        btn.type      = 'button';
+        btn.className = 'time-slot' + (!slot.disponible ? ' time-slot--full' : '');
+        btn.disabled  = !slot.disponible;
+        btn.textContent = slot.hora;
+        if (slot.disponible) {
+          btn.addEventListener('click', () => selectSlot(btn, slot.hora));
+        }
+        grid.appendChild(btn);
+      });
+    } catch (err) {
+      grid.innerHTML = '<p style="color:#C0392B;font-size:0.85rem;grid-column:1/-1;">Error de conexión. Intentá de nuevo.</p>';
+    }
   }
 
   // ── Time slot ──────────────────────────────────────────────

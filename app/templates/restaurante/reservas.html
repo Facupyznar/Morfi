@@ -1,0 +1,386 @@
+{% extends 'base.html' %}
+{% block title %}Gestión de Reservas — Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/reservas.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+{% set active_admin_section = 'Reservas' %}
+<div class="admin-layout">
+
+  {% include 'includes/_admin_sidebar.html' %}
+
+  <main class="rv-main">
+
+    <!-- ══════════════════════════════════════════
+         HEADER
+    ══════════════════════════════════════════ -->
+    <div class="rv-header">
+      <div>
+        <h1 class="rv-title">Gestión de Reservas</h1>
+        <p class="rv-subtitle">Administrá la capacidad y reservas de tu restaurante</p>
+      </div>
+      <div class="rv-capacity-badge">
+        <i class="bi bi-people-fill"></i>
+        Capacidad: {{ restaurant.capacidad | default(45) }} personas
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         STATS
+    ══════════════════════════════════════════ -->
+    <div class="rv-stats-row">
+      <div class="rv-stat-card">
+        <div class="rv-stat-icon rv-stat-icon--blue">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="rv-stat-body">
+          <div class="rv-stat-value">{{ restaurant.capacidad | default(45) }}</div>
+          <div class="rv-stat-label">Capacidad total <span class="rv-stat-unit">personas</span></div>
+        </div>
+      </div>
+      <div class="rv-stat-card">
+        <div class="rv-stat-icon rv-stat-icon--orange">
+          <i class="bi bi-graph-up"></i>
+        </div>
+        <div class="rv-stat-body">
+          <div class="rv-stat-value">
+            {{ stats.ocupacion_hoy | default(0) }}
+            <span class="rv-stat-of">/ {{ restaurant.capacidad | default(45) }}</span>
+          </div>
+          <div class="rv-stat-label">Ocupación hoy</div>
+        </div>
+      </div>
+      <div class="rv-stat-card">
+        <div class="rv-stat-icon rv-stat-icon--green">
+          <i class="bi bi-calendar-check-fill"></i>
+        </div>
+        <div class="rv-stat-body">
+          <div class="rv-stat-value">{{ stats.confirmadas | default(0) }}</div>
+          <div class="rv-stat-label">Confirmadas <span class="rv-stat-unit">reservas</span></div>
+        </div>
+      </div>
+      <div class="rv-stat-card">
+        <div class="rv-stat-icon rv-stat-icon--yellow">
+          <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="rv-stat-body">
+          <div class="rv-stat-value">{{ stats.pendientes | default(0) }}</div>
+          <div class="rv-stat-label">Pendientes <span class="rv-stat-unit">por confirmar</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         CONTENT GRID
+    ══════════════════════════════════════════ -->
+    <div class="rv-grid">
+
+      <!-- ── LEFT: Slots ── -->
+      <div class="rv-slots-panel">
+
+        <!-- Date nav -->
+        <div class="rv-date-nav">
+          <a href="?fecha={{ fecha_anterior }}" class="rv-date-btn">
+            <i class="bi bi-chevron-left"></i>
+          </a>
+          <div class="rv-date-current">
+            <i class="bi bi-calendar3"></i>
+            {{ fecha_label }}
+            {% if es_hoy %}<span class="rv-today-badge">Hoy</span>{% endif %}
+          </div>
+          <a href="?fecha={{ fecha_siguiente }}" class="rv-date-btn">
+            <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+
+        <!-- Almuerzo -->
+        {% if slots_almuerzo %}
+        <div class="rv-slots-section">
+          <div class="rv-slots-header">
+            <span class="rv-slots-dot rv-slots-dot--orange"></span>
+            ALMUERZO
+          </div>
+          <div class="rv-slot-list">
+            {% for slot in slots_almuerzo %}
+            <div class="rv-slot-item {% if slot.hora == slot_activo %}rv-slot-item--active{% endif %}"
+                 onclick="selectSlot(this, '{{ slot.hora }}')">
+              <div class="rv-slot-time">{{ slot.hora }}</div>
+              <div class="rv-slot-bar-wrap">
+                <div class="rv-slot-count">{{ slot.ocupados }}/{{ restaurant.capacidad | default(45) }}</div>
+                <div class="rv-slot-bar">
+                  <div class="rv-slot-bar__fill {% if slot.pct >= 100 %}rv-slot-bar__fill--full{% endif %}"
+                       style="width: {{ [slot.pct, 100] | min }}%"></div>
+                </div>
+                {% if slot.pct == 0 %}
+                  <span class="rv-slot-badge rv-slot-badge--free">Libre</span>
+                {% elif slot.pct >= 100 %}
+                  <span class="rv-slot-badge rv-slot-badge--full">Lleno</span>
+                {% else %}
+                  <span class="rv-slot-badge rv-slot-badge--available">Disponible</span>
+                {% endif %}
+              </div>
+              <div class="rv-slot-remaining">{{ slot.disponibles }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Cena -->
+        {% if slots_cena %}
+        <div class="rv-slots-section">
+          <div class="rv-slots-header">
+            <span class="rv-slots-dot rv-slots-dot--blue"></span>
+            CENA
+          </div>
+          <div class="rv-slot-list">
+            {% for slot in slots_cena %}
+            <div class="rv-slot-item {% if slot.hora == slot_activo %}rv-slot-item--active{% endif %}"
+                 onclick="selectSlot(this, '{{ slot.hora }}')">
+              <div class="rv-slot-time">{{ slot.hora }}</div>
+              <div class="rv-slot-bar-wrap">
+                <div class="rv-slot-count">{{ slot.ocupados }}/{{ restaurant.capacidad | default(45) }}</div>
+                <div class="rv-slot-bar">
+                  <div class="rv-slot-bar__fill {% if slot.pct >= 100 %}rv-slot-bar__fill--full{% endif %}"
+                       style="width: {{ [slot.pct, 100] | min }}%"></div>
+                </div>
+                {% if slot.pct == 0 %}
+                  <span class="rv-slot-badge rv-slot-badge--free">Libre</span>
+                {% elif slot.pct >= 100 %}
+                  <span class="rv-slot-badge rv-slot-badge--full">Lleno</span>
+                {% else %}
+                  <span class="rv-slot-badge rv-slot-badge--available">Disponible</span>
+                {% endif %}
+              </div>
+              <div class="rv-slot-remaining">{{ slot.disponibles }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick actions -->
+        <div class="rv-quick-actions">
+          <div class="rv-qa-title">ACCIONES RÁPIDAS</div>
+          <div class="rv-qa-hint" id="qa-hint">Seleccioná un horario para ver acciones.</div>
+          <div class="rv-qa-btns" id="qa-btns" style="display:none;">
+            <button class="rv-qa-btn rv-qa-btn--primary" id="qa-nueva">
+              <i class="bi bi-plus-lg"></i> Nueva reserva
+            </button>
+          </div>
+        </div>
+
+        <!-- Configuración -->
+        <div class="rv-config-panel">
+          <button class="rv-config-toggle" onclick="toggleConfig()" type="button">
+            <span><i class="bi bi-sliders"></i> Configuración</span>
+            <i class="bi bi-chevron-down" id="config-chevron"></i>
+          </button>
+
+          <div class="rv-config-body" id="config-body" style="display:none;">
+            <form method="POST" action="{{ url_for('restaurante.reservas_config') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="horario" id="config-horario-json">
+
+              <!-- Capacidad -->
+              <div class="rv-config-field">
+                <label class="rv-config-label">
+                  <i class="bi bi-people"></i> Capacidad total
+                </label>
+                <div class="rv-config-cap-row">
+                  <input type="number" name="capacidad" class="rv-config-input"
+                         value="{{ restaurant.capacidad | default(0) }}"
+                         min="1" max="9999" placeholder="Ej: 45">
+                  <span class="rv-config-unit">personas</span>
+                </div>
+              </div>
+
+              <div class="rv-config-divider"></div>
+
+              <!-- Horarios -->
+              <div class="rv-config-label" style="margin-bottom:10px;">
+                <i class="bi bi-clock"></i> Horarios de atención
+              </div>
+
+              <div class="rv-sched-list" id="rv-sched-list">
+                {% for slot in horario_config %}
+                <div class="rv-sched-row" data-key="{{ slot.key }}">
+                  <label class="rv-toggle-wrap">
+                    <input type="checkbox" class="rv-toggle-input"
+                           {% if slot.active %}checked{% endif %}
+                           onchange="onToggleDay(this)">
+                    <span class="rv-toggle-slider"></span>
+                  </label>
+                  <span class="rv-sched-label">{{ slot.label }}</span>
+                  <div class="rv-sched-times">
+                    <input type="time" class="rv-time-input rv-time-open"
+                           value="{{ slot.open }}"
+                           {% if not slot.active %}disabled{% endif %}>
+                    <span>–</span>
+                    <input type="time" class="rv-time-input rv-time-close"
+                           value="{{ slot.close }}"
+                           {% if not slot.active %}disabled{% endif %}>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+
+              <button type="submit" class="rv-qa-btn rv-qa-btn--primary"
+                      style="margin-top:14px;" onclick="serializeHorario()">
+                <i class="bi bi-floppy"></i> Guardar cambios
+              </button>
+
+            </form>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── RIGHT: Reservations ── -->
+      <div class="rv-reservations-panel">
+        <div class="rv-reservations-header">
+          <div>
+            <div class="rv-reservations-title">Todas las reservas del día</div>
+            <div class="rv-reservations-count">
+              {{ reservas | length }} reservas · {{ stats.ocupacion_hoy | default(0) }} comensales
+            </div>
+          </div>
+        </div>
+
+        <div class="rv-list">
+          {% for r in reservas %}
+          <div class="rv-item {% if r.estado_reserva.value == 'cancelada' %}rv-item--cancelled{% endif %}">
+
+            <div class="rv-avatar" style="background: {{ r.avatar_color | default('#2E4DB5') }};">
+              {{ r.user.name[:2] | upper if r.user.name else r.user.username[:2] | upper }}
+            </div>
+
+            <div class="rv-body">
+              <div class="rv-name">
+                {{ r.user.name or r.user.username }}
+              </div>
+              <div class="rv-meta">
+                <span class="rv-time"><i class="bi bi-clock"></i> {{ r.fecha_hora.strftime('%H:%M') }}</span>
+                <span class="rv-pax"><i class="bi bi-people"></i> {{ r.cant_personas }} personas</span>
+              </div>
+            </div>
+
+            {% if r.estado_reserva.value == 'confirmada' %}
+              <span class="rv-badge rv-badge--confirmed">Confirmada</span>
+            {% elif r.estado_reserva.value == 'pendiente' %}
+              <span class="rv-badge rv-badge--pending">Pendiente</span>
+            {% elif r.estado_reserva.value == 'cancelada' %}
+              <span class="rv-badge rv-badge--cancelled">Cancelada</span>
+            {% elif r.estado_reserva.value == 'completada' %}
+              <span class="rv-badge rv-badge--completed">Completada</span>
+            {% endif %}
+
+            <div class="rv-actions">
+              {% if r.estado_reserva.value == 'pendiente' %}
+                <form method="POST" action="{{ url_for('restaurante.confirmar_reserva', id_reserva=r.id_reserva) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="rv-btn rv-btn--confirm" title="Confirmar">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                </form>
+                <form method="POST" action="{{ url_for('restaurante.cancelar_reserva', id_reserva=r.id_reserva) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="rv-btn rv-btn--reject" title="Rechazar">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </form>
+              {% elif r.estado_reserva.value == 'confirmada' %}
+                <form method="POST" action="{{ url_for('restaurante.cancelar_reserva', id_reserva=r.id_reserva) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="rv-btn rv-btn--delete" title="Cancelar">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+
+          </div>
+          {% else %}
+          <div class="rv-empty">
+            <i class="bi bi-calendar-x"></i>
+            <span>No hay reservas para este día.</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Ocupación general -->
+        {% set cap = restaurant.capacidad | default(45) %}
+        {% set ocup = stats.ocupacion_hoy | default(0) %}
+        {% set pct = ((ocup / cap) * 100) | round | int if cap > 0 else 0 %}
+        <div class="rv-ocupacion">
+          <div class="rv-ocupacion__header">
+            <span class="rv-ocupacion__label">Ocupación general del día</span>
+            <span class="rv-ocupacion__pct {% if pct > 100 %}rv-ocupacion__pct--over{% endif %}">{{ pct }}%</span>
+          </div>
+          <div class="rv-ocupacion__bar">
+            <div class="rv-ocupacion__fill" style="width: {{ [pct, 100] | min }}%;"></div>
+            {% if pct > 100 %}
+            <div class="rv-ocupacion__overflow" style="width: {{ pct - 100 }}%;"></div>
+            {% endif %}
+          </div>
+          <div class="rv-ocupacion__scale">
+            <span>0</span><span>{{ (cap * 0.33) | int }}</span>
+            <span>{{ (cap * 0.66) | int }}</span><span>{{ cap }}</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let slotActivo = null;
+
+  function selectSlot(el, hora) {
+    document.querySelectorAll('.rv-slot-item').forEach(s => s.classList.remove('rv-slot-item--active'));
+    el.classList.add('rv-slot-item--active');
+    slotActivo = hora;
+    document.getElementById('qa-hint').style.display = 'none';
+    document.getElementById('qa-btns').style.display = 'flex';
+  }
+
+  // ── Configuración ──────────────────────────────────────────
+  function toggleConfig() {
+    const body    = document.getElementById('config-body');
+    const chevron = document.getElementById('config-chevron');
+    const open    = body.style.display === 'none';
+    body.style.display    = open ? 'block' : 'none';
+    chevron.className     = open ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+  }
+
+  function onToggleDay(checkbox) {
+    const row    = checkbox.closest('.rv-sched-row');
+    const inputs = row.querySelectorAll('.rv-time-input');
+    inputs.forEach(inp => inp.disabled = !checkbox.checked);
+  }
+
+  function serializeHorario() {
+    const rows  = document.querySelectorAll('.rv-sched-row');
+    const data  = [];
+    const labels = { lun_jue: 'Lun – Jue', vie: 'Viernes', sab: 'Sábado', dom: 'Domingo' };
+    rows.forEach(row => {
+      const key    = row.dataset.key;
+      const active = row.querySelector('.rv-toggle-input').checked;
+      const open   = row.querySelector('.rv-time-open').value  || '12:00';
+      const close  = row.querySelector('.rv-time-close').value || '23:00';
+      data.push({ key, label: labels[key] || key, active, open, close });
+    });
+    document.getElementById('config-horario-json').value = JSON.stringify(data);
+  }
+</script>
+{% endblock %}
