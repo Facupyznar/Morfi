@@ -21,11 +21,7 @@
       <h2>Iniciar sesión</h2>
 
       {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          {% for message in messages %}
-            <div class="flash-msg">{{ message }}</div>
-          {% endfor %}
-        {% endif %}
+        <!-- Flashes are handled globally in base.html as toasts -->
       {% endwith %}
 
       <form class="fields" action="{{ url_for('auth.login') }}" method="POST">

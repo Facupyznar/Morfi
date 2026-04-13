@@ -540,6 +540,7 @@
   padding: 12px 22px;
   border-bottom: 1px solid #F7F3EE;
   transition: background 0.12s;
+  cursor: pointer;
 }
 
 .rv-item:last-child  { border-bottom: none; }
@@ -710,3 +711,299 @@
   color: #1A1A2E;
   opacity: 0.25;
 }
+
+/* ══════════════════════════════════════════
+   DRAWER — detalle de reserva
+══════════════════════════════════════════ */
+
+/* Overlay que oscurece el fondo */
+.rv-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 46, 0.35);
+  backdrop-filter: blur(2px);
+  z-index: 900;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.rv-drawer-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Panel lateral */
+.rv-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 360px;
+  max-width: 90vw;
+  background: #fff;
+  box-shadow: -8px 0 40px rgba(26, 26, 46, 0.14);
+  z-index: 901;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 20px 0 0 20px;
+  overflow: hidden;
+}
+
+.rv-drawer.open {
+  transform: translateX(0);
+}
+
+/* Header del drawer */
+.rv-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #F0EAE2;
+  flex-shrink: 0;
+}
+
+.rv-drawer-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1A1A2E;
+  opacity: 0.35;
+  margin: 0;
+}
+
+.rv-drawer-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: #F5F0EB;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1A1A2E;
+  font-size: 0.9rem;
+  transition: background 0.15s, transform 0.1s;
+  font-family: 'Manrope', sans-serif;
+}
+
+.rv-drawer-close:hover    { background: #EAE3DA; }
+.rv-drawer-close:active   { transform: scale(0.9); }
+
+/* Cuerpo del drawer (scrollable) */
+.rv-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Sección persona */
+.rv-dr-persona {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rv-dr-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+}
+
+.rv-dr-info { flex: 1; min-width: 0; }
+
+.rv-dr-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1A1A2E;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.rv-dr-badge-wrap { margin-top: 5px; }
+
+/* Tarjeta de detalles */
+.rv-dr-card {
+  background: #F9F5F1;
+  border: 1.5px solid #EDE7DF;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rv-dr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rv-dr-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1A1A2E;
+  opacity: 0.4;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rv-dr-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1A1A2E;
+}
+
+/* Divider interno */
+.rv-dr-divider {
+  height: 1px;
+  background: #EDE7DF;
+  margin: 2px 0;
+}
+
+/* Sección contacto */
+.rv-dr-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rv-dr-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: #F5F0EB;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1A1A2E;
+  opacity: 0.7;
+  word-break: break-all;
+}
+
+.rv-dr-contact-row i {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+/* Sección cambiar estado */
+.rv-dr-section-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1A1A2E;
+  opacity: 0.3;
+  margin-bottom: 10px;
+}
+
+.rv-dr-estados {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.rv-dr-estado-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px 10px;
+  border-radius: 13px;
+  border: 2px solid transparent;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  background: #F9F5F1;
+  color: #1A1A2E;
+}
+
+.rv-dr-estado-btn i {
+  font-size: 1.1rem;
+}
+
+.rv-dr-estado-btn:hover {
+  background: #F0EAE2;
+}
+
+.rv-dr-estado-btn:active {
+  transform: scale(0.96);
+}
+
+/* Estado activo — se aplica via JS con data-estado matching */
+.rv-dr-estado-btn--active[data-estado="confirmada"] {
+  background: #E8F6F1;
+  color: #0B7A56;
+  border-color: #0B7A56;
+}
+
+.rv-dr-estado-btn--active[data-estado="pendiente"] {
+  background: #FFF0EA;
+  color: #FF6B35;
+  border-color: #FF6B35;
+}
+
+.rv-dr-estado-btn--active[data-estado="cancelada"],
+.rv-dr-estado-btn--danger.rv-dr-estado-btn--active {
+  background: #FEF0EF;
+  color: #C0392B;
+  border-color: #C0392B;
+}
+
+.rv-dr-estado-btn--active[data-estado="completada"] {
+  background: #EEF2FF;
+  color: #2E4DB5;
+  border-color: #2E4DB5;
+}
+
+/* Variante danger (cancelada) — siempre tiene tinte rojo tenue */
+.rv-dr-estado-btn--danger {
+  color: #C0392B;
+}
+
+/* Botón eliminar en el footer del drawer */
+.rv-dr-delete-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 13px;
+  border: none;
+  background: #FEF0EF;
+  color: #C0392B;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, transform 0.1s;
+  margin-top: 4px;
+}
+
+.rv-dr-delete-btn:hover  { background: #FBBBB7; }
+.rv-dr-delete-btn:active { transform: scale(0.98); }

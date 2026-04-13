@@ -304,6 +304,41 @@ def cancelar_reserva(id_reserva):
     return redirect(url_for("restaurante.reservations", fecha=fecha))
 
 
+# ── Cambiar estado (AJAX) ─────────────────────────────────────────
+
+@restaurante_bp.route("/restaurante/reservas/<uuid:id_reserva>/estado", methods=["POST"])
+@login_required
+def cambiar_estado_reserva(id_reserva):
+    from flask import jsonify
+    if not _admin_required():
+        return jsonify({"error": "Sin permiso"}), 403
+
+    restaurant = _get_owned_restaurant()
+    reserva = Reserva.query.filter_by(
+        id_reserva    = id_reserva,
+        id_restaurant = restaurant.id_restaurant,
+    ).first_or_404()
+
+    estado_map = {
+        "confirmada": ReservaStatus.CONFIRMADA,
+        "pendiente":  ReservaStatus.PENDIENTE,
+        "cancelada":  ReservaStatus.CANCELADA,
+        "completada": ReservaStatus.COMPLETADA,
+    }
+
+    nuevo = request.form.get("estado", "").lower()
+    if nuevo not in estado_map:
+        return jsonify({"error": "Estado inválido"}), 400
+
+    reserva.estado_reserva = estado_map[nuevo]
+    db.session.commit()
+
+    return jsonify({
+        "ok":     True,
+        "estado": nuevo,
+    })
+
+
 # ── Configuración: capacidad y horarios ──────────────────────────
 
 @restaurante_bp.route("/restaurante/reservas/config", methods=["POST"])

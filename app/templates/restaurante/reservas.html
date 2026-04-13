@@ -255,7 +255,16 @@
 
         <div class="rv-list">
           {% for r in reservas %}
-          <div class="rv-item {% if r.estado_reserva.value == 'cancelada' %}rv-item--cancelled{% endif %}">
+          <div class="rv-item {% if r.estado_reserva.value == 'cancelada' %}rv-item--cancelled{% endif %} js-rv-item"
+               style="cursor:pointer;"
+               data-id="{{ r.id_reserva }}"
+               data-nombre="{{ r.user.name or r.user.username }}"
+               data-initials="{{ ((r.user.name or r.user.username)[:2]) | upper }}"
+               data-color="{{ r.avatar_color | default('#2E4DB5') }}"
+               data-hora="{{ r.fecha_hora.strftime('%H:%M') }}"
+               data-personas="{{ r.cant_personas }}"
+               data-email="{{ r.user.email or '' }}"
+               data-estado="{{ r.estado_reserva.value }}">
 
             <div class="rv-avatar" style="background: {{ r.avatar_color | default('#2E4DB5') }};">
               {{ r.user.name[:2] | upper if r.user.name else r.user.username[:2] | upper }}
@@ -281,7 +290,7 @@
               <span class="rv-badge rv-badge--completed">Completada</span>
             {% endif %}
 
-            <div class="rv-actions">
+            <div class="rv-actions" onclick="event.stopPropagation()">
               {% if r.estado_reserva.value == 'pendiente' %}
                 <form method="POST" action="{{ url_for('restaurante.confirmar_reserva', id_reserva=r.id_reserva) }}" style="display:inline;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -340,6 +349,75 @@
 
   </main>
 </div>
+
+<!-- ══════════════════════════════════════════
+     DRAWER — Detalle de reserva
+══════════════════════════════════════════ -->
+<div class="rv-drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+
+<div class="rv-drawer" id="rv-drawer">
+  <div class="rv-drawer-header">
+    <h2 class="rv-drawer-title">Detalle de reserva</h2>
+    <button class="rv-drawer-close" onclick="closeDrawer()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="rv-drawer-body">
+
+    <!-- Persona -->
+    <div class="rv-dr-persona">
+      <div class="rv-dr-avatar" id="dr-avatar"></div>
+      <div class="rv-dr-info">
+        <div class="rv-dr-name" id="dr-name"></div>
+        <span class="rv-badge" id="dr-badge"></span>
+      </div>
+    </div>
+
+    <!-- Detalles -->
+    <div class="rv-dr-card">
+      <div class="rv-dr-row">
+        <span class="rv-dr-label">Horario</span>
+        <span class="rv-dr-value" id="dr-hora"></span>
+      </div>
+      <div class="rv-dr-divider"></div>
+      <div class="rv-dr-row">
+        <span class="rv-dr-label">Comensales</span>
+        <span class="rv-dr-value" id="dr-personas"></span>
+      </div>
+    </div>
+
+    <!-- Contacto -->
+    <div class="rv-dr-contact" id="dr-contact-wrap">
+      <div class="rv-dr-contact-row" id="dr-email-row">
+        <i class="bi bi-envelope" style="color:#FF6B35;"></i>
+        <span id="dr-email"></span>
+      </div>
+    </div>
+
+    <!-- Cambiar estado -->
+    <div class="rv-dr-section-label">CAMBIAR ESTADO</div>
+    <div class="rv-dr-estados">
+      <button class="rv-dr-estado-btn" data-estado="confirmada"
+              onclick="cambiarEstado('confirmada')">
+        <i class="bi bi-check-lg"></i> Confirmada
+      </button>
+      <button class="rv-dr-estado-btn" data-estado="pendiente"
+              onclick="cambiarEstado('pendiente')">
+        <i class="bi bi-clock"></i> Pendiente
+      </button>
+      <button class="rv-dr-estado-btn rv-dr-estado-btn--danger" data-estado="cancelada"
+              onclick="cambiarEstado('cancelada')">
+        <i class="bi bi-x-circle"></i> Cancelada
+      </button>
+      <button class="rv-dr-estado-btn" data-estado="completada"
+              onclick="cambiarEstado('completada')">
+        <i class="bi bi-people"></i> Completada
+      </button>
+    </div>
+
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -368,6 +446,97 @@
     const inputs = row.querySelectorAll('.rv-time-input');
     inputs.forEach(inp => inp.disabled = !checkbox.checked);
   }
+
+  // ── Drawer ────────────────────────────────────────────────
+  let drawerReservaId = null;
+
+  const ESTADO_LABELS = {
+    confirmada: 'Confirmada',
+    pendiente:  'Pendiente',
+    cancelada:  'Cancelada',
+    completada: 'Completada',
+  };
+
+  const BADGE_CLASSES = {
+    confirmada: 'rv-badge--confirmed',
+    pendiente:  'rv-badge--pending',
+    cancelada:  'rv-badge--cancelled',
+    completada: 'rv-badge--completed',
+  };
+
+  function openDrawer(d) {
+    drawerReservaId = d.id;
+
+    var pax = parseInt(d.personas);
+    document.getElementById('dr-avatar').textContent       = d.initials;
+    document.getElementById('dr-avatar').style.background = d.color;
+    document.getElementById('dr-name').textContent         = d.nombre;
+    document.getElementById('dr-hora').textContent         = d.hora + ' hs';
+    document.getElementById('dr-personas').textContent     = d.personas + ' persona' + (pax > 1 ? 's' : '');
+    document.getElementById('dr-email').textContent        = d.email;
+
+    var badge = document.getElementById('dr-badge');
+    badge.textContent = ESTADO_LABELS[d.estado] || d.estado;
+    badge.className   = 'rv-badge ' + (BADGE_CLASSES[d.estado] || '');
+
+    document.querySelectorAll('.rv-dr-estado-btn').forEach(function(btn) {
+      btn.classList.toggle('rv-dr-estado-btn--active', btn.dataset.estado === d.estado);
+    });
+
+    document.getElementById('drawer-overlay').classList.add('active');
+    document.getElementById('rv-drawer').classList.add('open');
+  }
+
+  function closeDrawer() {
+    document.getElementById('drawer-overlay').classList.remove('active');
+    document.getElementById('rv-drawer').classList.remove('open');
+    drawerReservaId = null;
+  }
+
+  async function cambiarEstado(nuevoEstado) {
+    if (!drawerReservaId) return;
+
+    var csrfToken = '{{ csrf_token() }}';
+
+    var res = await fetch('/restaurante/reservas/' + drawerReservaId + '/estado', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    'estado=' + nuevoEstado + '&csrf_token=' + encodeURIComponent(csrfToken),
+    });
+
+    var data = await res.json();
+    if (!data.ok) { alert('Error al cambiar estado'); return; }
+
+    var badge = document.getElementById('dr-badge');
+    badge.textContent = ESTADO_LABELS[nuevoEstado];
+    badge.className   = 'rv-badge ' + (BADGE_CLASSES[nuevoEstado] || '');
+
+    document.querySelectorAll('.rv-dr-estado-btn').forEach(function(btn) {
+      btn.classList.toggle('rv-dr-estado-btn--active', btn.dataset.estado === nuevoEstado);
+    });
+
+    setTimeout(function() { location.reload(); }, 600);
+  }
+
+  // Conectar clicks de los items de reserva (via data attributes, sin onclick inline)
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.js-rv-item').forEach(function(item) {
+      item.addEventListener('click', function(e) {
+        // Ignorar clicks en botones/forms de acción
+        if (e.target.closest('.rv-actions')) return;
+        openDrawer({
+          id:       item.dataset.id,
+          nombre:   item.dataset.nombre,
+          initials: item.dataset.initials,
+          color:    item.dataset.color,
+          hora:     item.dataset.hora,
+          personas: item.dataset.personas,
+          email:    item.dataset.email,
+          estado:   item.dataset.estado,
+        });
+      });
+    });
+  });
 
   function serializeHorario() {
     const rows  = document.querySelectorAll('.rv-sched-row');

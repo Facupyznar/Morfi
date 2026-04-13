@@ -14,7 +14,7 @@
 <div class="container py-4">
     <div class="d-flex gap-2 mb-4 overflow-x-auto pb-2">
         {% for filter in ["Cerca de mí", "Mejor puntuados", "Amigos recomiendan", "Disponible ahora"] %}
-        <button class="filter-chip {{ 'active' if (filter == 'Cerca de mí' and nearby_active) or (filter != 'Cerca de mí' and loop.first and not nearby_active) else '' }}" {% if filter == "Cerca de mí" %}type="button" onclick="activateNearbyFilter()"{% else %}type="button"{% endif %}>
+        <button class="filter-chip {{ 'active' if (filter == 'Cerca de mí' and nearby_active) or (filter != 'Cerca de mí' and loop.first and not nearby_active) else '' }}" onclick="toggleFilter('{{ filter }}')" type="button">
             {{ filter }}
         </button>
         {% endfor %}
@@ -105,9 +105,25 @@
 
 {% block page_scripts %}
 <script>
+    function toggleFilter(filterName) {
+        if (filterName === 'Cerca de mí') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has("user_lat") && params.has("user_lng")) {
+                // Deselect logic
+                params.delete("user_lat");
+                params.delete("user_lng");
+                window.location.href = "{{ url_for('usuario.home') }}?" + params.toString();
+            } else {
+                activateNearbyFilter();
+            }
+        }
+        // In the future add toggling for other filters here
+    }
+
     function activateNearbyFilter() {
         if (!navigator.geolocation) {
-            window.alert("Tu navegador no soporta geolocalización.");
+            if(window.showToast) window.showToast("Tu navegador no soporta geolocalización.", 'error');
+            else window.alert("Tu navegador no soporta geolocalización.");
             return;
         }
 
@@ -116,10 +132,12 @@
                 const params = new URLSearchParams(window.location.search);
                 params.set("user_lat", position.coords.latitude);
                 params.set("user_lng", position.coords.longitude);
+                if(window.showToast) window.showToast("Ubicación actualizada.", 'success');
                 window.location.href = "{{ url_for('usuario.home') }}?" + params.toString();
             },
             function () {
-                window.alert("No pudimos obtener tu ubicación actual.");
+                if(window.showToast) window.showToast("No pudimos obtener tu ubicación actual.", 'error');
+                else window.alert("No pudimos obtener tu ubicación actual.");
             },
             { enableHighAccuracy: true, timeout: 10000 }
         );
