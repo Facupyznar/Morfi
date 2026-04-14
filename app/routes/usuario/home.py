@@ -166,6 +166,9 @@ def home():
 @usuario_bp.route("/restaurante/<restaurant_id>")
 @login_required
 def restaurant_detail(restaurant_id):
+    import json
+    from flask import url_for as _url_for
+
     restaurant_record = (
         db.session.query(Restaurant)
         .options(joinedload(Restaurant.restaurant_tags).joinedload(RestaurantTags.tag))
@@ -179,17 +182,44 @@ def restaurant_detail(restaurant_id):
         .order_by(Menu.categoria, Menu.nombre)
         .all()
     )
+
+    # Horario: parsear el JSON guardado por el socio
+    horario_list = _parse_horario_restaurant(restaurant_record)
+
+    # Galería: parsear el JSON de paths
+    try:
+        gallery = json.loads(restaurant_record.gallery_json or "[]")
+    except (json.JSONDecodeError, TypeError):
+        gallery = []
+
+    # Imagen de portada: usar la subida por el socio, o fallback genérico
+    if restaurant_record.cover_url:
+        image_url = _url_for("static", filename=restaurant_record.cover_url)
+    else:
+        image_url = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=800"
+
+    # Logo
+    logo_url = _url_for("static", filename=restaurant_record.logo_url) if restaurant_record.logo_url else None
+
     restaurant_data = {
-        "id":             str(restaurant_record.id_restaurant),
-        "name":           restaurant_record.name,
-        "rating":         round(float(restaurant_record.puntaje or 0), 1),
-        "tags":           tag_names[:3],
-        "image_url":      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=800",
+        "id":           str(restaurant_record.id_restaurant),
+        "name":         restaurant_record.name,
+        "rating":       round(float(restaurant_record.puntaje or 0), 1),
+        "tags":         tag_names[:3],
+        "image_url":    image_url,
+        "logo_url":     logo_url,
+        "address":      restaurant_record.address or "",
         "distance_label": restaurant_record.address or "",
-        "address":        restaurant_record.address or "",
-        "horario":        "",
-        "latitude":       float(restaurant_record.latitude) if restaurant_record.latitude else None,
-        "longitude":      float(restaurant_record.longitude) if restaurant_record.longitude else None,
+        "horario":      horario_list,
+        "descripcion":  restaurant_record.descripcion or "",
+        "precio_rango": restaurant_record.precio_rango or "",
+        "telefono":     restaurant_record.telefono or "",
+        "sitio_web":    restaurant_record.sitio_web or "",
+        "instagram":    restaurant_record.instagram or "",
+        "capacidad":    restaurant_record.capacidad or 0,
+        "gallery":      gallery,
+        "latitude":     float(restaurant_record.latitude) if restaurant_record.latitude else None,
+        "longitude":    float(restaurant_record.longitude) if restaurant_record.longitude else None,
     }
     return render_template(
         "usuario/restaurant_detail.html",

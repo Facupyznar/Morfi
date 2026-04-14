@@ -21,7 +21,6 @@ from app.models.restaurant_tags import RestaurantTags
 from app.models.tag import Tag
 from app.models.user import Role, User
 
-
 # ── File upload helpers ──────────────────────────────────────────────────────
 _ALLOWED_IMG = {"png", "jpg", "jpeg", "webp"}
 _MAX_GALLERY  = 10
@@ -658,8 +657,7 @@ def update_restaurant_profile():
 
     restaurant.gallery_json = json.dumps(current_gallery, ensure_ascii=False)
 
-    # ── Sincronizar nombre al owner ──────────────────────────────────────────
-    current_user.name      = name
+    # ── Sincronizar ubicación al owner (solo coordenadas, NO el nombre) ─────
     current_user.address   = location_payload["address"]
     current_user.latitude  = location_payload["latitude"]
     current_user.longitude = location_payload["longitude"]

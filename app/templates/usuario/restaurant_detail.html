@@ -20,6 +20,9 @@
       <div class="hero-meta">
         <span class="hero-chip">⭐ {{ restaurant.rating }}</span>
         <span class="hero-chip">📍 {{ restaurant.distance_label }}</span>
+        {% if restaurant.precio_rango %}
+        <span class="hero-chip">{{ restaurant.precio_rango }}</span>
+        {% endif %}
         {% for tag in restaurant.tags %}
         <span class="hero-chip">{{ tag }}</span>
         {% endfor %}
@@ -40,18 +43,13 @@
   <div class="container-fluid px-4 py-4" style="max-width: 1200px; margin: 0 auto;">
     <div class="row g-4">
 
-      <!-- Center Column: Tabs -->
-      <div class="col-lg-9">
-        <div class="d-flex align-items-center mb-3">
-          <a href="javascript:history.back()" class="btn btn-outline-dark rounded-pill border-0 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: var(--morfi-beige);">
-            <i class="bi bi-arrow-left"></i>
-          </a>
-          <div class="detail-tabs w-100 m-0">
-            <button class="detail-tab active" data-tab="menu">Menú</button>
-            <button class="detail-tab" data-tab="info">Info</button>
-            <button class="detail-tab" data-tab="resenas">Reseñas</button>
-            <button class="detail-tab" data-tab="beneficios">Beneficios</button>
-          </div>
+      <!-- Tabs (full width) -->
+      <div class="col-12">
+        <div class="detail-tabs">
+          <button class="detail-tab active" data-tab="menu">Menú</button>
+          <button class="detail-tab" data-tab="info">Info</button>
+          <button class="detail-tab" data-tab="resenas">Reseñas</button>
+          <button class="detail-tab" data-tab="beneficios">Beneficios</button>
         </div>
 
         <!-- Menu Tab -->
@@ -59,9 +57,16 @@
           <div class="menu-grid">
             {% for item in menu_items %}
             <div class="menu-card">
+              {% if item.foto_url %}
+              <div class="menu-thumb" style="background-image:url('{{ url_for('static', filename=item.foto_url) }}'); background-size:cover; background-position:center;"></div>
+              {% else %}
               <div class="menu-thumb"></div>
+              {% endif %}
               <div class="menu-card-body">
                 <div class="menu-name">{{ item.nombre }}</div>
+                {% if item.descripcion %}
+                <div class="menu-desc" style="font-size:0.8rem; color:#7A7069; margin-bottom:4px;">{{ item.descripcion }}</div>
+                {% endif %}
                 <div class="menu-category">{{ item.categoria or '' }}</div>
                 <div class="menu-price">${{ item.precio | int }}</div>
                 <div class="mt-1">
@@ -81,10 +86,113 @@
 
         <!-- Info Tab -->
         <div id="tab-info" class="tab-content" style="display:none;">
-          <div class="tab-placeholder">
-            <i class="bi bi-info-circle" style="font-size:2rem; color:#D9CEBD;"></i>
-            <p class="mt-2 text-muted">Información del restaurante próximamente.</p>
+
+          <!-- Descripción -->
+          {% if restaurant.descripcion %}
+          <p style="color:#5C544E; font-size:1rem; line-height:1.7; margin-bottom:32px;">
+            {{ restaurant.descripcion }}
+          </p>
+          {% endif %}
+
+          <!-- Grid 2 columnas: Horarios | Ubicación + Contacto -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:32px;">
+
+            <!-- Horarios -->
+            <div class="info-side-card">
+              <div class="horario-title" style="margin-bottom:12px;">
+                <i class="bi bi-clock text-orange"></i> Horarios
+              </div>
+              {% if restaurant.horario %}
+                {% for entry in restaurant.horario %}
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0;
+                            border-bottom:1px solid #F0EBE3;">
+                  <span style="font-weight:600; color:#3D3530; font-size:0.9rem;">{{ entry.label }}</span>
+                  {% if entry.active %}
+                    <span style="color:#5C544E; font-size:0.9rem;">{{ entry.open }} – {{ entry.close }}</span>
+                  {% else %}
+                    <span style="color:#C0B8B0; font-size:0.85rem;">Cerrado</span>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              {% else %}
+                <p class="text-muted mb-0" style="font-size:0.9rem;">Sin horarios cargados.</p>
+              {% endif %}
+            </div>
+
+            <!-- Ubicación + Contacto + Precio -->
+            <div style="display:flex; flex-direction:column; gap:16px;">
+
+              <div class="info-side-card">
+                <div class="horario-title" style="margin-bottom:8px;">
+                  <i class="bi bi-geo-alt-fill text-orange"></i> Ubicación
+                </div>
+                <p style="margin:0; color:#5C544E; font-size:0.9rem;">{{ restaurant.address or '—' }}</p>
+              </div>
+
+              {% if restaurant.precio_rango %}
+              <div class="info-side-card">
+                <div class="horario-title" style="margin-bottom:8px;">
+                  <i class="bi bi-tag text-orange"></i> Precio promedio
+                </div>
+                <p style="margin:0; color:#5C544E; font-size:0.9rem; font-weight:600;">{{ restaurant.precio_rango }}</p>
+              </div>
+              {% endif %}
+
+              {% if restaurant.telefono or restaurant.sitio_web or restaurant.instagram %}
+              <div class="info-side-card">
+                <div class="horario-title" style="margin-bottom:12px;">
+                  <i class="bi bi-send text-orange"></i> Contacto
+                </div>
+                {% if restaurant.telefono %}
+                <a href="tel:{{ restaurant.telefono }}"
+                   style="display:flex; align-items:center; gap:10px; padding:6px 0;
+                          color:#3D3530; text-decoration:none; font-size:0.9rem;">
+                  <i class="bi bi-telephone-fill" style="color:#C1631A; width:16px;"></i>
+                  {{ restaurant.telefono }}
+                </a>
+                {% endif %}
+                {% if restaurant.sitio_web %}
+                <a href="{{ restaurant.sitio_web }}" target="_blank"
+                   style="display:flex; align-items:center; gap:10px; padding:6px 0;
+                          color:#C1631A; text-decoration:none; font-size:0.9rem;">
+                  <i class="bi bi-globe" style="width:16px;"></i>
+                  {{ restaurant.sitio_web }}
+                </a>
+                {% endif %}
+                {% if restaurant.instagram %}
+                <a href="https://instagram.com/{{ restaurant.instagram }}" target="_blank"
+                   style="display:flex; align-items:center; gap:10px; padding:6px 0;
+                          color:#C1631A; text-decoration:none; font-size:0.9rem;">
+                  <i class="bi bi-instagram" style="width:16px;"></i>
+                  @{{ restaurant.instagram }}
+                </a>
+                {% endif %}
+              </div>
+              {% endif %}
+
+            </div>
           </div>
+
+          <!-- Galería -->
+          {% if restaurant.gallery %}
+          <div>
+            <h6 style="font-weight:700; color:#3D3530; margin-bottom:12px;">
+              <i class="bi bi-images text-orange me-1"></i> Galería
+            </h6>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+              {% for photo in restaurant.gallery %}
+              <div style="aspect-ratio:1; overflow:hidden; border-radius:10px;">
+                <img src="{{ url_for('static', filename=photo) }}"
+                     alt="Foto {{ loop.index }}"
+                     style="width:100%; height:100%; object-fit:cover; transition:transform .2s;"
+                     onmouseover="this.style.transform='scale(1.05)'"
+                     onmouseout="this.style.transform='scale(1)'">
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
         </div>
 
         <!-- Reviews Tab -->
@@ -104,56 +212,19 @@
         </div>
       </div>
 
-      <!-- Right Column: Info Cards -->
-      <div class="col-lg-3">
-
-        <!-- Map Placeholder -->
-        <div class="map-placeholder-card mb-3">
-          <div class="map-placeholder-inner">
-            <i class="bi bi-map" style="font-size:2rem; color:#9A8F85;"></i>
-            <p class="mb-0 mt-2 text-muted small">Mapa próximamente</p>
-          </div>
-        </div>
-
-        <!-- Address Card -->
-        <div class="info-side-card mb-3">
-          <div class="horario-title">
-            <i class="bi bi-geo-alt-fill text-orange"></i>
-            Dirección
-          </div>
-          <div class="horario-row">
-            {{ restaurant.address or 'Sin dirección registrada' }}
-          </div>
-        </div>
-
-        <!-- Hours Card -->
-        <div class="info-side-card">
-          <div class="horario-title">
-            <i class="bi bi-clock text-orange"></i>
-            Horarios
-          </div>
-          <div class="horario-row">
-            {{ restaurant.horario or 'Consultar horarios' }}
-          </div>
-        </div>
-
-      </div>
     </div>
   </div>
 </div>
 
 <script>
-  // Tab switching
   document.querySelectorAll('.detail-tab').forEach(tab => {
     tab.addEventListener('click', function () {
       const tabName = this.getAttribute('data-tab');
-
       document.querySelectorAll('.tab-content').forEach(c => {
         c.style.display = 'none';
         c.classList.remove('active');
       });
       document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
-
       const target = document.getElementById('tab-' + tabName);
       target.style.display = 'block';
       target.classList.add('active');
@@ -161,7 +232,6 @@
     });
   });
 
-  // Heart toggle
   function toggleWishlist() {
     const icon = document.querySelector('.hero-heart i');
     icon.classList.toggle('bi-heart');
