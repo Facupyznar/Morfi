@@ -10,7 +10,7 @@ from werkzeug.routing import BuildError
 
 from app.database import db
 from app.location import resolve_location_payload
-from app.models.modelUser import ModelUser
+from app.helpers.auth import ModelUser
 from app.models.restaurant import Restaurant
 from app.models.user import Role, User
 

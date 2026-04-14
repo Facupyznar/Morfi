@@ -13,7 +13,7 @@ from app.location import resolve_location_payload
 from app.models.enums import TagCategory
 from app.models.enums import FriendshipStatus
 from app.models.friends import Friends
-from app.models.modelUser import ModelUser
+from app.helpers.auth import ModelUser
 from app.models.reserva import Reserva
 from app.models.tag import Tag
 from app.models.user import User

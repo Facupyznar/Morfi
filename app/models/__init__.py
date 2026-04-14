@@ -3,7 +3,6 @@ from .beneficio_plato import BeneficioPlato
 from .friends import Friends
 from .menu import Menu
 from .menu_tags import MenuTags
-from .modelUser import ModelUser
 from .reserva import Reserva
 from .restaurant import Restaurant
 from .restaurant_tags import RestaurantTags

@@ -1,5 +1,5 @@
 from app.database import db, ensure_menu_schema
-from app.models import ModelUser, User
+from app.models import User
 from app.run import app
 
 
