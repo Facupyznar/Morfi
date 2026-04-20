@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 
 from flask import jsonify, render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_required
@@ -277,14 +277,21 @@ def disponibilidad(restaurant_id):
     slots_raw = _slots_para_fecha(restaurant_record, fecha)
 
     slots = []
+    ARG_TZ = timezone(timedelta(hours=-3))
+    now = datetime.now(tz=ARG_TZ).replace(tzinfo=None)
     for hora in slots_raw:
         ocupados    = _ocupados_slot(restaurant_record.id_restaurant, fecha, hora)
         disponibles = max(capacidad - ocupados, 0)
+        vencido = False
+        if fecha == date.today():
+            slot_dt = datetime.combine(fecha, datetime.strptime(hora, "%H:%M").time())
+            vencido = slot_dt <= now
         slots.append({
             "hora":        hora,
             "ocupados":    ocupados,
             "disponibles": disponibles,
-            "disponible":  disponibles > 0,
+            "disponible":  disponibles > 0 and not vencido,
+            "vencido":     vencido,
             "pct":         round((ocupados / capacidad) * 100) if capacidad > 0 else 0,
         })
 
@@ -323,12 +330,12 @@ def crear_reserva(restaurant_id):
         return redirect(url_for("usuario.reserva_wizard", restaurant_id=restaurant_id))
 
     try:
-        fecha_hora = datetime.strptime(f"{fecha_str} {hora_str}", "%Y-%m-%d %H:%M")
+        fecha_hora = timezone.strptime(f"{fecha_str} {hora_str}", "%Y-%m-%d %H:%M")
     except ValueError:
         flash("Fecha u hora inválida.", "warning")
         return redirect(url_for("usuario.reserva_wizard", restaurant_id=restaurant_id))
 
-    if fecha_hora < datetime.now():
+    if fecha_hora < timezone.now():
         flash("No podés reservar en fechas pasadas.", "warning")
         return redirect(url_for("usuario.reserva_wizard", restaurant_id=restaurant_id))
 

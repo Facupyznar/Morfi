@@ -292,18 +292,28 @@
         return;
       }
 
-      grid.innerHTML = '';
-      data.slots.forEach(slot => {
-        const btn = document.createElement('button');
-        btn.type      = 'button';
-        btn.className = 'time-slot' + (!slot.disponible ? ' time-slot--full' : '');
-        btn.disabled  = !slot.disponible;
-        btn.textContent = slot.hora;
-        if (slot.disponible) {
-          btn.addEventListener('click', () => selectSlot(btn, slot.hora));
-        }
-        grid.appendChild(btn);
-      });
+grid.innerHTML = '';
+data.slots.forEach(slot => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = slot.hora;
+
+  if (slot.vencido) {
+    btn.className = 'time-slot time-slot--vencido';
+    btn.disabled  = true;
+    btn.dataset.tooltip = 'Horario vencido';
+  } else if (!slot.disponible) {
+    btn.className = 'time-slot time-slot--full';
+    btn.disabled  = true;
+    btn.dataset.tooltip = 'Sin lugares disponibles';
+  } else {
+    btn.className = 'time-slot';
+    btn.dataset.tooltip = `Lugares disponibles: ${slot.disponibles}`;
+    btn.addEventListener('click', () => selectSlot(btn, slot.hora));
+  }
+
+  grid.appendChild(btn);
+});
     } catch (err) {
       grid.innerHTML = '<p style="color:#C0392B;font-size:0.85rem;grid-column:1/-1;">Error de conexión. Intentá de nuevo.</p>';
     }

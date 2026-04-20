@@ -182,6 +182,47 @@
   box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
 }
 
+.time-slot--vencido {
+  background: #FFF0F0;
+  border-color: #E74C3C;
+  color: #E74C3C;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.time-slot--vencido:hover {
+  background: #FFF0F0;
+  border-color: #E74C3C;
+  color: #E74C3C;
+}
+
+.time-slot[data-tooltip] {
+  position: relative;
+}
+
+.time-slot[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1A1A2E;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  z-index: 10;
+}
+
+.time-slot[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
 /* ── Section labels ───────────────────────── */
 .wizard-section-label {
   font-size: 0.82rem;
