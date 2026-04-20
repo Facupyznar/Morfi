@@ -69,6 +69,36 @@
                         {% endfor %}
                     </div>
                 </div>
+                <div class="card-morfi p-4 mb-4">
+                    <h3 class="baloo h5 mb-4">Actualizar contraseña</h3>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <label class="form-label small text-muted mb-1">Contraseña actual</label>
+                        <div class="pass-wrap w-100">
+                            <input type="password" name="current_password" class="form-control bg-light border-morfi" id="current_password" placeholder="Contraseña actual" />
+                            <button type="button" class="toggle-pass" onclick="togglePass('current_password', 'eyeCurrentPassword')">
+                                <i class="bi bi-eye" id="eyeCurrentPassword"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <label class="form-label small text-muted mb-1">Nueva contraseña</label>
+                        <div class="pass-wrap w-100">
+                            <input type="password" name="new_password" class="form-control bg-light border-morfi" id="new_password" placeholder="Nueva contraseña" />
+                            <button type="button" class="toggle-pass" onclick="togglePass('new_password', 'eyeNewPassword')">
+                                <i class="bi bi-eye" id="eyeNewPassword"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <label class="form-label small text-muted mb-1">Confirmar contraseña</label>
+                        <div class="pass-wrap w-100">
+                            <input type="password" name="confirm_password" class="form-control bg-light border-morfi" id="confirm_password" placeholder="Confirmar contraseña" />
+                            <button type="button" class="toggle-pass" onclick="togglePass('confirm_password', 'eyeConfirmPassword')">
+                                <i class="bi bi-eye" id="eyeConfirmPassword"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="d-flex justify-content-end gap-3 mt-4">
                     <a href="{{ url_for('usuario.profile') }}" class="btn btn-outline-dark px-4 py-2">Cancelar</a>
@@ -82,11 +112,30 @@
 <style>
 .btn-outline-morfi { border: 1px solid var(--morfi-border); color: var(--morfi-dark); background: var(--morfi-beige); }
 .btn-check:checked + .btn-outline-morfi { background-color: var(--morfi-orange); border-color: var(--morfi-orange); color: white; }
+.pass-wrap { position: relative; }
+.pass-wrap input { padding-right: 2.75rem; }
+.toggle-pass {
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: #6c757d;
+    padding: 0;
+}
 </style>
 {% endblock %}
 
 {% block page_scripts %}
 <script>
+    function togglePass(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        input.type = input.type === 'password' ? 'text' : 'password';
+        icon.className = input.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+    }
+
     initMorfiLocationPicker({
         mapId: "edit-profile-map",
         addressId: "edit-profile-location",

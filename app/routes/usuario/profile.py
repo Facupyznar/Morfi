@@ -292,6 +292,9 @@ def update_profile():
     uploaded_photo = request.files.get("profile_photo")
     cuisines = [value.strip() for value in request.form.getlist("cuisines") if value.strip()]
     restrictions = [value.strip() for value in request.form.getlist("restrictions") if value.strip()]
+    current_password = request.form.get("current_password")
+    new_password = request.form.get("new_password")
+    confirm_password = request.form.get("confirm_password")
 
     if updated_name:
         user_record.name = updated_name
@@ -299,6 +302,23 @@ def update_profile():
         flash("El nombre no puede estar vacío.", "warning")
         return redirect(url_for("usuario.edit_profile"))
 
+    if current_password or new_password or confirm_password:
+        if any([current_password, new_password, confirm_password]) and not all([current_password, new_password,
+        confirm_password]):
+            flash("Para cambiar la contraseña, debes completar los 3 campos.", "warning")
+            return redirect(url_for("usuario.edit_profile"))
+        if new_password != confirm_password:
+            flash("Las contraseñas no coinciden.", "warning")
+            return redirect(url_for("usuario.edit_profile"))
+        if not user_record.check_password(current_password):
+            flash("La contraseña actual es incorrecta.", "warning")
+            return redirect(url_for("usuario.edit_profile"))
+        if len(new_password) <= 4:
+            flash("La contraseña debe tener más de 4 caracteres.", "warning")
+            return redirect(url_for("usuario.edit_profile"))
+        
+        user_record.password = new_password
+        
     try:
         location_payload = resolve_location_payload(updated_location, updated_latitude, updated_longitude)
     except ValueError as ex:
