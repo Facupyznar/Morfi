@@ -1,7 +1,9 @@
+from datetime import datetime, timezone
 import os
 import uuid
 
 from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import joinedload
 
 from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, logout_user
@@ -12,6 +14,7 @@ from app.database import db
 from app.location import resolve_location_payload
 from app.models.enums import TagCategory
 from app.models.enums import FriendshipStatus
+from app.models.enums import ReservaStatus
 from app.models.friends import Friends
 from app.helpers.auth import ModelUser
 from app.models.reserva import Reserva
@@ -131,6 +134,12 @@ def _validate_and_update_password(user_record, current_password, new_password, c
 
     user_record.password = new_password
     return True
+
+
+def _comparison_now_for_reservation(reservation_date):
+    if reservation_date and reservation_date.tzinfo is not None:
+        return datetime.now(timezone.utc).astimezone(reservation_date.tzinfo)
+    return datetime.now()
 
 
 @usuario_bp.route("/profile")
@@ -377,7 +386,141 @@ def update_profile():
 @usuario_bp.route("/perfil/historial")
 @login_required
 def history():
-    return render_template("usuario/history.html")
+    user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
+    month_param = (request.args.get("month") or "").strip()
+    now = datetime.now()
+
+    if month_param:
+        try:
+            selected_month = datetime.strptime(month_param, "%Y-%m")
+        except ValueError:
+            selected_month = datetime(now.year, now.month, 1)
+    else:
+        selected_month = datetime(now.year, now.month, 1)
+
+    month_value = selected_month.strftime("%Y-%m")
+    month_start = datetime(selected_month.year, selected_month.month, 1)
+    if selected_month.month == 12:
+        next_month_start = datetime(selected_month.year + 1, 1, 1)
+    else:
+        next_month_start = datetime(selected_month.year, selected_month.month + 1, 1)
+
+    reservations = (
+        db.session.query(Reserva)
+        .options(joinedload(Reserva.restaurant), joinedload(Reserva.review))
+        .filter(
+            Reserva.user_id == user_record.user_id,
+            Reserva.fecha_hora >= month_start,
+            Reserva.fecha_hora < next_month_start,
+        )
+        .order_by(Reserva.fecha_hora.desc())
+        .all()
+    )
+
+    month_names = {
+        1: "ene",
+        2: "feb",
+        3: "mar",
+        4: "abr",
+        5: "may",
+        6: "jun",
+        7: "jul",
+        8: "ago",
+        9: "sep",
+        10: "oct",
+        11: "nov",
+        12: "dic",
+    }
+
+    reservations_payload = []
+    for reserva in reservations:
+        restaurant = reserva.restaurant
+        reservation_date = reserva.fecha_hora
+        comparison_now = _comparison_now_for_reservation(reservation_date)
+        status_label = None
+        status_variant = None
+        action_label = None
+        can_cancel = (
+            reserva.estado_reserva == ReservaStatus.CONFIRMADA
+            and reservation_date is not None
+            and reservation_date > comparison_now
+        )
+
+        if getattr(getattr(reserva, "estado_reserva", None), "value", None) == "cancelada":
+            status_label = "Cancelada"
+            status_variant = "cancelled"
+        elif reservation_date and reservation_date <= comparison_now:
+            if getattr(getattr(reserva, "estado_reserva", None), "value", None) == "completada":
+                status_label = "Asistió"
+                status_variant = "attended"
+                action_label = "Dejar reseña"
+            else:
+                status_label = "No asistió"
+                status_variant = "missed"
+
+        reservations_payload.append(
+            {
+                "restaurant_name": restaurant.name if restaurant else "Reserva",
+                "restaurant_id": str(restaurant.id_restaurant) if restaurant else None,
+                "reservation_id": str(reserva.id_reserva),
+                "image_path": (
+                    getattr(restaurant, "cover_url", None)
+                    or getattr(restaurant, "logo_url", None)
+                    or None
+                ),
+                "date_label": (
+                    f"{reservation_date.day} {month_names[reservation_date.month]} {reservation_date.year}"
+                    if reservation_date
+                    else ""
+                ),
+                "diners_label": f"{reserva.cant_personas} comensales",
+                "status_label": status_label,
+                "status_variant": status_variant,
+                "action_label": action_label,
+                "can_cancel": can_cancel,
+            }
+        )
+
+    return render_template(
+        "usuario/history.html",
+        reservations=reservations_payload,
+        selected_month=month_value,
+    )
+
+
+@usuario_bp.route("/perfil/reservas/<uuid:id_reserva>/cancelar", methods=["POST"])
+@login_required
+def cancel_user_reservation(id_reserva):
+    reservation = (
+        db.session.query(Reserva)
+        .filter(
+            Reserva.id_reserva == id_reserva,
+            Reserva.user_id == current_user.user_id,
+        )
+        .first_or_404()
+    )
+
+    comparison_now = _comparison_now_for_reservation(reservation.fecha_hora)
+    redirect_month = (request.form.get("month") or "").strip()
+    redirect_kwargs = {"month": redirect_month} if redirect_month else {}
+
+    if reservation.estado_reserva != ReservaStatus.CONFIRMADA:
+        flash("Solo podés cancelar reservas confirmadas.", "warning")
+        return redirect(url_for("usuario.history", **redirect_kwargs))
+
+    if reservation.fecha_hora and reservation.fecha_hora <= comparison_now:
+        flash("No podés cancelar una reserva cuya fecha ya pasó.", "warning")
+        return redirect(url_for("usuario.history", **redirect_kwargs))
+
+    try:
+        reservation.estado_reserva = ReservaStatus.CANCELADA
+        db.session.commit()
+        flash("Reserva cancelada correctamente.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo cancelar la reserva.", "danger")
+
+    return redirect(url_for("usuario.history", **redirect_kwargs))
 
 @usuario_bp.route("/perfil/seguridad")
 @login_required

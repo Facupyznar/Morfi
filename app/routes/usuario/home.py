@@ -329,13 +329,17 @@ def crear_reserva(restaurant_id):
         flash("Cantidad de comensales inválida.", "warning")
         return redirect(url_for("usuario.reserva_wizard", restaurant_id=restaurant_id))
 
+    arg_tz = timezone(timedelta(hours=-3))
+
     try:
-        fecha_hora = timezone.strptime(f"{fecha_str} {hora_str}", "%Y-%m-%d %H:%M")
+        fecha_hora = datetime.strptime(f"{fecha_str} {hora_str}", "%Y-%m-%d %H:%M").replace(
+            tzinfo=arg_tz
+        )
     except ValueError:
         flash("Fecha u hora inválida.", "warning")
         return redirect(url_for("usuario.reserva_wizard", restaurant_id=restaurant_id))
 
-    if fecha_hora < timezone.now():
+    if fecha_hora < datetime.now(arg_tz):
         flash("No podés reservar en fechas pasadas.", "warning")
         return redirect(url_for("usuario.reserva_wizard", restaurant_id=restaurant_id))
 
@@ -366,6 +370,7 @@ def crear_reserva(restaurant_id):
         "usuario.reserva_confirmada",
         restaurant_id = restaurant_id,
         id_reserva    = str(nueva.id_reserva),
+        hora          = hora_str,
     ))
 
 
@@ -379,8 +384,13 @@ def reserva_confirmada(id_reserva):
         user_id    = current_user.user_id,
     ).first_or_404()
 
+    display_hour = (request.args.get("hora") or "").strip()
+    if not display_hour and reserva.fecha_hora:
+        display_hour = reserva.fecha_hora.strftime("%H:%M")
+
     return render_template(
         "usuario/reserva_confirmada.html",
         reserva    = reserva,
         restaurant = reserva.restaurant,
+        display_hour = display_hour,
     )
