@@ -80,13 +80,13 @@
 
         <!-- Settings card -->
         <div class="security-card mb-4">
-          <a href="#" class="security-row">
+          <button type="button" class="security-row security-row-button" onclick="openPasswordModal()">
             <div class="security-row-text">
               <div class="security-row-title">Cambiar contraseña</div>
               <div class="security-row-sub">Ultima actualización hace 3 meses</div>
             </div>
             <i class="bi bi-chevron-right security-row-arrow"></i>
-          </a>
+          </button>
           <a href="#" class="security-row">
             <div class="security-row-text">
               <div class="security-row-title">Notificaciones</div>
@@ -130,6 +130,71 @@
   </div>
 </div>
 
+<div class="password-overlay" id="passwordModal" onclick="closePasswordOnOverlay(event)">
+  <div class="password-modal-box">
+    <div class="password-modal-header">
+      <div class="password-modal-heading">
+        <div class="password-modal-icon-wrap">
+          <i class="bi bi-key"></i>
+        </div>
+        <div>
+          <h3 class="password-modal-title">Cambiar contraseña</h3>
+          <p class="password-modal-subtitle">Elegí una contraseña segura y única</p>
+        </div>
+      </div>
+      <button type="button" class="password-modal-close" onclick="closePasswordModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <form method="POST" action="{{ url_for('usuario.update_security_password') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="password-modal-body">
+        <div class="password-field-group">
+          <label for="security-current-password" class="password-field-label">Contraseña actual</label>
+          <div class="password-input-shell">
+            <i class="bi bi-lock password-input-icon"></i>
+            <input type="password" id="security-current-password" name="current_password" class="password-input-control" placeholder="Contraseña actual">
+            <button type="button" class="password-toggle" onclick="toggleSecurityPass('security-current-password', 'securityEyeCurrent')">
+              <i class="bi bi-eye" id="securityEyeCurrent"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="password-field-group">
+          <label for="security-new-password" class="password-field-label">Nueva contraseña</label>
+          <div class="password-input-shell">
+            <i class="bi bi-lock password-input-icon"></i>
+            <input type="password" id="security-new-password" name="new_password" class="password-input-control" placeholder="Nueva contraseña">
+            <button type="button" class="password-toggle" onclick="toggleSecurityPass('security-new-password', 'securityEyeNew')">
+              <i class="bi bi-eye" id="securityEyeNew"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="password-field-group">
+          <label for="security-confirm-password" class="password-field-label">Confirmar contraseña</label>
+          <div class="password-input-shell">
+            <i class="bi bi-lock password-input-icon"></i>
+            <input type="password" id="security-confirm-password" name="confirm_password" class="password-input-control" placeholder="Confirmar contraseña">
+            <button type="button" class="password-toggle" onclick="toggleSecurityPass('security-confirm-password', 'securityEyeConfirm')">
+              <i class="bi bi-eye" id="securityEyeConfirm"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="password-modal-footer">
+        <button type="button" class="btn-password-cancel" onclick="closePasswordModal()">Cancelar</button>
+        <button type="submit" class="btn-password-submit">
+          <i class="bi bi-check-lg"></i> Cambiar contraseña
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ── MODAL CONFIRMACIÓN ── -->
 <div class="delete-overlay" id="deleteModal" onclick="closeOnOverlay(event)">
   <div class="delete-modal-box">
@@ -157,6 +222,23 @@
 </div>
 
 <script>
+  function openPasswordModal() {
+    document.getElementById('passwordModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closePasswordModal() {
+    document.getElementById('passwordModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  function closePasswordOnOverlay(e) {
+    if (e.target === document.getElementById('passwordModal')) closePasswordModal();
+  }
+  function toggleSecurityPass(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    input.type = input.type === 'password' ? 'text' : 'password';
+    icon.className = input.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+  }
   function openDeleteModal() {
     document.getElementById('deleteModal').style.display = 'flex';
     document.body.style.overflow = 'hidden';
@@ -168,6 +250,14 @@
   function closeOnOverlay(e) {
     if (e.target === document.getElementById('deleteModal')) closeDeleteModal();
   }
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDeleteModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closePasswordModal();
+      closeDeleteModal();
+    }
+  });
+  {% if open_password_modal %}
+  openPasswordModal();
+  {% endif %}
 </script>
 {% endblock %}

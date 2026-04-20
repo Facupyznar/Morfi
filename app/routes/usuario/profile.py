@@ -113,6 +113,26 @@ def _save_profile_photo(uploaded_file):
     return f"uploads/profile/{generated_name}"
 
 
+def _validate_and_update_password(user_record, current_password, new_password, confirm_password):
+    if not any([current_password, new_password, confirm_password]):
+        return False
+
+    if not all([current_password, new_password, confirm_password]):
+        raise ValueError("Para cambiar la contraseña, debes completar los 3 campos.")
+
+    if new_password != confirm_password:
+        raise ValueError("Las contraseñas no coinciden.")
+
+    if not user_record.check_password(current_password):
+        raise ValueError("La contraseña actual es incorrecta.")
+
+    if len(new_password) <= 4:
+        raise ValueError("La contraseña debe tener más de 4 caracteres.")
+
+    user_record.password = new_password
+    return True
+
+
 @usuario_bp.route("/profile")
 @usuario_bp.route("/perfil")
 @login_required
@@ -302,22 +322,16 @@ def update_profile():
         flash("El nombre no puede estar vacío.", "warning")
         return redirect(url_for("usuario.edit_profile"))
 
-    if current_password or new_password or confirm_password:
-        if any([current_password, new_password, confirm_password]) and not all([current_password, new_password,
-        confirm_password]):
-            flash("Para cambiar la contraseña, debes completar los 3 campos.", "warning")
-            return redirect(url_for("usuario.edit_profile"))
-        if new_password != confirm_password:
-            flash("Las contraseñas no coinciden.", "warning")
-            return redirect(url_for("usuario.edit_profile"))
-        if not user_record.check_password(current_password):
-            flash("La contraseña actual es incorrecta.", "warning")
-            return redirect(url_for("usuario.edit_profile"))
-        if len(new_password) <= 4:
-            flash("La contraseña debe tener más de 4 caracteres.", "warning")
-            return redirect(url_for("usuario.edit_profile"))
-        
-        user_record.password = new_password
+    try:
+        _validate_and_update_password(
+            user_record,
+            current_password,
+            new_password,
+            confirm_password,
+        )
+    except ValueError as ex:
+        flash(str(ex), "warning")
+        return redirect(url_for("usuario.edit_profile"))
         
     try:
         location_payload = resolve_location_payload(updated_location, updated_latitude, updated_longitude)
@@ -413,7 +427,43 @@ def security():
         "favorite_cuisines": cuisine_names,
         "dietary_restrictions": restriction_names,
     }
-    return render_template("usuario/cuenta_seguridad.html", user=user_data)
+    return render_template(
+        "usuario/cuenta_seguridad.html",
+        user=user_data,
+        open_password_modal=request.args.get("password_modal") == "1",
+    )
+
+
+@usuario_bp.route("/perfil/seguridad/cambiar-contrasena", methods=["POST"])
+@login_required
+def update_security_password():
+    user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
+    current_password = request.form.get("current_password") or ""
+    new_password = request.form.get("new_password") or ""
+    confirm_password = request.form.get("confirm_password") or ""
+
+    try:
+        changed = _validate_and_update_password(
+            user_record,
+            current_password,
+            new_password,
+            confirm_password,
+        )
+        if not changed:
+            flash("Completá los campos para cambiar la contraseña.", "warning")
+            return redirect(url_for("usuario.security", password_modal="1"))
+
+        db.session.commit()
+        flash("Contraseña actualizada correctamente.", "success")
+    except ValueError as ex:
+        flash(str(ex), "warning")
+        return redirect(url_for("usuario.security", password_modal="1"))
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo actualizar la contraseña.", "danger")
+        return redirect(url_for("usuario.security", password_modal="1"))
+
+    return redirect(url_for("usuario.security"))
  
  
 @usuario_bp.route("/perfil/eliminar-cuenta", methods=["POST"])

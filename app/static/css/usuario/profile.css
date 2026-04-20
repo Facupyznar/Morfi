@@ -538,6 +538,191 @@
   flex-shrink: 0;
 }
 
+.security-row-button {
+  width: 100%;
+  background: white;
+  border: 0;
+  text-align: left;
+}
+
+.password-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 24, 21, 0.45);
+  z-index: 1050;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.password-modal-box {
+  width: 100%;
+  max-width: 560px;
+  background: #FFFCF8;
+  border: 1px solid #EFE6DA;
+  border-radius: 28px;
+  box-shadow: 0 24px 80px rgba(25, 20, 16, 0.18);
+  overflow: hidden;
+  animation: modalPop 0.2s ease;
+}
+
+.password-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid #EEE4D8;
+}
+
+.password-modal-heading {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.password-modal-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #FFF2E9;
+  color: #FF824F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.password-modal-title {
+  font-family: 'Baloo 2', cursive;
+  font-size: 1.55rem;
+  line-height: 1;
+  color: #1A1A2E;
+  margin: 0 0 6px;
+}
+
+.password-modal-subtitle {
+  margin: 0;
+  color: #7B748B;
+  font-size: 0.95rem;
+}
+
+.password-modal-close {
+  border: 0;
+  background: transparent;
+  color: #8C8498;
+  font-size: 1.65rem;
+  line-height: 1;
+  padding: 6px;
+}
+
+.password-modal-body {
+  padding: 20px 28px 18px;
+}
+
+.password-field-group + .password-field-group {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #F0E8DF;
+}
+
+.password-field-label {
+  display: block;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #77718A;
+}
+
+.password-input-shell {
+  position: relative;
+}
+
+.password-input-control {
+  width: 100%;
+  height: 62px;
+  border-radius: 16px;
+  border: 1.5px solid #E6D9C8;
+  background: #FFFDF9;
+  padding: 0 54px 0 58px;
+  font-size: 0.98rem;
+  color: #1A1A2E;
+}
+
+.password-input-control:focus {
+  outline: none;
+  border-color: #FFAA5E;
+  box-shadow: 0 0 0 3px rgba(255, 170, 94, 0.16);
+}
+
+.password-input-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #C9B9A6;
+  font-size: 1.15rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #B9AB99;
+  font-size: 1.1rem;
+  padding: 0;
+}
+
+.password-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 28px 24px;
+  border-top: 1px solid #EEE4D8;
+}
+
+.btn-password-cancel,
+.btn-password-submit {
+  min-width: 170px;
+  height: 56px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 22px;
+}
+
+.btn-password-cancel {
+  border: 1.5px solid #D9CEBD;
+  background: white;
+  color: #1A1A2E;
+}
+
+.btn-password-cancel:hover {
+  background: #F7F3EE;
+}
+
+.btn-password-submit {
+  border: 0;
+  background: linear-gradient(180deg, #FFC0AA 0%, #FFB18E 100%);
+  color: white;
+}
+
+.btn-password-submit:hover {
+  filter: brightness(0.98);
+}
+
 /* Danger zone */
 .danger-card {
   background: white;
@@ -673,3 +858,60 @@
   transition: background 0.2s;
 }
 .btn-cancel-delete:hover { background: #F7F3EE; }
+
+@media (max-width: 767.98px) {
+  .password-overlay {
+    padding: 16px;
+  }
+
+  .password-modal-header,
+  .password-modal-body,
+  .password-modal-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .password-modal-heading {
+    align-items: flex-start;
+  }
+
+  .password-modal-icon-wrap {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    font-size: 1.4rem;
+  }
+
+  .password-modal-title {
+    font-size: 1.5rem;
+  }
+
+  .password-modal-subtitle {
+    font-size: 0.92rem;
+  }
+
+  .password-input-control {
+    height: 68px;
+    padding-left: 58px;
+    padding-right: 52px;
+  }
+
+  .password-input-icon {
+    left: 18px;
+  }
+
+  .password-toggle {
+    right: 18px;
+  }
+
+  .password-modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .btn-password-cancel,
+  .btn-password-submit {
+    width: 100%;
+    min-width: 0;
+    height: 58px;
+  }
+}

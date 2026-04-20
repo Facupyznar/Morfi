@@ -26,6 +26,7 @@
                             <label class="form-label small text-muted mb-1">Nombre completo</label>
                             <input type="text" name="name" class="form-control bg-light border-morfi" value="{{ user.name or '' }}">
                         </div>
+                   
                         <div class="mb-3">
                             <label class="form-label small text-muted mb-1">Ubicación</label>
                             <div class="input-group">
@@ -67,36 +68,6 @@
                         {% else %}
                         <p class="text-muted mb-0">No hay restricciones disponibles.</p>
                         {% endfor %}
-                    </div>
-                </div>
-                <div class="card-morfi p-4 mb-4">
-                    <h3 class="baloo h5 mb-4">Actualizar contraseña</h3>
-                    <div class="d-flex flex-wrap gap-2 mb-4">
-                        <label class="form-label small text-muted mb-1">Contraseña actual</label>
-                        <div class="pass-wrap w-100">
-                            <input type="password" name="current_password" class="form-control bg-light border-morfi" id="current_password" placeholder="Contraseña actual" />
-                            <button type="button" class="toggle-pass" onclick="togglePass('current_password', 'eyeCurrentPassword')">
-                                <i class="bi bi-eye" id="eyeCurrentPassword"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2 mb-4">
-                        <label class="form-label small text-muted mb-1">Nueva contraseña</label>
-                        <div class="pass-wrap w-100">
-                            <input type="password" name="new_password" class="form-control bg-light border-morfi" id="new_password" placeholder="Nueva contraseña" />
-                            <button type="button" class="toggle-pass" onclick="togglePass('new_password', 'eyeNewPassword')">
-                                <i class="bi bi-eye" id="eyeNewPassword"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2 mb-4">
-                        <label class="form-label small text-muted mb-1">Confirmar contraseña</label>
-                        <div class="pass-wrap w-100">
-                            <input type="password" name="confirm_password" class="form-control bg-light border-morfi" id="confirm_password" placeholder="Confirmar contraseña" />
-                            <button type="button" class="toggle-pass" onclick="togglePass('confirm_password', 'eyeConfirmPassword')">
-                                <i class="bi bi-eye" id="eyeConfirmPassword"></i>
-                            </button>
-                        </div>
                     </div>
                 </div>
 
