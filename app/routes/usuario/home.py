@@ -11,6 +11,7 @@ from app.models.restaurant_tags import RestaurantTags
 from app.models.reserva import Reserva
 from app.models.enums import ReservaStatus
 from app.models.menu import Menu
+from app.models.user_favorites import UserFavorites
 from app.routes.usuario import usuario_bp
 
 
@@ -119,6 +120,11 @@ def home():
     distance_user_lat = default_user_lat
     distance_user_lng = default_user_lng
 
+    wishlist_ids = {
+        str(fav.id_restaurante)
+        for fav in db.session.query(UserFavorites).filter_by(user_id=current_user.user_id).all()
+    }
+
     restaurants = (
         db.session.query(Restaurant)
         .options(joinedload(Restaurant.restaurant_tags).joinedload(RestaurantTags.tag))
@@ -148,11 +154,14 @@ def home():
             "price_range":    "$$",
             "rating":         float(restaurant.puntaje or 0),
             "match_percent":  95,
-            "image_url":      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=800",
+            "image_url":      restaurant.cover_url or "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=800",
+            "in_wishlist":    str(restaurant.id_restaurant) in wishlist_ids,
         })
 
     if user_lat is not None and user_lng is not None:
         restaurant_cards.sort(key=lambda r: r["distance"] if r["distance"] is not None else 999999)
+
+    wishlist_sidebar = [r for r in restaurant_cards if r["in_wishlist"]][:5]
 
     return render_template(
         'usuario/home.html',
@@ -160,6 +169,7 @@ def home():
         nearby_active=nearby_active,
         user_lat=default_user_lat,
         user_lng=default_user_lng,
+        wishlist_sidebar=wishlist_sidebar,
     )
 
 
@@ -201,6 +211,11 @@ def restaurant_detail(restaurant_id):
     # Logo
     logo_url = _url_for("static", filename=restaurant_record.logo_url) if restaurant_record.logo_url else None
 
+    is_in_wishlist = db.session.query(UserFavorites).filter_by(
+        user_id=current_user.user_id,
+        id_restaurante=restaurant_record.id_restaurant,
+    ).first() is not None
+
     restaurant_data = {
         "id":           str(restaurant_record.id_restaurant),
         "name":         restaurant_record.name,
@@ -225,6 +240,7 @@ def restaurant_detail(restaurant_id):
         "usuario/restaurant_detail.html",
         restaurant=restaurant_data,
         menu_items=menu_items,
+        is_in_wishlist=is_in_wishlist,
     )
 
 
@@ -270,22 +286,24 @@ def disponibilidad(restaurant_id):
     except (TypeError, ValueError):
         return jsonify({"error": "Fecha inválida"}), 400
 
-    if fecha < date.today():
+    ARG_TZ = timezone(timedelta(hours=-3))
+    now_arg = datetime.now(tz=ARG_TZ).replace(tzinfo=None)
+    today_arg = now_arg.date()
+
+    if fecha < today_arg:
         return jsonify({"error": "No podés reservar en fechas pasadas"}), 400
 
     capacidad = restaurant_record.capacidad or 0
     slots_raw = _slots_para_fecha(restaurant_record, fecha)
 
     slots = []
-    ARG_TZ = timezone(timedelta(hours=-3))
-    now = datetime.now(tz=ARG_TZ).replace(tzinfo=None)
     for hora in slots_raw:
         ocupados    = _ocupados_slot(restaurant_record.id_restaurant, fecha, hora)
         disponibles = max(capacidad - ocupados, 0)
         vencido = False
-        if fecha == date.today():
+        if fecha == today_arg:
             slot_dt = datetime.combine(fecha, datetime.strptime(hora, "%H:%M").time())
-            vencido = slot_dt <= now
+            vencido = slot_dt <= now_arg
         slots.append({
             "hora":        hora,
             "ocupados":    ocupados,

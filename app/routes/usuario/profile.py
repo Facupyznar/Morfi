@@ -5,11 +5,12 @@ import uuid
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
 
-from flask import current_app, flash, redirect, render_template, request, url_for
+from flask import current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, logout_user
 from werkzeug.utils import secure_filename
 
 from app.models.user_favorites import UserFavorites
+from app.models.restaurant import Restaurant
 from app.database import db
 from app.location import resolve_location_payload
 from app.models.enums import TagCategory
@@ -223,7 +224,7 @@ def profile():
         "quick_actions": [
             {"label": "Editar Perfil", "icon": "bi-pencil-square", "href": url_for("usuario.edit_profile")},
             {"label": "Historial", "icon": "bi-clock-history", "href": url_for("usuario.history")},
-            {"label": "Wishlist", "icon": "bi-bookmark-heart", "href": "#"},
+            {"label": "Wishlist", "icon": "bi-bookmark-heart", "href": url_for("usuario.wishlist")},
             {"label": "Admin", "icon": "bi-shield-lock", "href": url_for("restaurante.dashboard"), "admin_only": True},
         ],
         "favorite_cuisines": cuisine_names,
@@ -649,3 +650,84 @@ def delete_account():
         return redirect(url_for("usuario.security"))
  
     return redirect(url_for("auth.index"))
+
+
+# ── Wishlist ──────────────────────────────────────────────────────
+
+@usuario_bp.route("/perfil/wishlist")
+@login_required
+def wishlist():
+    user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
+    favorites = (
+        db.session.query(UserFavorites)
+        .filter_by(user_id=current_user.user_id)
+        .join(UserFavorites.restaurant)
+        .order_by(UserFavorites.fecha_agregado.desc())
+        .all()
+    )
+    wishlist_items = []
+    for fav in favorites:
+        r = fav.restaurant
+        wishlist_items.append({
+            "id":       str(r.id_restaurant),
+            "name":     r.name,
+            "rating":   round(float(r.puntaje or 0), 1),
+            "cover_url": r.cover_url,
+        })
+
+    level_names = {1: "Invitado", 2: "Foodie Curioso", 3: "Catador Urbano", 4: "Explorador Gourmet", 5: "Leyenda Morfi"}
+    raw_level = float(getattr(user_record, "nivel", 1) or 1)
+    current_level_number = max(1, min(5, int(raw_level)))
+    progress = int(round((raw_level - current_level_number) * 100))
+    xp_missing = max(0, 500 - int((progress / 100) * 500))
+    visits_count = db.session.query(Reserva).filter(Reserva.user_id == user_record.user_id).count()
+    friends_count = (
+        db.session.query(Friends)
+        .filter(
+            Friends.estado == FriendshipStatus.ACEPTADA,
+            or_(Friends.user_id_1 == user_record.user_id, Friends.user_id_2 == user_record.user_id),
+        )
+        .count()
+    )
+
+    user_data = {
+        "name":     getattr(user_record, "name", None) or getattr(user_record, "username", ""),
+        "username": getattr(user_record, "username", ""),
+        "photo_url": getattr(user_record, "foto_perfil", None),
+        "stats": {"friends": friends_count, "visits": visits_count},
+        "level": {
+            "current":   level_names[current_level_number],
+            "next":      level_names.get(min(current_level_number + 1, 5), ""),
+            "progress":  progress,
+            "xp_missing": xp_missing,
+        },
+    }
+    return render_template("usuario/wishlist.html", user=user_data, wishlist=wishlist_items)
+
+
+@usuario_bp.route("/perfil/wishlist/toggle/<restaurant_id>", methods=["POST"])
+@login_required
+def toggle_wishlist(restaurant_id):
+    from uuid import UUID as _UUID
+    try:
+        rid = _UUID(restaurant_id)
+    except ValueError:
+        return jsonify({"error": "ID inválido"}), 400
+
+    restaurant = db.session.query(Restaurant).filter_by(id_restaurant=rid).first()
+    if not restaurant:
+        return jsonify({"error": "Restaurante no encontrado"}), 404
+
+    existing = db.session.query(UserFavorites).filter_by(
+        user_id=current_user.user_id,
+        id_restaurante=rid,
+    ).first()
+
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        return jsonify({"in_wishlist": False})
+    else:
+        db.session.add(UserFavorites(user_id=current_user.user_id, id_restaurante=rid))
+        db.session.commit()
+        return jsonify({"in_wishlist": True})

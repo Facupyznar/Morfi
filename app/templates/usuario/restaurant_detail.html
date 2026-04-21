@@ -33,8 +33,8 @@
          class="btn-hero-reservar">
         <i class="bi bi-calendar-check me-2"></i> Reservar mesa
       </a>
-      <button class="hero-heart" onclick="toggleWishlist()">
-        <i class="bi bi-heart"></i>
+      <button class="hero-heart" id="wishlist-btn" onclick="toggleWishlist()">
+        <i class="bi {{ 'bi-heart-fill' if is_in_wishlist else 'bi-heart' }}"></i>
       </button>
     </div>
   </div>
@@ -232,10 +232,18 @@
     });
   });
 
-  function toggleWishlist() {
-    const icon = document.querySelector('.hero-heart i');
-    icon.classList.toggle('bi-heart');
-    icon.classList.toggle('bi-heart-fill');
+  async function toggleWishlist() {
+    const btn  = document.getElementById('wishlist-btn');
+    const icon = btn.querySelector('i');
+    const res  = await fetch(`/perfil/wishlist/toggle/{{ restaurant.id }}`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      icon.classList.toggle('bi-heart',      !data.in_wishlist);
+      icon.classList.toggle('bi-heart-fill',  data.in_wishlist);
+    }
   }
 </script>
 {% endblock %}

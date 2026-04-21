@@ -29,8 +29,12 @@
                     <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=rest.id) }}" class="restaurant-card-link">
                         <div class="restaurant-card">
                             <div class="card-img-wrapper">
-                                <img src="{{ rest.image_url }}" alt="{{ rest.name }}">
+                                <img src="{{ rest.image_url if rest.image_url.startswith('http') else url_for('static', filename=rest.image_url) }}" alt="{{ rest.name }}">
                                 <span class="match-badge">{{ rest.match_percent }}% match</span>
+                                <button class="card-heart-btn" data-id="{{ rest.id }}"
+                                        onclick="handleCardHeart(event, this, '{{ rest.id }}')">
+                                  <i class="bi {{ 'bi-heart-fill' if rest.in_wishlist else 'bi-heart' }}"></i>
+                                </button>
                             </div>
                             <div class="restaurant-card-body">
                                 <div class="restaurant-card-head">
@@ -84,19 +88,29 @@
             </div>
 
             <div class="sidebar-card">
-                <h3 class="baloo h6 mb-4">Tu wishlist</h3>
+                <h3 class="baloo h6 mb-3">Tu wishlist</h3>
                 <div class="wishlist-items">
-                    {% for item in range(3) %}
-                    <div class="wishlist-item d-flex align-items-center gap-3 mb-3">
-                        <div class="wishlist-img"></div>
+                    {% for item in wishlist_sidebar %}
+                    <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=item.id) }}"
+                       class="wishlist-item d-flex align-items-center gap-3 mb-3 text-decoration-none">
+                        {% if not item.image_url.startswith('http') %}
+                        <img class="wishlist-img" src="{{ url_for('static', filename=item.image_url) }}" alt="{{ item.name }}" style="object-fit:cover;">
+                        {% else %}
+                        <img class="wishlist-img" src="{{ item.image_url }}" alt="{{ item.name }}" style="object-fit:cover;">
+                        {% endif %}
                         <div class="flex-grow-1">
-                            <p class="mb-0 fw-bold">Sakura Ramen</p>
-                            <small class="text-muted">Sushi</small>
+                            <p class="mb-0 fw-bold text-dark" style="font-size:.85rem;">{{ item.name }}</p>
                         </div>
                         <i class="bi bi-heart-fill text-orange"></i>
-                    </div>
+                    </a>
+                    {% else %}
+                    <p class="text-muted" style="font-size:.82rem;">Guardá restaurantes con el corazón ♡</p>
                     {% endfor %}
                 </div>
+                {% if wishlist_sidebar %}
+                <a href="{{ url_for('usuario.wishlist') }}" class="d-block text-center mt-2"
+                   style="font-size:.8rem;color:#FF6B35;">Ver todos →</a>
+                {% endif %}
             </div>
         </aside>
     </div>
@@ -118,6 +132,21 @@
             }
         }
         // In the future add toggling for other filters here
+    }
+
+    async function handleCardHeart(e, btn, restaurantId) {
+        e.preventDefault();
+        e.stopPropagation();
+        const icon = btn.querySelector('i');
+        const res  = await fetch(`/perfil/wishlist/toggle/${restaurantId}`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+        });
+        if (res.ok) {
+            const data = await res.json();
+            icon.classList.toggle('bi-heart',      !data.in_wishlist);
+            icon.classList.toggle('bi-heart-fill',  data.in_wishlist);
+        }
     }
 
     function activateNearbyFilter() {

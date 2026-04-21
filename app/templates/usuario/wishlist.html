@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}Wishlist - Morfi{% endblock %}
+
+{% block navbar %}{% include 'includes/_navbar_auth.html' %}{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/profile.css') }}">
+<style>
+  .wishlist-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  @media (max-width: 991px) { .wishlist-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 575px)  { .wishlist-grid { grid-template-columns: 1fr; } }
+
+  .wl-card {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    height: 180px;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .wl-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,.2); }
+
+  .wl-card-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    background: #c8beb4;
+  }
+  .wl-card-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.65) 40%, transparent 100%);
+  }
+  .wl-card-body {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: .75rem 1rem;
+    color: #fff;
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  .wl-card-name { font-weight: 700; font-size: .95rem; line-height: 1.2; }
+  .wl-card-rating { font-size: .82rem; color: #FFD166; display: flex; align-items: center; gap: .25rem; margin-top: .2rem; }
+
+  .wl-heart-btn {
+    background: rgba(255,255,255,.15);
+    border: none;
+    border-radius: 50%;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    color: #FF6B35;
+    font-size: 1.1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .2s;
+  }
+  .wl-heart-btn:hover { background: rgba(255,255,255,.3); }
+
+  .wl-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #9A8F85;
+  }
+  .wl-empty i { font-size: 2.5rem; color: #d0c8c0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-page-bg">
+  <div class="container-fluid px-4 py-4" style="max-width:1200px; margin:0 auto;">
+    <div class="row g-4">
+
+      <!-- ── SIDEBAR ── -->
+      <div class="col-lg-3 position-relative">
+        <a href="{{ url_for('usuario.home') }}" class="btn btn-outline-dark rounded-circle position-absolute"
+           style="top:-15px;left:-10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background-color:var(--morfi-beige);border-color:var(--morfi-border);z-index:10;">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+
+        <div class="profile-sidebar-card text-center">
+          <div class="profile-avatar-wrapper mx-auto">
+            <div class="profile-avatar-circle">
+              {% if user.photo_url %}
+                <img src="{{ url_for('static', filename=user.photo_url) }}" alt="Foto" class="profile-avatar-img">
+              {% else %}
+                {{ (user.name or 'U')[:2]|upper }}
+              {% endif %}
+            </div>
+          </div>
+          <div class="profile-user-name mt-2">{{ user.name }}</div>
+          <div class="profile-username">@{{ user.username }}</div>
+          <div class="profile-level-badge">Nivel {{ current_user.nivel }} · {{ user.level.current }}</div>
+          <div class="profile-progress mx-auto" style="max-width:160px;">
+            <div class="profile-progress-fill" style="width:{{ user.level.progress }}%"></div>
+          </div>
+          <div class="profile-xp-hint">{{ user.level.xp_missing }} visitas para {{ user.level.next }}</div>
+          <div class="profile-stats-row">
+            <div class="profile-stat-item">
+              <div class="profile-stat-value">{{ user.stats.friends }}</div>
+              <div class="profile-stat-label">Amigos</div>
+            </div>
+            <div class="profile-stat-divider"></div>
+            <div class="profile-stat-item">
+              <div class="profile-stat-value">{{ user.stats.visits }}</div>
+              <div class="profile-stat-label">Visitados</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-nav-card">
+          <a href="{{ url_for('usuario.profile') }}" class="profile-nav-item">
+            <i class="bi bi-person"></i> Mi perfil
+          </a>
+          <a href="{{ url_for('usuario.wishlist') }}" class="profile-nav-item active">
+            <i class="bi bi-heart"></i> Wishlist
+          </a>
+          <a href="{{ url_for('usuario.history') }}" class="profile-nav-item">
+            <i class="bi bi-clock-history"></i> Actividad reciente
+          </a>
+          <a href="{{ url_for('usuario.security') }}" class="profile-nav-item">
+            <i class="bi bi-shield"></i> Cuenta y seguridad
+          </a>
+        </div>
+      </div>
+
+      <!-- ── MAIN CONTENT ── -->
+      <div class="col-lg-9">
+        <div class="profile-content-card">
+          <h2 class="profile-main-title mb-1">Wishlist</h2>
+          <p class="text-muted mb-4" style="font-size:.9rem;">
+            {{ wishlist|length }} restaurante{{ 's' if wishlist|length != 1 else '' }} guardado{{ 's' if wishlist|length != 1 else '' }}
+          </p>
+
+          <div class="wishlist-grid">
+            {% for rest in wishlist %}
+            <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=rest.id) }}" class="wl-card">
+              {% if rest.cover_url %}
+                <img class="wl-card-img" src="{{ url_for('static', filename=rest.cover_url) }}" alt="{{ rest.name }}">
+              {% else %}
+                <img class="wl-card-img" src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=600" alt="{{ rest.name }}">
+              {% endif %}
+              <div class="wl-card-overlay"></div>
+              <div class="wl-card-body">
+                <div>
+                  <div class="wl-card-name">{{ rest.name }}</div>
+                  <div class="wl-card-rating">
+                    <i class="bi bi-star-fill"></i> {{ "%.1f"|format(rest.rating) }}
+                  </div>
+                </div>
+                <button class="wl-heart-btn" data-id="{{ rest.id }}"
+                        onclick="removeFromWishlist(event, this, '{{ rest.id }}')">
+                  <i class="bi bi-heart-fill"></i>
+                </button>
+              </div>
+            </a>
+            {% else %}
+            <div class="wl-empty">
+              <i class="bi bi-heart d-block mb-2"></i>
+              <p class="mb-0">Todavía no guardaste ningún restaurante.</p>
+              <a href="{{ url_for('usuario.home') }}" class="btn btn-sm mt-3"
+                 style="background:#FF6B35;color:#fff;border-radius:20px;">Explorar restaurantes</a>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+async function removeFromWishlist(e, btn, restaurantId) {
+  e.preventDefault();
+  e.stopPropagation();
+  const res = await fetch(`/perfil/wishlist/toggle/${restaurantId}`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+  });
+  if (res.ok) {
+    const card = btn.closest('.wl-card');
+    card.style.transition = 'opacity .3s, transform .3s';
+    card.style.opacity = '0';
+    card.style.transform = 'scale(.9)';
+    setTimeout(() => {
+      card.remove();
+      const count = document.querySelectorAll('.wl-card').length;
+      document.querySelector('.text-muted').textContent =
+        `${count} restaurante${count !== 1 ? 's' : ''} guardado${count !== 1 ? 's' : ''}`;
+    }, 300);
+  }
+}
+</script>
+{% endblock %}
