@@ -299,6 +299,22 @@ def disponibilidad(restaurant_id):
 
     slots = []
     for hora in slots_raw:
+        slot_inicio = datetime.combine(
+            fecha,
+            datetime.strptime(hora, "%H:%M").time(),
+        ).replace(tzinfo=ARG_TZ)
+        slot_fin = slot_inicio + timedelta(minutes=60)
+        user_has_reservation = (
+            db.session.query(Reserva.id_reserva)
+            .filter(
+                Reserva.user_id == current_user.user_id,
+                Reserva.estado_reserva == ReservaStatus.CONFIRMADA,
+                Reserva.fecha_hora >= slot_inicio,
+                Reserva.fecha_hora < slot_fin,
+            )
+            .first()
+            is not None
+        )
         ocupados    = _ocupados_slot(restaurant_record.id_restaurant, fecha, hora)
         disponibles = max(capacidad - ocupados, 0)
         vencido = False
@@ -311,6 +327,7 @@ def disponibilidad(restaurant_id):
             "disponibles": disponibles,
             "disponible":  disponibles > 0 and not vencido,
             "vencido":     vencido,
+            "ya_reservado": user_has_reservation,
             "pct":         round((ocupados / capacidad) * 100) if capacidad > 0 else 0,
         })
 

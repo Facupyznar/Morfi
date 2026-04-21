@@ -302,6 +302,10 @@ data.slots.forEach(slot => {
     btn.className = 'time-slot time-slot--vencido';
     btn.disabled  = true;
     btn.dataset.tooltip = 'Horario vencido';
+  } else if (slot.ya_reservado) {
+    btn.className = 'time-slot time-slot--full';
+    btn.disabled  = true;
+    btn.dataset.tooltip = 'Ya tenés una reserva para esta hora';
   } else if (!slot.disponible) {
     btn.className = 'time-slot time-slot--full';
     btn.disabled  = true;

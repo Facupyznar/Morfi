@@ -44,10 +44,10 @@
     </div>
 
     {# ── Stats ──────────────────────────────────────────────────── #}
-    {% set total_platos = menu_items | length %}
-    {% set disponibles = menu_items | selectattr('available') | list | length %}
-    {% set no_disponibles = total_platos - disponibles %}
-    {% set num_categorias = categories | length - 1 %}
+    {% set total_platos = menu_stats.total_items %}
+    {% set disponibles = menu_stats.available_items %}
+    {% set no_disponibles = menu_stats.unavailable_items %}
+    {% set num_categorias = menu_stats.category_count %}
 
     <div class="mn-stats-row">
       <div class="mn-stat-card">
@@ -179,6 +179,7 @@
                 id="toggle-form-{{ item.id }}"
               >
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="page" value="{{ current_page }}">
                 <input type="hidden" name="available" value="{{ '0' if item.available else '1' }}">
                 <button
                   type="button"
@@ -198,6 +199,7 @@
                 style="display:none;"
               >
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="page" value="{{ current_page }}">
               </form>
             </div>
           </div>
@@ -215,6 +217,31 @@
       {% endif %}
 
     </div>{# /mn-grid #}
+
+    {% if pagination.total_items > 0 %}
+    <div class="mn-pagination">
+      <div class="mn-pagination-summary">
+        Mostrando {{ pagination.start_item }}-{{ pagination.end_item }} de {{ pagination.total_items }} platos
+      </div>
+      <div class="mn-pagination-actions">
+        <a
+          href="{{ url_for('restaurante.menu', page=pagination.prev_page) if pagination.has_prev else '#' }}"
+          class="mn-page-btn {% if not pagination.has_prev %}mn-page-btn--disabled{% endif %}"
+          {% if not pagination.has_prev %}aria-disabled="true"{% endif %}
+        >
+          <i class="bi bi-chevron-left"></i> Anterior
+        </a>
+        <span class="mn-page-indicator">Página {{ pagination.current_page }} de {{ pagination.total_pages }}</span>
+        <a
+          href="{{ url_for('restaurante.menu', page=pagination.next_page) if pagination.has_next else '#' }}"
+          class="mn-page-btn {% if not pagination.has_next %}mn-page-btn--disabled{% endif %}"
+          {% if not pagination.has_next %}aria-disabled="true"{% endif %}
+        >
+          Siguiente <i class="bi bi-chevron-right"></i>
+        </a>
+      </div>
+    </div>
+    {% endif %}
   </main>
 </div>
 
@@ -242,6 +269,7 @@
       onsubmit="handleSubmit(event)"
     >
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="page" value="{{ current_page }}">
       <input type="hidden" name="available" id="form-available" value="1">
 
       <div class="mn-modal-body">
@@ -394,6 +422,7 @@
       onsubmit="handleEditSubmit(event)"
     >
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="page" value="{{ current_page }}">
       <input type="hidden" name="available" id="edit-form-available" value="1">
 
       <div class="mn-modal-body">

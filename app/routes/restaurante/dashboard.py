@@ -3,12 +3,14 @@ import os
 import uuid
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
+from math import ceil
 
 from sqlalchemy import and_, extract, or_
+from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 
 from flask import current_app, flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, logout_user
 
 from app.database import db
 from app.location import resolve_location_payload
@@ -62,16 +64,48 @@ def _get_owned_restaurant():
     )
 
 
-def _build_menu_view_data(restaurant):
+def _parse_menu_page(raw_page, default=1):
+    try:
+        page = int(raw_page)
+    except (TypeError, ValueError):
+        return default
+    return page if page > 0 else default
+
+
+def _build_menu_view_data(restaurant, *, page=1, per_page=12):
+    base_query = db.session.query(Menu).filter(
+        Menu.id_restaurant == restaurant.id_restaurant
+    )
+    total_items = base_query.count()
+    available_count = base_query.filter(Menu.disponibilidad.is_(True)).count()
+    categories_query = (
+        db.session.query(Menu.categoria)
+        .filter(
+            Menu.id_restaurant == restaurant.id_restaurant,
+            Menu.categoria.isnot(None),
+        )
+        .distinct()
+        .all()
+    )
+
+    total_pages = ceil(total_items / per_page) if total_items else 1
+    current_page = min(page, total_pages)
+    offset = (current_page - 1) * per_page
     menus = (
-        db.session.query(Menu)
-        .filter(Menu.id_restaurant == restaurant.id_restaurant)
-        .order_by(Menu.nombre.asc())
+        base_query
+        .options(joinedload(Menu.menu_tags).joinedload(MenuTags.tag))
+        .order_by(Menu.nombre.asc(), Menu.id_plato.asc())
+        .offset(offset)
+        .limit(per_page)
         .all()
     )
 
     menu_items = []
-    category_set = set()
+    category_set = {
+        category
+        for (category,) in categories_query
+        if category
+    }
     for item in menus:
         selected_tags = sorted(
             [relation.tag for relation in item.menu_tags if relation.tag],
@@ -100,7 +134,28 @@ def _build_menu_view_data(restaurant):
 
     categories = ["Todas"]
     categories.extend(sorted(category_set) if category_set else MENU_DEFAULT_CATEGORIES)
-    return {"menu_items": menu_items, "categories": categories}
+    return {
+        "menu_items": menu_items,
+        "categories": categories,
+        "stats": {
+            "total_items": total_items,
+            "available_items": available_count,
+            "unavailable_items": max(total_items - available_count, 0),
+            "category_count": len(category_set),
+        },
+        "pagination": {
+            "current_page": current_page,
+            "per_page": per_page,
+            "total_items": total_items,
+            "total_pages": total_pages,
+            "has_prev": current_page > 1,
+            "has_next": current_page < total_pages,
+            "prev_page": current_page - 1,
+            "next_page": current_page + 1,
+            "start_item": offset + 1 if total_items else 0,
+            "end_item": min(offset + len(menu_items), total_items),
+        },
+    }
 
 
 def _get_owned_menu_item(restaurant, item_id):
@@ -342,6 +397,8 @@ def menu():
     if restaurant is None:
         return redirect(url_for("restaurante.dashboard"))
 
+    current_page = _parse_menu_page(request.args.get("page"))
+
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
         description = (request.form.get("description") or "").strip()
@@ -349,20 +406,21 @@ def menu():
         selected_tags = _resolve_selected_menu_tags(request.form.getlist("tag_ids"))
         raw_price = (request.form.get("price") or "").strip()
         available = request.form.get("available", "1") == "1"
+        redirect_page = _parse_menu_page(request.form.get("page"), default=current_page)
 
         if not name:
             flash("El nombre del plato es requerido.", "warning")
-            return redirect(url_for("restaurante.menu", open_drawer=1))
+            return redirect(url_for("restaurante.menu", open_drawer=1, page=redirect_page))
 
         try:
             price = Decimal(raw_price)
         except (InvalidOperation, TypeError):
             flash("Ingresá un precio válido.", "warning")
-            return redirect(url_for("restaurante.menu", open_drawer=1))
+            return redirect(url_for("restaurante.menu", open_drawer=1, page=redirect_page))
 
         if price <= 0:
             flash("El precio debe ser mayor a cero.", "warning")
-            return redirect(url_for("restaurante.menu", open_drawer=1))
+            return redirect(url_for("restaurante.menu", open_drawer=1, page=redirect_page))
 
         # Guardar foto del plato si se subió una
         foto_url = None
@@ -384,17 +442,23 @@ def menu():
         )
         db.session.commit()
         flash("Plato agregado correctamente.", "success")
-        return redirect(url_for("restaurante.menu"))
+        return redirect(url_for("restaurante.menu", page=redirect_page))
 
-    view_data = _build_menu_view_data(restaurant)
+    view_data = _build_menu_view_data(restaurant, page=current_page)
+    pagination = view_data["pagination"]
+    if current_page != pagination["current_page"]:
+        return redirect(url_for("restaurante.menu", page=pagination["current_page"]))
 
     return render_template(
         "restaurante/menu.html",
         menu_items=view_data["menu_items"],
         categories=view_data["categories"],
+        menu_stats=view_data["stats"],
+        pagination=pagination,
         menu_tag_groups=_build_available_menu_tags(),
         active_admin_section="Menú",
         open_drawer=request.args.get("open_drawer") == "1",
+        current_page=pagination["current_page"],
     )
 
 
@@ -407,11 +471,12 @@ def edit_menu_item(item_id):
     restaurant = _get_owned_restaurant()
     if restaurant is None:
         return redirect(url_for("restaurante.dashboard"))
+    redirect_page = _parse_menu_page(request.form.get("page"))
 
     item = _get_owned_menu_item(restaurant, item_id)
     if item is None:
         flash("No se encontró el plato a editar.", "danger")
-        return redirect(url_for("restaurante.menu"))
+        return redirect(url_for("restaurante.menu", page=redirect_page))
 
     name = (request.form.get("name") or "").strip()
     description = (request.form.get("description") or "").strip()
@@ -421,17 +486,17 @@ def edit_menu_item(item_id):
 
     if not name:
         flash("El nombre del plato es requerido.", "warning")
-        return redirect(url_for("restaurante.menu"))
+        return redirect(url_for("restaurante.menu", page=redirect_page))
 
     try:
         price = Decimal(raw_price)
     except (InvalidOperation, TypeError):
         flash("Ingresá un precio válido.", "warning")
-        return redirect(url_for("restaurante.menu"))
+        return redirect(url_for("restaurante.menu", page=redirect_page))
 
     if price <= 0:
         flash("El precio debe ser mayor a cero.", "warning")
-        return redirect(url_for("restaurante.menu"))
+        return redirect(url_for("restaurante.menu", page=redirect_page))
 
     # Guardar nueva foto si se subió una
     foto_url = None
@@ -452,7 +517,7 @@ def edit_menu_item(item_id):
     )
     db.session.commit()
     flash("Plato actualizado correctamente.", "success")
-    return redirect(url_for("restaurante.menu"))
+    return redirect(url_for("restaurante.menu", page=redirect_page))
 
 
 @restaurante_bp.route("/restaurante/menu/<uuid:item_id>/delete", methods=["POST"])
@@ -464,16 +529,17 @@ def delete_menu_item(item_id):
     restaurant = _get_owned_restaurant()
     if restaurant is None:
         return redirect(url_for("restaurante.dashboard"))
+    redirect_page = _parse_menu_page(request.form.get("page"))
 
     item = _get_owned_menu_item(restaurant, item_id)
     if item is None:
         flash("No se encontró el plato a eliminar.", "danger")
-        return redirect(url_for("restaurante.menu"))
+        return redirect(url_for("restaurante.menu", page=redirect_page))
 
     db.session.delete(item)
     db.session.commit()
     flash("Plato eliminado correctamente.", "success")
-    return redirect(url_for("restaurante.menu"))
+    return redirect(url_for("restaurante.menu", page=redirect_page))
 
 
 @restaurante_bp.route("/restaurante/menu/<uuid:item_id>/availability", methods=["POST"])
@@ -485,16 +551,17 @@ def update_menu_item_availability(item_id):
     restaurant = _get_owned_restaurant()
     if restaurant is None:
         return redirect(url_for("restaurante.dashboard"))
+    redirect_page = _parse_menu_page(request.form.get("page"))
 
     item = _get_owned_menu_item(restaurant, item_id)
     if item is None:
         flash("No se encontró el plato para actualizar disponibilidad.", "danger")
-        return redirect(url_for("restaurante.menu"))
+        return redirect(url_for("restaurante.menu", page=redirect_page))
 
     item.disponibilidad = request.form.get("available") == "1"
     db.session.commit()
     flash("Disponibilidad actualizada correctamente.", "success")
-    return redirect(url_for("restaurante.menu"))
+    return redirect(url_for("restaurante.menu", page=redirect_page))
 
 
 
@@ -782,7 +849,9 @@ def delete_restaurant():
         flash("El nombre ingresado no coincide. No se realizaron cambios.", "danger")
         return redirect(url_for("restaurante.profile_view"))
 
+
     try:
+        logout_user()
         db.session.delete(restaurant)
         db.session.commit()
         flash("Tu restaurante fue eliminado de Morfi correctamente.", "info")
@@ -791,7 +860,7 @@ def delete_restaurant():
         flash("No se pudo eliminar el restaurante. Intentá de nuevo.", "danger")
         return redirect(url_for("restaurante.profile_view"))
 
-    return redirect(url_for("usuario.home"))
+    return redirect(url_for("auth.index"))
 
 
 @restaurante_bp.route("/restaurante/users/<uuid:user_id>/delete", methods=["POST"])

@@ -71,11 +71,15 @@ def _build_partner_username(restaurant_name, email):
 
 @auth_bp.route('/')
 def index():
+    if current_user.is_authenticated:
+        return redirect(_resolve_next_url())
     return render_template("auth/index.html")
 
 
 @auth_bp.route('/register/selection')
 def register_selection():
+    if current_user.is_authenticated:
+        return redirect(_resolve_next_url())
     return render_template('auth/selection.html')
 
 
@@ -113,6 +117,8 @@ def login():
 
 @auth_bp.route("/register")
 def register():
+    if current_user.is_authenticated:
+        return redirect(_resolve_next_url())
     selected_role = _resolve_register_role()
     if selected_role == Role.SOCIO_ADMIN:
         return redirect(url_for("auth.register_partner"))

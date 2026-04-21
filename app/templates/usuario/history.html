@@ -38,7 +38,8 @@
                     </div>
                     <div class="history-reservation-main">
                         <h6 class="history-reservation-title">{{ reservation.restaurant_name }}</h6>
-                        <div class="history-reservation-meta">{{ reservation.date_label }} · {{ reservation.diners_label }}</div>
+                        <div class="history-reservation-meta">{{ reservation.date_label }} · {{ reservation.time_label }} · {{ reservation.diners_label }}</div>
+                        
                     </div>
                     {% if reservation.status_label or reservation.action_label or reservation.can_cancel %}
                     <div class="history-reservation-side">

@@ -115,8 +115,9 @@ def _horario_del_dia(restaurant, dia_semana: int):
 
 def _ocupados_en_slot(restaurant_id, fecha: date, hora_str: str) -> int:
     """Suma los comensales de reservas CONFIRMADAS para fecha+hora."""
+    arg_tz = timezone(timedelta(hours=-3))
     hora = datetime.strptime(hora_str, "%H:%M").time()
-    inicio_slot = datetime.combine(fecha, hora)
+    inicio_slot = datetime.combine(fecha, hora).replace(tzinfo=arg_tz).astimezone(timezone.utc)
     fin_slot    = inicio_slot + timedelta(minutes=60)
 
     from sqlalchemy import and_

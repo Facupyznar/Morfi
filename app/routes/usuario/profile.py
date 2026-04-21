@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os
 import uuid
 
@@ -37,6 +37,7 @@ SETUP_EXEMPT_ENDPOINTS = {
     "usuario.do_sync",
 }
 
+ARG_TZ = timezone(timedelta(hours=-3))
 
 @usuario_bp.before_app_request
 def enforce_profile_setup():
@@ -473,6 +474,12 @@ def history():
                     f"{reservation_date.day} {month_names[reservation_date.month]} {reservation_date.year}"
                     if reservation_date
                     else ""
+                ),
+                "time_label":(
+                    reservation_date.astimezone(ARG_TZ).strftime("%H:%M")
+                    if reservation_date and reservation_date.tzinfo
+                    else reservation_date.strftime("%H:%M") if reservation_date else ""
+
                 ),
                 "diners_label": f"{reserva.cant_personas} comensales",
                 "status_label": status_label,

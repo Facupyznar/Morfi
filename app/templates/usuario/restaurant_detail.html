@@ -126,7 +126,18 @@
                 <div class="horario-title" style="margin-bottom:8px;">
                   <i class="bi bi-geo-alt-fill text-orange"></i> Ubicación
                 </div>
-                <p style="margin:0; color:#5C544E; font-size:0.9rem;">{{ restaurant.address or '—' }}</p>
+                {% if restaurant.address %}
+                    <a
+                      href="https://www.google.com/maps/search/?api=1&query={{ restaurant.address | urlencode }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style="margin:0; color:#5C544E; font-size:0.9rem;"
+                    >
+                      {{ restaurant.address }}
+                    </a>
+                  {% else %}
+                    <p style="margin:0; color:#5C544E; font-size:0.9rem;">—</p>
+                  {% endif %}          
               </div>
 
               {% if restaurant.precio_rango %}
