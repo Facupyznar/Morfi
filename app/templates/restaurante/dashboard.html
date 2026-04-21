@@ -109,8 +109,10 @@
               <td>
                 {% if r.estado == 'Confirmada' %}
                 <span class="rd-badge rd-badge--green">Confirmada</span>
-                {% else %}
-                <span class="rd-badge rd-badge--orange">Pendiente</span>
+                {% elif r.estado == 'Completada' %}
+                <span class="rd-badge rd-badge--completed">Completada</span>
+                {% elif r.estado == 'Cancelada' %}
+                <span class="rd-badge rd-badge--cancelled">Cancelada</span>
                 {% endif %}
               </td>
             </tr>

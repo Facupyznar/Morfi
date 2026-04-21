@@ -287,15 +287,20 @@ def dashboard():
         .limit(10)
         .all()
     )
+    from datetime import timezone, timedelta
+    ARG_TZ = timezone(timedelta(hours=-3))
+    ESTADO_LABELS = {"confirmada": "Confirmada", "completada": "Completada", "cancelada": "Cancelada"}
     for r in reservas_db:
         u = db.session.query(User).filter_by(user_id=r.user_id).first()
         nombre = u.name if u else "Cliente"
+        fh = r.fecha_hora
+        hora_local = (fh.astimezone(ARG_TZ) if fh.tzinfo else fh).strftime('%H:%M')
         reservas_hoy.append({
             "initials": nombre[:2].upper(),
             "nombre":   nombre,
-            "hora":     r.fecha_hora.strftime('%H:%M'),
+            "hora":     hora_local,
             "personas": r.cant_personas,
-            "estado":   "Confirmada" if r.estado_reserva.value == "CONFIRMADA" else "Pendiente",
+            "estado":   ESTADO_LABELS.get(r.estado_reserva.value, r.estado_reserva.value.capitalize()),
         })
 
     # ── Ocupación semanal (mock por ahora) ───────────────────
