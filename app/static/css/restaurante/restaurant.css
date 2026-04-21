@@ -302,18 +302,19 @@
 /* Menu Grid */
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
+  align-items: start;
 }
 
 .menu-card {
   background: white;
   border: 1px solid #EDE6DC;
   border-radius: 14px;
-  padding: 14px;
+  padding: 10px 12px;
   display: flex;
-  gap: 14px;
-  align-items: flex-start;
+  gap: 12px;
+  align-items: center;
   transition: all 0.3s ease;
 }
 
@@ -323,19 +324,36 @@
 }
 
 .menu-thumb {
-  width: 70px;
-  height: 70px;
-  border-radius: 10px;
+  width: 62px;
+  height: 62px;
+  border-radius: 8px;
   object-fit: cover;
   flex-shrink: 0;
   background: #EDE6DC;
 }
 
+.menu-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
 .menu-name {
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   color: #1A1A2E;
-  margin-bottom: 4px;
+  margin-bottom: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-desc {
+  font-size: 0.76rem;
+  color: #7A7069;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menu-badge-available {
@@ -361,16 +379,17 @@
 }
 
 .menu-category {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: #9A8F85;
-  margin-bottom: 4px;
+  margin-bottom: 1px;
 }
 
 .menu-price {
   font-weight: 800;
   color: #FF6B35;
-  font-size: 0.95rem;
-  margin-top: 4px;
+  font-size: 0.9rem;
+  margin-top: 2px;
+  margin-bottom: 2px;
 }
 
 /* Info Cards */

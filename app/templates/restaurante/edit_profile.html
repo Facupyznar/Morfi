@@ -22,6 +22,8 @@
       <div class="rp-cover rp-cover--edit"
             style="{% if restaurant.cover_url %}background-image:url('{{ restaurant.cover_url if restaurant.cover_url.startswith('http') else url_for('static', filename=restaurant.cover_url) }}');{% endif %}"
                onchange="previewCover(this)">
+        <input type="file" id="cover-input" name="cover_photo" accept="image/*" style="display:none;"
+               onchange="previewCover(this)">
         <button type="button" class="rp-change-cover-btn"
                 onclick="document.getElementById('cover-input').click()">
           <i class="bi bi-camera"></i> Cambiar portada
