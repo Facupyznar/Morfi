@@ -17,6 +17,14 @@ from app.models.user import Role, User
 auth_bp = Blueprint("auth", __name__)
 
 
+@auth_bp.after_request
+def add_no_store_headers(response):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 def _resolve_next_url():
     next_url = request.args.get("next", "").strip()
     if next_url:
