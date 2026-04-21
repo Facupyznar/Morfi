@@ -22,11 +22,7 @@
         <h1 class="rd-title">Dashboard</h1>
         <p class="rd-subtitle">{{ today_label }} · {{ restaurant.name if restaurant else 'Mi restaurante' }}</p>
       </div>
-      <div class="rd-header-actions">
-        <a href="{{ url_for('restaurante.menu') }}" class="rd-btn-primary">
-          <i class="bi bi-plus me-1"></i> Nuevo plato
-        </a>
-      </div>
+      <div class="rd-header-actions"></div>
     </div>
 
     <!-- ── KPI cards ────────────────────────────────── -->
@@ -51,33 +47,31 @@
           <i class="bi bi-people-fill" style="color:#1A9E6B;"></i>
         </div>
         <div class="rd-stat-body">
-          <span class="rd-stat-label">Total usuarios</span>
-          <span class="rd-stat-value">{{ dashboard.stats.total_users }}</span>
-          <span class="rd-stat-delta neutral">
-            {{ dashboard.stats.total_comensales }} comensales
-          </span>
+          <span class="rd-stat-label">Clientes totales</span>
+          <span class="rd-stat-value">{{ dashboard.stats.clientes_totales }}</span>
+          <span class="rd-stat-delta neutral">Con reservas en tu local</span>
         </div>
       </div>
 
       <div class="rd-stat-card">
         <div class="rd-stat-icon" style="background:#EDE9FE;">
-          <i class="bi bi-shop" style="color:#7C5CFC;"></i>
+          <i class="bi bi-calendar-month" style="color:#7C5CFC;"></i>
         </div>
         <div class="rd-stat-body">
-          <span class="rd-stat-label">Restaurantes activos</span>
-          <span class="rd-stat-value">{{ dashboard.stats.active_restaurants }}</span>
-          <span class="rd-stat-delta neutral">En la plataforma</span>
+          <span class="rd-stat-label">Reservas este mes</span>
+          <span class="rd-stat-value">{{ dashboard.stats.reservas_mes }}</span>
+          <span class="rd-stat-delta neutral">En el mes actual</span>
         </div>
       </div>
 
       <div class="rd-stat-card">
         <div class="rd-stat-icon" style="background:#FEF9E1;">
-          <i class="bi bi-clock-history" style="color:#F5A623;"></i>
+          <i class="bi bi-star-half" style="color:#F5A623;"></i>
         </div>
         <div class="rd-stat-body">
-          <span class="rd-stat-label">Socios en revisión</span>
-          <span class="rd-stat-value">{{ dashboard.stats.partners_in_review }}</span>
-          <span class="rd-stat-delta neutral">Pendientes de aprobación</span>
+          <span class="rd-stat-label">Puntaje promedio</span>
+          <span class="rd-stat-value">{{ "%.1f"|format(restaurant.puntaje|default(0)|float) if restaurant.puntaje else '—' }}</span>
+          <span class="rd-stat-delta neutral">Según reseñas de clientes</span>
         </div>
       </div>
 
@@ -215,7 +209,7 @@
     {% if dashboard.profiles %}
     <div class="rd-card mt-4">
       <div class="rd-card-header">
-        <h2 class="rd-card-title">Usuarios recientes</h2>
+        <h2 class="rd-card-title">Clientes recientes</h2>
         <a href="{{ url_for('restaurante.dashboard') }}" class="rd-card-link">Ver todos</a>
       </div>
       <table class="rd-table">

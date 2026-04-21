@@ -211,31 +211,65 @@ def dashboard():
 
     # ── Restaurante del usuario actual ───────────────────────
     restaurant_record = _get_owned_restaurant()
-    restaurant = {"name": restaurant_record.name} if restaurant_record else {"name": "Mi restaurante"}
+    restaurant = {
+        "name":    restaurant_record.name,
+        "puntaje": float(restaurant_record.puntaje or 0),
+    } if restaurant_record else {"name": "Mi restaurante", "puntaje": 0}
 
-    # ── Usuarios ─────────────────────────────────────────────
-    users = db.session.query(User).order_by(User.is_admin.desc(), User.username.asc()).all()
-    total_users   = len(users)
-    total_admins  = sum(1 for u in users if u.is_admin)
-    role_labels = {
-        Role.COMENSAL.value:    "Comensal",
-        Role.SOCIO_ADMIN.value: "Socio admin",
-        Role.ADMIN_GLOBAL.value:"Admin global",
-    }
+    # ── Clientes recientes de este restaurante ───────────────
+    from app.models.reserva import Reserva as _Reserva
+    from datetime import date as _date
+    import calendar as _calendar
+
+    mes_inicio = _date(hoy.year, hoy.month, 1)
+    mes_fin    = _date(hoy.year, hoy.month, _calendar.monthrange(hoy.year, hoy.month)[1])
+
+    reservas_mes = 0
+    clientes_mes = 0
     profiles = []
-    for user in users:
-        role_value = getattr(getattr(user, "rol", None), "value", Role.COMENSAL.value)
-        profiles.append({
-            "id":        str(user.user_id),
-            "route_id":  user.user_id,
-            "username":  user.username,
-            "name":      user.name or "Sin nombre",
-            "email":     user.email,
-            "role":      role_labels.get(role_value, role_value),
-            "level":     float(user.nivel or 1),
-            "is_admin":  bool(user.is_admin),
-            "can_delete":str(user.user_id) != current_user.get_id(),
-        })
+
+    if restaurant_record:
+        reservas_mes = (
+            db.session.query(_Reserva)
+            .filter(
+                _Reserva.id_restaurant == restaurant_record.id_restaurant,
+                _Reserva.fecha_hora >= mes_inicio,
+                _Reserva.fecha_hora <= mes_fin,
+            )
+            .count()
+        )
+
+        # Clientes únicos (comensales) con reservas en este restaurante
+        user_ids_con_reserva = (
+            db.session.query(_Reserva.user_id)
+            .filter(_Reserva.id_restaurant == restaurant_record.id_restaurant)
+            .distinct()
+            .subquery()
+        )
+        clientes = (
+            db.session.query(User)
+            .filter(
+                User.user_id.in_(user_ids_con_reserva),
+                User.rol == Role.COMENSAL,
+            )
+            .order_by(User.username.asc())
+            .limit(8)
+            .all()
+        )
+        clientes_mes = (
+            db.session.query(User)
+            .filter(User.user_id.in_(user_ids_con_reserva))
+            .count()
+        )
+        for user in clientes:
+            profiles.append({
+                "username": user.username,
+                "name":     user.name or "Sin nombre",
+                "email":    user.email,
+                "level":    float(user.nivel or 1),
+                "is_admin": False,
+                "role":     "Comensal",
+            })
 
     # ── Reservas de hoy ──────────────────────────────────────
     reservas_hoy = []
@@ -274,14 +308,10 @@ def dashboard():
 
     dashboard_data = {
         "stats": {
-            "reservas_hoy":        len(reservas_hoy),
-            "reservas_delta":      len(reservas_hoy),
-            "pending_reviews":     12,
-            "partners_in_review":  5,
-            "active_restaurants":  247,
-            "total_users":         total_users,
-            "total_admins":        total_admins,
-            "total_comensales":    sum(1 for u in users if getattr(u.rol, "value", None) == Role.COMENSAL.value),
+            "reservas_hoy":     len(reservas_hoy),
+            "reservas_delta":   len(reservas_hoy),
+            "reservas_mes":     reservas_mes,
+            "clientes_totales": clientes_mes,
         },
         "profiles": profiles,
     }
@@ -684,6 +714,79 @@ def update_restaurant_profile():
     db.session.commit()
     flash("Perfil actualizado correctamente.", "success")
     return redirect(url_for("restaurante.profile_view"))
+
+
+@restaurante_bp.route("/restaurante/security")
+@login_required
+def security():
+    if not _admin_required():
+        return redirect(url_for("usuario.profile"))
+    restaurant = _get_owned_restaurant()
+    return render_template(
+        "restaurante/cuenta_seguridad.html",
+        restaurant=restaurant,
+        active_admin_section="Cuenta",
+    )
+
+
+@restaurante_bp.route("/restaurante/security/change-password", methods=["POST"])
+@login_required
+def change_password():
+    if not _admin_required():
+        return redirect(url_for("usuario.profile"))
+
+    current_pw  = (request.form.get("current_password") or "").strip()
+    new_pw      = (request.form.get("new_password") or "").strip()
+    confirm_pw  = (request.form.get("confirm_password") or "").strip()
+
+    if not all([current_pw, new_pw, confirm_pw]):
+        flash("Completá todos los campos.", "warning")
+        return redirect(url_for("restaurante.security"))
+
+    if new_pw != confirm_pw:
+        flash("Las contraseñas nuevas no coinciden.", "warning")
+        return redirect(url_for("restaurante.security"))
+
+    if len(new_pw) <= 4:
+        flash("La contraseña debe tener más de 4 caracteres.", "warning")
+        return redirect(url_for("restaurante.security"))
+
+    if not current_user.check_password(current_pw):
+        flash("La contraseña actual es incorrecta.", "danger")
+        return redirect(url_for("restaurante.security"))
+
+    current_user.password = new_pw
+    db.session.commit()
+    flash("Contraseña actualizada correctamente.", "success")
+    return redirect(url_for("restaurante.security"))
+
+
+@restaurante_bp.route("/restaurante/delete", methods=["POST"])
+@login_required
+def delete_restaurant():
+    if not _admin_required():
+        return redirect(url_for("usuario.profile"))
+
+    restaurant = _get_owned_restaurant()
+    if restaurant is None:
+        flash("No se encontró tu restaurante.", "danger")
+        return redirect(url_for("restaurante.dashboard"))
+
+    confirm_name = (request.form.get("confirm_name") or "").strip()
+    if confirm_name != restaurant.name:
+        flash("El nombre ingresado no coincide. No se realizaron cambios.", "danger")
+        return redirect(url_for("restaurante.profile_view"))
+
+    try:
+        db.session.delete(restaurant)
+        db.session.commit()
+        flash("Tu restaurante fue eliminado de Morfi correctamente.", "info")
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo eliminar el restaurante. Intentá de nuevo.", "danger")
+        return redirect(url_for("restaurante.profile_view"))
+
+    return redirect(url_for("usuario.home"))
 
 
 @restaurante_bp.route("/restaurante/users/<uuid:user_id>/delete", methods=["POST"])

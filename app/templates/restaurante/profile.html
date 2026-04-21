@@ -17,7 +17,7 @@
 
     {# ── Cover ──────────────────────────────────────────────────── #}
     <div class="rp-cover"
-         style="{% if restaurant.cover_url %}background-image:url('{{ url_for('static', filename=restaurant.cover_url) }}');{% endif %}">
+         style="{% if restaurant.cover_url %}background-image:url('{{ restaurant.cover_url if restaurant.cover_url.startswith('http') else url_for('static', filename=restaurant.cover_url) }}');{% endif %}">
       <div class="rp-cover-overlay">
         <div class="rp-cover-identity">
           <div class="rp-avatar">
@@ -263,6 +263,7 @@
 
       </div>{# /col-right #}
     </div>{# /rp-content #}
+
   </main>
 </div>
 {% endblock %}
