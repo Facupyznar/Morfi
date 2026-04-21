@@ -261,7 +261,7 @@
                data-nombre="{{ r.user.name or r.user.username }}"
                data-initials="{{ ((r.user.name or r.user.username)[:2]) | upper }}"
                data-color="{{ r.avatar_color | default('#2E4DB5') }}"
-               data-hora="{{ r.fecha_hora.strftime('%H:%M') }}"
+               data-hora="{{ r.hora_local }}"
                data-personas="{{ r.cant_personas }}"
                data-email="{{ r.user.email or '' }}"
                data-estado="{{ r.estado_reserva.value }}">
@@ -275,7 +275,7 @@
                 {{ r.user.name or r.user.username }}
               </div>
               <div class="rv-meta">
-                <span class="rv-time"><i class="bi bi-clock"></i> {{ r.fecha_hora.strftime('%H:%M') }}</span>
+                <span class="rv-time"><i class="bi bi-clock"></i> {{ r.hora_local }}</span>
                 <span class="rv-pax"><i class="bi bi-people"></i> {{ r.cant_personas }} personas</span>
               </div>
             </div>

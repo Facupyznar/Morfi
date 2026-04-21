@@ -11,7 +11,7 @@
 # ══════════════════════════════════════════════════════════════════
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -203,7 +203,8 @@ def reservations():
     slots_almuerzo, slots_cena = _build_slots(restaurant, fecha)
 
     # Reservas del día
-    inicio_dia = datetime.combine(fecha, datetime.min.time())
+    ARG_TZ = timezone(timedelta(hours=-3))
+    inicio_dia = datetime(fecha.year, fecha.month, fecha.day, tzinfo=ARG_TZ)
     fin_dia    = inicio_dia + timedelta(days=1)
 
     reservas = (
@@ -217,9 +218,11 @@ def reservations():
         .all()
     )
 
-    # Asignar color de avatar por usuario (determinista)
+    # Asignar color de avatar y hora local (Argentina) por reserva
     for i, r in enumerate(reservas):
         r.avatar_color = AVATAR_COLORS[i % len(AVATAR_COLORS)]
+        fh = r.fecha_hora
+        r.hora_local = (fh.astimezone(ARG_TZ) if fh.tzinfo else fh).strftime('%H:%M')
 
     # Stats del día
     confirmadas = sum(1 for r in reservas if r.estado_reserva == ReservaStatus.CONFIRMADA)

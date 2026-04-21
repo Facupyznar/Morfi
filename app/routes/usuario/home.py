@@ -19,8 +19,9 @@ from app.routes.usuario import usuario_bp
 
 def _ocupados_slot(restaurant_id, fecha: date, hora_str: str) -> int:
     """Suma comensales de reservas CONFIRMADAS en esa franja de 30 min."""
-    hora = datetime.strptime(hora_str, "%H:%M").time()
-    inicio = datetime.combine(fecha, hora)
+    ARG_TZ = timezone(timedelta(hours=-3))
+    hora   = datetime.strptime(hora_str, "%H:%M").time()
+    inicio = datetime.combine(fecha, hora).replace(tzinfo=ARG_TZ)
     fin    = inicio + timedelta(minutes=60)
 
     result = (
@@ -366,6 +367,23 @@ def crear_reserva(restaurant_id):
     ocupados  = _ocupados_slot(restaurant_record.id_restaurant, fecha_hora.date(), hora_str)
     if capacidad > 0 and (ocupados + comensales) > capacidad:
         flash("No hay suficiente disponibilidad para ese horario. Elegí otro.", "warning")
+        return redirect(url_for("usuario.reserva_wizard", restaurant_id=restaurant_id))
+
+    # Verificar que el usuario no tenga ya una reserva confirmada en ese horario
+    slot_inicio = fecha_hora
+    slot_fin = fecha_hora + timedelta(minutes=60)
+    reserva_existente = (
+        db.session.query(Reserva)
+        .filter(
+            Reserva.user_id == current_user.user_id,
+            Reserva.estado_reserva == ReservaStatus.CONFIRMADA,
+            Reserva.fecha_hora >= slot_inicio,
+            Reserva.fecha_hora < slot_fin,
+        )
+        .first()
+    )
+    if reserva_existente:
+        flash("Ya tenés una reserva confirmada en ese horario.", "warning")
         return redirect(url_for("usuario.reserva_wizard", restaurant_id=restaurant_id))
 
     # Crear reserva

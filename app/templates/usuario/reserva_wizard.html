@@ -308,6 +308,7 @@ data.slots.forEach(slot => {
     btn.dataset.tooltip = 'Sin lugares disponibles';
   } else {
     btn.className = 'time-slot';
+    btn.dataset.disponibles = slot.disponibles;
     btn.dataset.tooltip = `Lugares disponibles: ${slot.disponibles}`;
     btn.addEventListener('click', () => selectSlot(btn, slot.hora));
   }
@@ -331,8 +332,26 @@ data.slots.forEach(slot => {
   // ── Comensales ────────────────────────────────────────────
   function changeQty(delta) {
     comensales = Math.min(20, Math.max(1, comensales + delta));
-    document.getElementById('qty-display').textContent   = comensales;
+    document.getElementById('qty-display').textContent    = comensales;
     document.getElementById('sum-comensales').textContent = comensales + ' comensales';
+
+    document.querySelectorAll('.time-slot[data-disponibles]').forEach(btn => {
+      const disponibles = parseInt(btn.dataset.disponibles, 10);
+      if (comensales > disponibles) {
+        if (btn.classList.contains('active')) {
+          btn.classList.remove('active');
+          selectedHora = null;
+          document.getElementById('sum-hora').textContent = '—';
+        }
+        btn.classList.add('time-slot--full');
+        btn.disabled = true;
+        btn.setAttribute('data-tooltip', 'Sin lugares disponibles');
+      } else {
+        btn.classList.remove('time-slot--full');
+        btn.disabled = false;
+        btn.setAttribute('data-tooltip', `Lugares disponibles: ${disponibles}`);
+      }
+    });
   }
 
   // ── Populate step 3 ────────────────────────────────────────
