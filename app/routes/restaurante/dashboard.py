@@ -5,7 +5,7 @@ from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 from math import ceil
 
-from sqlalchemy import and_, extract, or_
+from sqlalchemy import and_, extract, func, or_
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 
@@ -13,6 +13,22 @@ from flask import current_app, flash, redirect, render_template, request, url_fo
 from flask_login import current_user, login_required, logout_user
 
 from app.database import db
+from app.helpers.validators import (
+    ValidationError,
+    validate_choice,
+    validate_decimal,
+    validate_email,
+    validate_image_file,
+    validate_instagram,
+    validate_int,
+    validate_password,
+    validate_password_confirmation,
+    validate_phone,
+    validate_schedule_json,
+    validate_tag_names,
+    validate_text,
+    validate_url,
+)
 from app.location import resolve_location_payload
 from app.models.enums import TagCategory
 from app.models.menu import Menu
@@ -400,26 +416,17 @@ def menu():
     current_page = _parse_menu_page(request.args.get("page"))
 
     if request.method == "POST":
-        name = (request.form.get("name") or "").strip()
-        description = (request.form.get("description") or "").strip()
-        categoria = (request.form.get("categoria") or "").strip() or None
         selected_tags = _resolve_selected_menu_tags(request.form.getlist("tag_ids"))
-        raw_price = (request.form.get("price") or "").strip()
-        available = request.form.get("available", "1") == "1"
         redirect_page = _parse_menu_page(request.form.get("page"), default=current_page)
-
-        if not name:
-            flash("El nombre del plato es requerido.", "warning")
-            return redirect(url_for("restaurante.menu", open_drawer=1, page=redirect_page))
-
         try:
-            price = Decimal(raw_price)
-        except (InvalidOperation, TypeError):
-            flash("Ingresá un precio válido.", "warning")
-            return redirect(url_for("restaurante.menu", open_drawer=1, page=redirect_page))
-
-        if price <= 0:
-            flash("El precio debe ser mayor a cero.", "warning")
+            name = validate_text(request.form.get("name", ""), "El nombre del plato", min_length=2, max_length=100)
+            description = validate_text(request.form.get("description", ""), "La descripción", required=False, max_length=200)
+            categoria = validate_text(request.form.get("categoria", ""), "La categoría", required=False, max_length=50) or None
+            price = validate_decimal(request.form.get("price", ""), "El precio", min_value=1)
+            available = validate_choice(request.form.get("available", "1"), "La disponibilidad", {"0", "1"}) == "1"
+            validate_image_file(request.files.get("foto"), field_label="La foto del plato")
+        except ValidationError as ex:
+            flash(str(ex), "warning")
             return redirect(url_for("restaurante.menu", open_drawer=1, page=redirect_page))
 
         # Guardar foto del plato si se subió una
@@ -478,24 +485,16 @@ def edit_menu_item(item_id):
         flash("No se encontró el plato a editar.", "danger")
         return redirect(url_for("restaurante.menu", page=redirect_page))
 
-    name = (request.form.get("name") or "").strip()
-    description = (request.form.get("description") or "").strip()
-    categoria = (request.form.get("categoria") or "").strip() or None
     selected_tags = _resolve_selected_menu_tags(request.form.getlist("tag_ids"))
-    raw_price = (request.form.get("price") or "").strip()
-
-    if not name:
-        flash("El nombre del plato es requerido.", "warning")
-        return redirect(url_for("restaurante.menu", page=redirect_page))
 
     try:
-        price = Decimal(raw_price)
-    except (InvalidOperation, TypeError):
-        flash("Ingresá un precio válido.", "warning")
-        return redirect(url_for("restaurante.menu", page=redirect_page))
-
-    if price <= 0:
-        flash("El precio debe ser mayor a cero.", "warning")
+        name = validate_text(request.form.get("name", ""), "El nombre del plato", min_length=2, max_length=100)
+        description = validate_text(request.form.get("description", ""), "La descripción", required=False, max_length=200)
+        categoria = validate_text(request.form.get("categoria", ""), "La categoría", required=False, max_length=50) or None
+        price = validate_decimal(request.form.get("price", ""), "El precio", min_value=1)
+        validate_image_file(request.files.get("foto"), field_label="La foto del plato")
+    except ValidationError as ex:
+        flash(str(ex), "warning")
         return redirect(url_for("restaurante.menu", page=redirect_page))
 
     # Guardar nueva foto si se subió una
@@ -558,7 +557,15 @@ def update_menu_item_availability(item_id):
         flash("No se encontró el plato para actualizar disponibilidad.", "danger")
         return redirect(url_for("restaurante.menu", page=redirect_page))
 
-    item.disponibilidad = request.form.get("available") == "1"
+    try:
+        item.disponibilidad = validate_choice(
+            request.form.get("available", ""),
+            "La disponibilidad",
+            {"0", "1"},
+        ) == "1"
+    except ValidationError as ex:
+        flash(str(ex), "warning")
+        return redirect(url_for("restaurante.menu", page=redirect_page))
     db.session.commit()
     flash("Disponibilidad actualizada correctamente.", "success")
     return redirect(url_for("restaurante.menu", page=redirect_page))
@@ -683,29 +690,47 @@ def update_restaurant_profile():
         return redirect(url_for("restaurante.dashboard"))
 
     # ── Texto ────────────────────────────────────────────────────────────────
-    name          = (request.form.get("name")         or "").strip()
-    address       = (request.form.get("address")      or "").strip()
     latitude      = request.form.get("latitude")
     longitude     = request.form.get("longitude")
-    descripcion   = (request.form.get("descripcion")  or "").strip() or None
-    precio_rango  = (request.form.get("precio_rango") or "").strip() or None
-    capacidad_raw = (request.form.get("capacidad")    or "").strip()
-    telefono      = (request.form.get("telefono")     or "").strip() or None
-    sitio_web     = (request.form.get("sitio_web")    or "").strip() or None
-    instagram     = (request.form.get("instagram")    or "").strip() or None
-    horario_raw   = (request.form.get("horario")      or "[]").strip()
-    cuisines      = [v.strip() for v in request.form.getlist("cuisines")  if v.strip()]
-    ambience      = [v.strip() for v in request.form.getlist("ambience")  if v.strip()]
-    occasions     = [v.strip() for v in request.form.getlist("occasions") if v.strip()]
+    all_tags = db.session.query(Tag).order_by(Tag.category, Tag.name).all()
+    cuisine_tag_names = [tag.name for tag in all_tags if tag.category == TagCategory.COMIDA]
+    ambience_tag_names = [tag.name for tag in all_tags if tag.category == TagCategory.AMBIENTE]
+    occasion_tag_names = [tag.name for tag in all_tags if tag.category == TagCategory.OCASION]
+    cover_file = request.files.get("cover_photo")
+    logo_file = request.files.get("logo_photo")
+    gallery_files = request.files.getlist("gallery_photos")
 
-    if not name:
-        flash("El nombre del restaurante es requerido.", "warning")
+    try:
+        name = validate_text(request.form.get("name", ""), "El nombre del restaurante", min_length=2, max_length=50)
+        address = validate_text(request.form.get("address", ""), "La dirección", min_length=3, max_length=255)
+        descripcion = validate_text(request.form.get("descripcion", ""), "La descripción", required=False, max_length=300) or None
+        precio_rango = validate_choice(
+            request.form.get("precio_rango", ""),
+            "El rango de precios",
+            {"$", "$$", "$$$", "$$$$"},
+            required=False,
+        )
+        capacidad = validate_int(request.form.get("capacidad", ""), "La capacidad", min_value=1, required=False)
+        telefono = validate_phone(request.form.get("telefono", ""))
+        email_contacto = validate_email(request.form.get("email_contacto", ""), "El email de contacto")
+        sitio_web = validate_url(request.form.get("sitio_web", ""))
+        instagram = validate_instagram(request.form.get("instagram", ""))
+        horario_data = validate_schedule_json(request.form.get("horario"))
+        cuisines = validate_tag_names(request.form.getlist("cuisines"), cuisine_tag_names)
+        ambience = validate_tag_names(request.form.getlist("ambience"), ambience_tag_names)
+        occasions = validate_tag_names(request.form.getlist("occasions"), occasion_tag_names)
+        validate_image_file(cover_file, field_label="La foto de portada")
+        validate_image_file(logo_file, field_label="El logo")
+        for gallery_file in gallery_files:
+            validate_image_file(gallery_file, field_label="Las fotos de la galería")
+    except ValidationError as ex:
+        flash(str(ex), "warning")
         return redirect(url_for("restaurante.edit_restaurant_profile"))
 
     try:
         location_payload = resolve_location_payload(address, latitude, longitude)
-    except ValueError:
-        flash("No se pudo resolver la ubicación.", "warning")
+    except ValueError as ex:
+        flash(str(ex), "warning")
         return redirect(url_for("restaurante.edit_restaurant_profile"))
 
     # ── Campos base ──────────────────────────────────────────────────────────
@@ -714,14 +739,11 @@ def update_restaurant_profile():
     restaurant.latitude  = location_payload["latitude"]
     restaurant.longitude = location_payload["longitude"]
 
-    if capacidad_raw.isdigit():
-        restaurant.capacidad = int(capacidad_raw)
+    if capacidad is not None:
+        restaurant.capacidad = capacidad
 
     # ── Horario (JSON en columna Text existente) ──────────────────────────
-    try:
-        restaurant.horario = json.dumps(json.loads(horario_raw), ensure_ascii=False)
-    except (json.JSONDecodeError, TypeError):
-        pass
+    restaurant.horario = json.dumps(horario_data, ensure_ascii=False)
 
     # ── Campos nuevos (requieren migration.sql corrido primero) ──────────────
     restaurant.descripcion  = descripcion
@@ -731,19 +753,16 @@ def update_restaurant_profile():
     restaurant.instagram    = instagram
 
     # ── Foto de portada ───────────────────────────────────────────────────────
-    cover_file = request.files.get("cover_photo")
     new_cover  = _save_img(cover_file, "covers", str(restaurant.id_restaurant))
     if new_cover:
         restaurant.cover_url = new_cover
 
     # ── Logo / avatar ─────────────────────────────────────────────────────────
-    logo_file = request.files.get("logo_photo")
     new_logo  = _save_img(logo_file, "logos", str(restaurant.id_restaurant))
     if new_logo:
         restaurant.logo_url = new_logo
 
     # ── Galería ───────────────────────────────────────────────────────────────
-    gallery_files = request.files.getlist("gallery_photos")
     current_gallery: list = []
     try:
         current_gallery = json.loads(restaurant.gallery_json or "[]")
@@ -760,9 +779,22 @@ def update_restaurant_profile():
     restaurant.gallery_json = json.dumps(current_gallery, ensure_ascii=False)
 
     # ── Sincronizar ubicación al owner (solo coordenadas, NO el nombre) ─────
+    existing_email_owner = (
+        db.session.query(User)
+        .filter(
+            func.lower(User.email) == email_contacto.lower(),
+            User.user_id != current_user.user_id,
+        )
+        .first()
+    )
+    if existing_email_owner:
+        flash("El email de contacto ya está registrado en otra cuenta.", "warning")
+        return redirect(url_for("restaurante.edit_restaurant_profile"))
+
     current_user.address   = location_payload["address"]
     current_user.latitude  = location_payload["latitude"]
     current_user.longitude = location_payload["longitude"]
+    current_user.email = email_contacto
 
     # ── Tags ──────────────────────────────────────────────────────────────────
     db.session.query(RestaurantTags).filter(
@@ -811,16 +843,12 @@ def change_password():
     new_pw      = (request.form.get("new_password") or "").strip()
     confirm_pw  = (request.form.get("confirm_password") or "").strip()
 
-    if not all([current_pw, new_pw, confirm_pw]):
-        flash("Completá todos los campos.", "warning")
-        return redirect(url_for("restaurante.security"))
-
-    if new_pw != confirm_pw:
-        flash("Las contraseñas nuevas no coinciden.", "warning")
-        return redirect(url_for("restaurante.security"))
-
-    if len(new_pw) <= 4:
-        flash("La contraseña debe tener más de 4 caracteres.", "warning")
+    try:
+        current_pw = validate_text(current_pw, "La contraseña actual")
+        validate_password(new_pw)
+        validate_password_confirmation(new_pw, confirm_pw)
+    except ValidationError as ex:
+        flash(str(ex), "warning")
         return redirect(url_for("restaurante.security"))
 
     if not current_user.check_password(current_pw):
@@ -844,7 +872,12 @@ def delete_restaurant():
         flash("No se encontró tu restaurante.", "danger")
         return redirect(url_for("restaurante.dashboard"))
 
-    confirm_name = (request.form.get("confirm_name") or "").strip()
+    try:
+        confirm_name = validate_text(request.form.get("confirm_name", ""), "El nombre del restaurante", max_length=50)
+    except ValidationError as ex:
+        flash(str(ex), "danger")
+        return redirect(url_for("restaurante.profile_view"))
+
     if confirm_name != restaurant.name:
         flash("El nombre ingresado no coincide. No se realizaron cambios.", "danger")
         return redirect(url_for("restaurante.profile_view"))

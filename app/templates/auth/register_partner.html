@@ -32,19 +32,19 @@
         {% endif %}
       {% endwith %}
 
-      <form action="{{ url_for('auth.register_partner') }}" method="POST">
+      <form action="{{ url_for('auth.register_partner') }}" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <input type="text"  name="name"     class="morfi-custom-input" placeholder="Nombre del restaurante" required>
-        <input type="text"  name="username" class="morfi-custom-input" placeholder="Nombre de usuario" required>
-        <input type="text"  name="address"  class="morfi-custom-input" id="partner-address" placeholder="Dirección" required>
+        <input type="text"  name="name"     class="morfi-custom-input" placeholder="Nombre del restaurante" required minlength="2" maxlength="50">
+        <input type="text"  name="username" class="morfi-custom-input" placeholder="Nombre de usuario" required minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+">
+        <input type="text"  name="address"  class="morfi-custom-input" id="partner-address" placeholder="Dirección" required minlength="3" maxlength="255">
         <input type="hidden" id="partner-lat" name="latitude">
         <input type="hidden" id="partner-lng" name="longitude">
-        <input type="email" name="email"    class="morfi-custom-input" placeholder="Email de contacto" required>
+        <input type="email" name="email"    class="morfi-custom-input" placeholder="Email de contacto" required maxlength="255">
 
         <!-- Contraseña -->
         <div class="input-eye-wrapper">
-          <input type="password" name="password" id="password" class="morfi-custom-input" placeholder="Contraseña" required>
+          <input type="password" name="password" id="password" class="morfi-custom-input" placeholder="Contraseña" required minlength="5" maxlength="255">
           <button type="button" class="toggle-eye" onclick="togglePass('password','eyePass')">
             <i class="bi bi-eye" id="eyePass"></i>
           </button>
@@ -52,7 +52,7 @@
 
         <!-- Confirmar contraseña -->
         <div class="input-eye-wrapper">
-          <input type="password" name="confirm_password" id="confirm_password" class="morfi-custom-input" placeholder="Confirmar contraseña" required>
+          <input type="password" name="confirm_password" id="confirm_password" class="morfi-custom-input" placeholder="Confirmar contraseña" required minlength="5" maxlength="255">
           <button type="button" class="toggle-eye" onclick="togglePass('confirm_password','eyeConfirm')">
             <i class="bi bi-eye" id="eyeConfirm"></i>
           </button>
@@ -62,7 +62,7 @@
         <label class="dashed-upload" for="doc_legal">
           <i class="bi bi-upload upload-icon"></i>
           <span class="upload-label">Documentación legal</span>
-          <input type="file" id="doc_legal" name="doc_legal" accept=".pdf,.jpg,.png" style="display:none">
+          <input type="file" id="doc_legal" name="doc_legal" accept=".pdf,.jpg,.jpeg,.png" style="display:none">
         </label>
 
         <button type="submit" class="btn-morfi-primary-full">Enviar para verificación</button>

@@ -6,6 +6,7 @@ from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
 from app.database import db, ensure_menu_schema
+from app.helpers.markdown import render_markdown
 from app.models.user import User
 from app.routes.admin import admin_bp
 from app.routes.admin import system as admin_routes
@@ -33,6 +34,8 @@ def create_app():
     login_manager = LoginManager()
     login_manager.login_view = "auth.login"
     login_manager.init_app(flask_app)
+
+    flask_app.add_template_filter(render_markdown, "markdown")
 
     @login_manager.user_loader
     def load_user(user_id):

@@ -24,14 +24,15 @@
                     <div class="text-start mt-4">
                         <div class="mb-3">
                             <label class="form-label small text-muted mb-1">Nombre completo</label>
-                            <input type="text" name="name" class="form-control bg-light border-morfi" value="{{ user.name or '' }}">
+                            <input type="text" name="name" class="form-control bg-light border-morfi" value="{{ user.name or '' }}" required minlength="2" maxlength="50">
+                            <div class="form-text">Máximo 50 caracteres.</div>
                         </div>
                    
                         <div class="mb-3">
                             <label class="form-label small text-muted mb-1">Ubicación</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-geo-alt"></i></span>
-                                <input type="text" id="edit-profile-location" name="location" class="form-control bg-light border-start-0" value="{{ location_text }}" placeholder="Palermo, CABA">
+                                <input type="text" id="edit-profile-location" name="location" class="form-control bg-light border-start-0" value="{{ location_text }}" placeholder="Palermo, CABA" required minlength="3" maxlength="255">
                             </div>
                             <input type="hidden" id="edit-profile-lat" name="latitude" value="{{ user.latitude or '' }}">
                             <input type="hidden" id="edit-profile-lng" name="longitude" value="{{ user.longitude or '' }}">
@@ -100,11 +101,30 @@
 
 {% block page_scripts %}
 <script>
+    const MAX_PROFILE_NAME_LENGTH = 50;
+
+    function clampInputLength(input, maxLength) {
+        if (!input) return;
+        if (input.value.length > maxLength) {
+            input.value = input.value.slice(0, maxLength);
+        }
+    }
+
     function togglePass(inputId, iconId) {
         const input = document.getElementById(inputId);
         const icon = document.getElementById(iconId);
         input.type = input.type === 'password' ? 'text' : 'password';
         icon.className = input.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+    }
+
+    const profileNameInput = document.querySelector('input[name="name"]');
+    if (profileNameInput) {
+        profileNameInput.addEventListener('input', () => {
+            clampInputLength(profileNameInput, MAX_PROFILE_NAME_LENGTH);
+        });
+        profileNameInput.addEventListener('paste', () => {
+            requestAnimationFrame(() => clampInputLength(profileNameInput, MAX_PROFILE_NAME_LENGTH));
+        });
     }
 
     initMorfiLocationPicker({

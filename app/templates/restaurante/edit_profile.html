@@ -78,7 +78,8 @@
             <div class="rp-field">
               <label class="rp-label">Nombre del restaurante</label>
               <input type="text" name="name" class="rp-input"
-                     value="{{ restaurant.name or '' }}" required>
+                     value="{{ restaurant.name or '' }}" required minlength="2" maxlength="50">
+              <p class="rp-field-hint">Máximo 50 caracteres.</p>
             </div>
 
             <div class="rp-field">
@@ -88,12 +89,13 @@
               <div class="rp-field-hint rp-desc-counter">
                 <span id="rp-desc-count">{{ (restaurant.descripcion or '')|length }}</span>/300
               </div>
+              <p class="rp-field-hint">Soporta Markdown: `**negrita**`, `*itálica*`, listas y links.</p>
             </div>
 
             <div class="rp-field">
               <label class="rp-label"><i class="bi bi-geo-alt"></i> Dirección</label>
               <input type="text" id="edit-restaurant-location" name="address" class="rp-input"
-                     value="{{ restaurant.address or '' }}" placeholder="Ej: Palermo, CABA">
+                     value="{{ restaurant.address or '' }}" placeholder="Ej: Palermo, CABA" required minlength="3" maxlength="255">
               <input type="hidden" id="edit-restaurant-lat" name="latitude" value="{{ restaurant.latitude or '' }}">
               <input type="hidden" id="edit-restaurant-lng" name="longitude" value="{{ restaurant.longitude or '' }}">
               <div id="edit-restaurant-map" class="rp-map"></div>
@@ -115,7 +117,7 @@
               <div class="rp-field" style="width:160px;">
                 <label class="rp-label">Capacidad</label>
                 <input type="number" name="capacidad" class="rp-input" min="1"
-                       value="{{ restaurant.capacidad or '' }}" placeholder="45">
+                       value="{{ restaurant.capacidad or '' }}" placeholder="45" max="9999">
               </div>
             </div>
           </div>{# /info básica #}
@@ -253,25 +255,25 @@
             <div class="rp-field">
               <label class="rp-label"><i class="bi bi-telephone"></i> Teléfono</label>
               <input type="tel" name="telefono" class="rp-input"
-                     value="{{ restaurant.telefono or '' }}" placeholder="+54 11 0000-0000">
+                     value="{{ restaurant.telefono or '' }}" placeholder="+54 11 0000-0000" maxlength="30">
             </div>
             <div class="rp-field">
               <label class="rp-label"><i class="bi bi-envelope"></i> Email</label>
               <input type="email" name="email_contacto" class="rp-input"
                      value="{{ restaurant.email_contacto or restaurant.owner.email or '' }}"
-                     placeholder="contacto@mirestaurante.com">
+                     placeholder="contacto@mirestaurante.com" required maxlength="255">
             </div>
             <div class="rp-field">
               <label class="rp-label"><i class="bi bi-globe"></i> Sitio web</label>
               <input type="url" name="sitio_web" class="rp-input"
-                     value="{{ restaurant.sitio_web or '' }}" placeholder="www.mirestaurante.com">
+                     value="{{ restaurant.sitio_web or '' }}" placeholder="www.mirestaurante.com" maxlength="200">
             </div>
             <div class="rp-field">
               <label class="rp-label"><i class="bi bi-instagram"></i> Instagram</label>
               <div class="rp-input-prefix">
                 <span class="rp-prefix">@</span>
                 <input type="text" name="instagram" class="rp-input rp-input--prefixed"
-                       value="{{ restaurant.instagram or '' }}" placeholder="mirestaurante">
+                       value="{{ restaurant.instagram or '' }}" placeholder="mirestaurante" maxlength="30" pattern="[A-Za-z0-9._]+">
               </div>
             </div>
           </div>
@@ -352,6 +354,15 @@ initMorfiLocationPicker({
 /* ── Contador descripción ──────────────────── */
 const descInput = document.getElementById('rp-desc-input');
 const descCount = document.getElementById('rp-desc-count');
+const MAX_RESTAURANT_NAME_LENGTH = 50;
+
+function clampInputLength(input, maxLength) {
+  if (!input) return;
+  if (input.value.length > maxLength) {
+    input.value = input.value.slice(0, maxLength);
+  }
+}
+
 if (descInput && descCount) {
   descInput.addEventListener('input', () => {
     descCount.textContent = descInput.value.length;
@@ -363,7 +374,14 @@ const nameInput = document.querySelector('input[name="name"]');
 const previewName = document.getElementById('preview-name');
 if (nameInput && previewName) {
   nameInput.addEventListener('input', () => {
+    clampInputLength(nameInput, MAX_RESTAURANT_NAME_LENGTH);
     previewName.textContent = nameInput.value || 'Nombre del restaurante';
+  });
+  nameInput.addEventListener('paste', () => {
+    requestAnimationFrame(() => {
+      clampInputLength(nameInput, MAX_RESTAURANT_NAME_LENGTH);
+      previewName.textContent = nameInput.value || 'Nombre del restaurante';
+    });
   });
 }
 

@@ -49,7 +49,7 @@
               <input type="password" name="current_password"
                      style="width:100%; margin-top:.35rem; padding:.6rem .9rem; border:1.5px solid #E8E0D8;
                             border-radius:8px; font-size:.9rem; background:#FAFAF8; box-sizing:border-box;"
-                     required>
+                     required minlength="5" maxlength="255">
             </div>
 
             <div class="mb-3">
@@ -59,7 +59,7 @@
               <input type="password" name="new_password"
                      style="width:100%; margin-top:.35rem; padding:.6rem .9rem; border:1.5px solid #E8E0D8;
                             border-radius:8px; font-size:.9rem; background:#FAFAF8; box-sizing:border-box;"
-                     required>
+                     required minlength="5" maxlength="255">
             </div>
 
             <div class="mb-4">
@@ -69,7 +69,7 @@
               <input type="password" name="confirm_password"
                      style="width:100%; margin-top:.35rem; padding:.6rem .9rem; border:1.5px solid #E8E0D8;
                             border-radius:8px; font-size:.9rem; background:#FAFAF8; box-sizing:border-box;"
-                     required>
+                     required minlength="5" maxlength="255">
             </div>
 
             <button type="submit"
@@ -122,7 +122,7 @@
       <input type="text" name="confirm_name" placeholder="Nombre del restaurante"
              style="width:100%; padding:.6rem .9rem; border:1.5px solid #ddd; border-radius:8px;
                     font-size:.9rem; margin-bottom:1rem; box-sizing:border-box;"
-             autocomplete="off">
+             autocomplete="off" required minlength="2" maxlength="50">
       <div style="display:flex; gap:.75rem; justify-content:flex-end;">
         <button type="button"
                 style="padding:.5rem 1.1rem; border:1.5px solid #ddd; border-radius:8px;

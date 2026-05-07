@@ -22,6 +22,14 @@ from app.models.reserva import Reserva
 from app.models.tag import Tag
 from app.models.user import User
 from app.models.user_tags import UserTags
+from app.helpers.validators import (
+    ValidationError,
+    validate_image_file,
+    validate_password,
+    validate_password_confirmation,
+    validate_tag_names,
+    validate_text,
+)
 
 
 from app.routes.usuario import usuario_bp
@@ -125,14 +133,11 @@ def _validate_and_update_password(user_record, current_password, new_password, c
     if not all([current_password, new_password, confirm_password]):
         raise ValueError("Para cambiar la contraseña, debes completar los 3 campos.")
 
-    if new_password != confirm_password:
-        raise ValueError("Las contraseñas no coinciden.")
+    validate_password(new_password)
+    validate_password_confirmation(new_password, confirm_password)
 
     if not user_record.check_password(current_password):
         raise ValueError("La contraseña actual es incorrecta.")
-
-    if len(new_password) <= 4:
-        raise ValueError("La contraseña debe tener más de 4 caracteres.")
 
     user_record.password = new_password
     return True
@@ -255,8 +260,15 @@ def setup_gustos():
 @usuario_bp.route("/save-setup", methods=["POST"])
 @login_required
 def save_gustos():
-    cuisines = [value.strip() for value in request.form.getlist("cuisines") if value.strip()]
-    restrictions = [value.strip() for value in request.form.getlist("restrictions") if value.strip()]
+    _, cuisine_tags, restriction_tags = _load_tag_options()
+    cuisines = validate_tag_names(
+        request.form.getlist("cuisines"),
+        [tag.name for tag in cuisine_tags],
+    )
+    restrictions = validate_tag_names(
+        request.form.getlist("restrictions"),
+        [tag.name for tag in restriction_tags],
+    )
 
     db.session.query(UserTags).filter(UserTags.user_id == current_user.user_id).delete(
         synchronize_session=False
@@ -316,21 +328,29 @@ def edit_profile():
 @login_required
 def update_profile():
     user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
-    updated_name = (request.form.get("name") or "").strip()
-    updated_location = (request.form.get("location") or "").strip()
+    _, cuisine_tags, restriction_tags = _load_tag_options()
     updated_latitude = request.form.get("latitude")
     updated_longitude = request.form.get("longitude")
     uploaded_photo = request.files.get("profile_photo")
-    cuisines = [value.strip() for value in request.form.getlist("cuisines") if value.strip()]
-    restrictions = [value.strip() for value in request.form.getlist("restrictions") if value.strip()]
     current_password = request.form.get("current_password")
     new_password = request.form.get("new_password")
     confirm_password = request.form.get("confirm_password")
 
-    if updated_name:
+    try:
+        updated_name = validate_text(request.form.get("name", ""), "El nombre completo", min_length=2, max_length=50)
+        updated_location = validate_text(request.form.get("location", ""), "La ubicación", min_length=3, max_length=255)
+        validate_image_file(uploaded_photo, field_label="La foto de perfil")
+        cuisines = validate_tag_names(
+            request.form.getlist("cuisines"),
+            [tag.name for tag in cuisine_tags],
+        )
+        restrictions = validate_tag_names(
+            request.form.getlist("restrictions"),
+            [tag.name for tag in restriction_tags],
+        )
         user_record.name = updated_name
-    else:
-        flash("El nombre no puede estar vacío.", "warning")
+    except ValidationError as ex:
+        flash(str(ex), "warning")
         return redirect(url_for("usuario.edit_profile"))
 
     try:

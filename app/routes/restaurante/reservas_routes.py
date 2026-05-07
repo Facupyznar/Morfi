@@ -17,6 +17,7 @@ from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.database import db
+from app.helpers.validators import ValidationError, validate_choice, validate_int, validate_schedule_json
 from app.models.enums import ReservaStatus
 from app.models.reserva import Reserva
 from app.models.restaurant import Restaurant
@@ -330,8 +331,13 @@ def cambiar_estado_reserva(id_reserva):
         "completada": ReservaStatus.COMPLETADA,
     }
 
-    nuevo = request.form.get("estado", "").lower()
-    if nuevo not in estado_map:
+    try:
+        nuevo = validate_choice(
+            request.form.get("estado", "").lower(),
+            "El estado",
+            set(estado_map.keys()),
+        )
+    except ValidationError:
         return jsonify({"error": "Estado inválido"}), 400
 
     reserva.estado_reserva = estado_map[nuevo]
@@ -356,23 +362,24 @@ def reservas_config():
         return redirect(url_for("restaurante.dashboard"))
 
     # Capacidad
-    capacidad_raw = (request.form.get("capacidad") or "").strip()
-    if capacidad_raw.isdigit() and int(capacidad_raw) > 0:
-        restaurant.capacidad = int(capacidad_raw)
-    else:
+    try:
+        restaurant.capacidad = validate_int(
+            request.form.get("capacidad", ""),
+            "La capacidad",
+            min_value=1,
+        )
+        horario_data = validate_schedule_json(request.form.get("horario"))
+    except ValidationError as ex:
+        flash(str(ex), "warning")
+        return redirect(url_for("restaurante.reservations"))
+
+    if restaurant.capacidad is None:
         flash("La capacidad debe ser un número mayor a 0.", "warning")
         return redirect(url_for("restaurante.reservations"))
 
     # Horario (JSON enviado por el editor de franjas)
     import json as _json
-    horario_raw = (request.form.get("horario") or "[]").strip()
-    try:
-        horario_data = _json.loads(horario_raw)
-        if isinstance(horario_data, list):
-            restaurant.horario = _json.dumps(horario_data, ensure_ascii=False)
-    except (_json.JSONDecodeError, TypeError):
-        flash("Error al guardar el horario.", "danger")
-        return redirect(url_for("restaurante.reservations"))
+    restaurant.horario = _json.dumps(horario_data, ensure_ascii=False)
 
     db.session.commit()
     flash("Configuración guardada correctamente.", "success")

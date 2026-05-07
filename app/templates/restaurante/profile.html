@@ -63,9 +63,13 @@
         {# Acerca de #}
         <div class="rp-card">
           <h2 class="rp-card-title">Acerca de</h2>
-          <p class="rp-description">
-            {{ restaurant.descripcion if restaurant.descripcion else 'Sin descripción.' }}
-          </p>
+          <div class="rp-description">
+            {% if restaurant.descripcion %}
+              {{ restaurant.descripcion|markdown }}
+            {% else %}
+              <p>Sin descripción.</p>
+            {% endif %}
+          </div>
           <div class="rp-info-pills">
             <div class="rp-pill">
               <i class="bi bi-geo-alt"></i>

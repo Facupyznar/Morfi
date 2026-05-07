@@ -9,6 +9,16 @@ from werkzeug.security import generate_password_hash
 from werkzeug.routing import BuildError
 
 from app.database import db
+from app.helpers.validators import (
+    ValidationError,
+    validate_birth_date,
+    validate_email,
+    validate_file,
+    validate_password,
+    validate_password_confirmation,
+    validate_text,
+    validate_username,
+)
 from app.location import resolve_location_payload
 from app.helpers.auth import ModelUser
 from app.models.restaurant import Restaurant
@@ -99,13 +109,16 @@ def login():
         return redirect(_resolve_next_url())
 
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        remember = request.form.get("remember") == "on"
-
-        if not username or not password:
-            flash("Usuario y contraseña son obligatorios.", "warning")
+        try:
+            username = validate_username(request.form.get("username", ""))
+            password = validate_password(
+                request.form.get("password", ""),
+                field_label="La contraseña",
+            )
+        except ValidationError as ex:
+            flash(str(ex), "warning")
             return render_template("auth/login.html")
+        remember = request.form.get("remember") == "on"
 
         user = ModelUser.login(db, username, password)
         if user:
@@ -139,31 +152,21 @@ def register_comensal():
         return redirect(_resolve_next_url())
 
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        email = request.form.get("email", "").strip()
-        password = request.form.get("password", "")
-        confirm_password = request.form.get("confirm_password", "")
-        name = request.form.get("name", "").strip()
-        address = request.form.get("address", "").strip()
+        try:
+            username = validate_username(request.form.get("username", ""))
+            email = validate_email(request.form.get("email", ""))
+            password = validate_password(request.form.get("password", ""), field_label="La contraseña")
+            confirm_password = request.form.get("confirm_password", "")
+            validate_password_confirmation(password, confirm_password)
+            name = validate_text(request.form.get("name", ""), "El nombre completo", min_length=2, max_length=50)
+            address = validate_text(request.form.get("address", ""), "La dirección", min_length=3, max_length=255)
+            birth_date = validate_birth_date(request.form.get("fecha", "").strip())
+        except ValidationError as ex:
+            flash(str(ex), "danger")
+            return render_template("auth/register.html")
+
         latitude = request.form.get("latitude")
         longitude = request.form.get("longitude")
-        birth_date_raw = request.form.get("fecha", "").strip()
-        birth_date = None
-
-        if not username or not email or not password or not confirm_password or not address:
-            flash("Todos los campos marcados con * son obligatorios.", "warning")
-            return render_template("auth/register.html")
-
-        if password != confirm_password:
-            flash("Las contraseñas no coinciden.", "danger")
-            return render_template("auth/register.html")
-
-        if birth_date_raw:
-            try:
-                birth_date = datetime.strptime(birth_date_raw, "%Y-%m-%d").date()
-            except ValueError:
-                flash("La fecha de nacimiento no tiene un formato válido.", "danger")
-                return render_template("auth/register.html")
 
         try:
             location_payload = resolve_location_payload(address, latitude, longitude)
@@ -204,21 +207,25 @@ def register_partner():
         return redirect(_resolve_next_url())
 
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        username = request.form.get("username", "").strip()
-        email = request.form.get("email", "").strip().lower()
-        address = request.form.get("address", "").strip()
         latitude = request.form.get("latitude")
         longitude = request.form.get("longitude")
-        password = request.form.get("password", "")
-        confirm_password = request.form.get("confirm_password", "")
-
-        if not name or not username or not email or not address or not password or not confirm_password:
-            flash("Todos los campos obligatorios deben completarse.", "warning")
-            return render_template("auth/register_partner.html")
-
-        if password != confirm_password:
-            flash("Las contraseñas no coinciden.", "danger")
+        legal_doc = request.files.get("doc_legal")
+        try:
+            name = validate_text(request.form.get("name", ""), "El nombre del restaurante", min_length=2, max_length=50)
+            username = validate_username(request.form.get("username", ""))
+            email = validate_email(request.form.get("email", ""), "El email de contacto")
+            address = validate_text(request.form.get("address", ""), "La dirección", min_length=3, max_length=255)
+            password = validate_password(request.form.get("password", ""), field_label="La contraseña")
+            confirm_password = request.form.get("confirm_password", "")
+            validate_password_confirmation(password, confirm_password)
+            validate_file(
+                legal_doc,
+                field_label="La documentación legal",
+                allowed_extensions={".pdf", ".jpg", ".jpeg", ".png"},
+                max_size_mb=10,
+            )
+        except ValidationError as ex:
+            flash(str(ex), "danger")
             return render_template("auth/register_partner.html")
 
         try:
@@ -288,8 +295,15 @@ def login_restaurante():
     if current_user.is_authenticated:
         return redirect(_resolve_next_url())
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
+        try:
+            username = validate_username(request.form.get("username", ""))
+            password = validate_password(
+                request.form.get("password", ""),
+                field_label="La contraseña",
+            )
+        except ValidationError as ex:
+            flash(str(ex), "warning")
+            return render_template("auth/login_restaurante.html")
         user = ModelUser.login(db, username, password)
         if user:
             if user.role != Role.SOCIO_ADMIN.value:

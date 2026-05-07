@@ -5,6 +5,7 @@ from flask_login import current_user, login_required
 from sqlalchemy.orm import joinedload
 
 from app.database import db
+from app.helpers.validators import ValidationError, validate_int, validate_text
 from app.location import haversine_km, parse_float
 from app.models.restaurant import Restaurant
 from app.models.restaurant_tags import RestaurantTags
@@ -348,21 +349,18 @@ def crear_reserva(restaurant_id):
         id_restaurant=restaurant_id
     ).first_or_404()
 
-    fecha_str = request.form.get("fecha", "").strip()
-    hora_str  = request.form.get("hora",  "").strip()
-    comensales = request.form.get("comensales", "2").strip()
-
-    # Validar campos obligatorios
-    if not fecha_str or not hora_str:
-        flash("Por favor completá la fecha y hora.", "warning")
-        return redirect(url_for("usuario.reserva_wizard", restaurant_id=restaurant_id))
-
     try:
-        comensales = int(comensales)
-        if comensales < 1 or comensales > 20:
-            raise ValueError
-    except ValueError:
-        flash("Cantidad de comensales inválida.", "warning")
+        fecha_str = validate_text(request.form.get("fecha", ""), "La fecha")
+        hora_str = validate_text(request.form.get("hora", ""), "La hora")
+        comensales = validate_int(
+            request.form.get("comensales", "2"),
+            "La cantidad de comensales",
+            min_value=1,
+            max_value=20,
+        )
+        validate_text(request.form.get("notas", ""), "Las notas", required=False, max_length=300)
+    except ValidationError as ex:
+        flash(str(ex), "warning")
         return redirect(url_for("usuario.reserva_wizard", restaurant_id=restaurant_id))
 
     arg_tz = timezone(timedelta(hours=-3))

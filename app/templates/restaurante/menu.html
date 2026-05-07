@@ -164,9 +164,9 @@
           <div class="mn-card-body">
             <div class="mn-card-title-row">
               <span class="mn-card-name">{{ item.name }}</span>
-              <span class="mn-card-price">${{ "%.0f"|format(item.price) }}</span>
+              <span class="mn-card-price">${{ "%.2f"|format(item.price) }}</span>
             </div>
-            <p class="mn-card-desc">{{ item.description }}</p>
+            <div class="mn-card-desc">{{ item.description|markdown }}</div>
 
             <div class="mn-card-footer">
               <span class="mn-card-category">{{ item.category | upper }}</span>
@@ -300,6 +300,7 @@
               class="mn-input"
               placeholder="Ej: Bife de Chorizo"
               required
+              minlength="2"
               maxlength="100"
             >
           </div>
@@ -312,9 +313,10 @@
                 id="item-price"
                 name="price"
                 class="mn-input mn-input--price"
-                placeholder="0"
+                placeholder="0.00"
                 min="1"
-                step="1"
+                step="0.01"
+                max="9999999"
                 required
               >
             </div>
@@ -333,6 +335,7 @@
             oninput="updateCharCount(this)"
           ></textarea>
           <div class="mn-char-count"><span id="desc-count">0</span>/200</div>
+          <div class="mn-char-count">Soporta Markdown: `**negrita**`, `*itálica*`, listas y links.</div>
         </div>
 
         {# ── Categoría ────────────────────────────── #}
@@ -447,14 +450,14 @@
           <div class="mn-form-group mn-form-group--grow">
             <label for="edit-item-name" class="mn-form-label">NOMBRE DEL PLATO <span class="mn-required">*</span></label>
             <input type="text" id="edit-item-name" name="name" class="mn-input"
-                   placeholder="Ej: Bife de Chorizo" required maxlength="100">
+                   placeholder="Ej: Bife de Chorizo" required minlength="2" maxlength="100">
           </div>
           <div class="mn-form-group mn-form-group--price">
             <label for="edit-item-price" class="mn-form-label">PRECIO <span class="mn-required">*</span></label>
             <div class="mn-price-wrapper">
               <span class="mn-price-prefix">$</span>
               <input type="number" id="edit-item-price" name="price" class="mn-input mn-input--price"
-                     placeholder="0" min="1" step="1" required>
+                     placeholder="0.00" min="1" max="9999999" step="0.01" required>
             </div>
           </div>
         </div>
@@ -466,6 +469,7 @@
                     placeholder="Describí los ingredientes y preparación del plato..."
                     maxlength="200" oninput="updateEditCharCount(this)"></textarea>
           <div class="mn-char-count"><span id="edit-desc-count">0</span>/200</div>
+          <div class="mn-char-count">Soporta Markdown: `**negrita**`, `*itálica*`, listas y links.</div>
         </div>
 
         {# ── Categoría ────────────────────────────── #}

@@ -155,7 +155,7 @@
           <label for="security-current-password" class="password-field-label">Contraseña actual</label>
           <div class="password-input-shell">
             <i class="bi bi-lock password-input-icon"></i>
-            <input type="password" id="security-current-password" name="current_password" class="password-input-control" placeholder="Contraseña actual">
+            <input type="password" id="security-current-password" name="current_password" class="password-input-control" placeholder="Contraseña actual" required minlength="5" maxlength="255">
             <button type="button" class="password-toggle" onclick="toggleSecurityPass('security-current-password', 'securityEyeCurrent')">
               <i class="bi bi-eye" id="securityEyeCurrent"></i>
             </button>
@@ -166,7 +166,7 @@
           <label for="security-new-password" class="password-field-label">Nueva contraseña</label>
           <div class="password-input-shell">
             <i class="bi bi-lock password-input-icon"></i>
-            <input type="password" id="security-new-password" name="new_password" class="password-input-control" placeholder="Nueva contraseña">
+            <input type="password" id="security-new-password" name="new_password" class="password-input-control" placeholder="Nueva contraseña" required minlength="5" maxlength="255">
             <button type="button" class="password-toggle" onclick="toggleSecurityPass('security-new-password', 'securityEyeNew')">
               <i class="bi bi-eye" id="securityEyeNew"></i>
             </button>
@@ -177,7 +177,7 @@
           <label for="security-confirm-password" class="password-field-label">Confirmar contraseña</label>
           <div class="password-input-shell">
             <i class="bi bi-lock password-input-icon"></i>
-            <input type="password" id="security-confirm-password" name="confirm_password" class="password-input-control" placeholder="Confirmar contraseña">
+            <input type="password" id="security-confirm-password" name="confirm_password" class="password-input-control" placeholder="Confirmar contraseña" required minlength="5" maxlength="255">
             <button type="button" class="password-toggle" onclick="toggleSecurityPass('security-confirm-password', 'securityEyeConfirm')">
               <i class="bi bi-eye" id="securityEyeConfirm"></i>
             </button>

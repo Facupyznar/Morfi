@@ -65,10 +65,10 @@
               <div class="menu-card-body">
                 <div class="menu-name">{{ item.nombre }}</div>
                 {% if item.descripcion %}
-                <div class="menu-desc">{{ item.descripcion }}</div>
+                <div class="menu-desc">{{ item.descripcion|markdown }}</div>
                 {% endif %}
                 <div class="menu-category">{{ item.categoria or '' }}</div>
-                <div class="menu-price">${{ item.precio | int }}</div>
+                <div class="menu-price">${{ "%.2f"|format(item.precio) }}</div>
                 <div class="mt-1">
                   {% if item.disponibilidad %}
                   <span class="menu-badge-available">Disponible</span>
@@ -89,9 +89,9 @@
 
           <!-- Descripción -->
           {% if restaurant.descripcion %}
-          <p style="color:#5C544E; font-size:1rem; line-height:1.7; margin-bottom:32px;">
-            {{ restaurant.descripcion }}
-          </p>
+          <div style="color:#5C544E; font-size:1rem; line-height:1.7; margin-bottom:32px;">
+            {{ restaurant.descripcion|markdown }}
+          </div>
           {% endif %}
 
           <!-- Grid 2 columnas: Horarios | Ubicación + Contacto -->

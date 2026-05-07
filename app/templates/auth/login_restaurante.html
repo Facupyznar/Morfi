@@ -31,9 +31,9 @@
 
       <form class="fields" action="{{ url_for('auth.login_restaurante') }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="text" name="username" placeholder="Usuario del restaurante" required autofocus />
+        <input type="text" name="username" placeholder="Usuario del restaurante" required autofocus minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" />
         <div class="pass-wrap">
-          <input type="password" name="password" id="pass" placeholder="Contraseña" required />
+          <input type="password" name="password" id="pass" placeholder="Contraseña" required minlength="5" maxlength="255" />
           <button type="button" class="toggle-pass" onclick="togglePass()">
             <i class="bi bi-eye" id="eyeIcon"></i>
           </button>
