@@ -19,12 +19,14 @@ from app.models.enums import ReservaStatus
 from app.models.friends import Friends
 from app.helpers.auth import ModelUser
 from app.models.reserva import Reserva
+from app.models.review import Review
 from app.models.tag import Tag
 from app.models.user import Role, User
 from app.models.user_tags import UserTags
 from app.helpers.validators import (
     ValidationError,
     validate_image_file,
+    validate_int,
     validate_password,
     validate_password_confirmation,
     validate_tag_names,
@@ -303,6 +305,18 @@ def _comparison_now_for_reservation(reservation_date):
     if reservation_date and reservation_date.tzinfo is not None:
         return datetime.now(timezone.utc).astimezone(reservation_date.tzinfo)
     return datetime.now()
+
+
+def _refresh_restaurant_rating(restaurant_id):
+    average_score = (
+        db.session.query(func.avg(Review.puntaje))
+        .join(Reserva, Review.id_reserva == Reserva.id_reserva)
+        .filter(Reserva.id_restaurant == restaurant_id)
+        .scalar()
+    )
+    restaurant = db.session.get(Restaurant, restaurant_id)
+    if restaurant is not None:
+        restaurant.puntaje = average_score or 0
 
 
 @usuario_bp.route("/profile")
@@ -747,6 +761,7 @@ def history():
     }
 
     reservations_payload = []
+    visited_payload = []
     for reserva in reservations:
         restaurant = reserva.restaurant
         reservation_date = reserva.fecha_hora
@@ -772,39 +787,52 @@ def history():
                 status_label = "No asistió"
                 status_variant = "missed"
 
-        reservations_payload.append(
-            {
-                "restaurant_name": restaurant.name if restaurant else "Reserva",
-                "restaurant_id": str(restaurant.id_restaurant) if restaurant else None,
-                "reservation_id": str(reserva.id_reserva),
-                "image_path": (
-                    getattr(restaurant, "cover_url", None)
-                    or getattr(restaurant, "logo_url", None)
-                    or None
-                ),
-                "date_label": (
-                    f"{reservation_date.day} {month_names[reservation_date.month]} {reservation_date.year}"
-                    if reservation_date
-                    else ""
-                ),
-                "time_label":(
-                    reservation_date.astimezone(ARG_TZ).strftime("%H:%M")
-                    if reservation_date and reservation_date.tzinfo
-                    else reservation_date.strftime("%H:%M") if reservation_date else ""
+        reservation_payload = {
+            "restaurant_name": restaurant.name if restaurant else "Reserva",
+            "restaurant_id": str(restaurant.id_restaurant) if restaurant else None,
+            "reservation_id": str(reserva.id_reserva),
+            "image_path": (
+                getattr(restaurant, "cover_url", None)
+                or getattr(restaurant, "logo_url", None)
+                or None
+            ),
+            "date_label": (
+                f"{reservation_date.day} {month_names[reservation_date.month]} {reservation_date.year}"
+                if reservation_date
+                else ""
+            ),
+            "time_label": (
+                reservation_date.astimezone(ARG_TZ).strftime("%H:%M")
+                if reservation_date and reservation_date.tzinfo
+                else reservation_date.strftime("%H:%M") if reservation_date else ""
+            ),
+            "diners_label": f"{reserva.cant_personas} comensales",
+            "status_label": status_label,
+            "status_variant": status_variant,
+            "action_label": action_label,
+            "can_cancel": can_cancel,
+            "review_rating": reserva.review.puntaje if reserva.review else None,
+            "review_comment": reserva.review.comentario if reserva.review else "",
+            "has_review": reserva.review is not None,
+        }
+        reservations_payload.append(reservation_payload)
 
-                ),
-                "diners_label": f"{reserva.cant_personas} comensales",
-                "status_label": status_label,
-                "status_variant": status_variant,
-                "action_label": action_label,
-                "can_cancel": can_cancel,
-            }
-        )
+        if reserva.estado_reserva == ReservaStatus.COMPLETADA:
+            visited_payload.append(
+                {
+                    **reservation_payload,
+                    "status_label": "Asistió",
+                    "status_variant": "attended",
+                    "action_label": "Ver reseña" if reserva.review else "Dejar reseña",
+                    "can_cancel": False,
+                }
+            )
 
     return render_template(
         "usuario/history.html",
         user=user_data,
         reservations=reservations_payload,
+        visited_reservations=visited_payload,
         selected_month=month_value,
     )
 
@@ -981,6 +1009,102 @@ def cancel_user_reservation(id_reserva):
     except Exception:
         db.session.rollback()
         flash("No se pudo cancelar la reserva.", "danger")
+
+    return redirect(url_for("usuario.history", **redirect_kwargs))
+
+
+@usuario_bp.route("/perfil/reservas/<uuid:id_reserva>/review", methods=["POST"])
+@login_required
+def save_user_review(id_reserva):
+    reservation = (
+        db.session.query(Reserva)
+        .options(joinedload(Reserva.review), joinedload(Reserva.restaurant))
+        .filter(
+            Reserva.id_reserva == id_reserva,
+            Reserva.user_id == current_user.user_id,
+        )
+        .first_or_404()
+    )
+
+    redirect_month = (request.form.get("month") or "").strip()
+    redirect_kwargs = {"month": redirect_month} if redirect_month else {}
+
+    if reservation.estado_reserva != ReservaStatus.COMPLETADA:
+        flash("Solo podés dejar reseñas de reservas a las que asististe.", "warning")
+        return redirect(url_for("usuario.history", **redirect_kwargs))
+
+    try:
+        rating = validate_int(
+            request.form.get("rating", ""),
+            "El puntaje",
+            min_value=1,
+            max_value=5,
+        )
+        comment = validate_text(
+            request.form.get("comment", ""),
+            "La reseña",
+            required=False,
+            max_length=500,
+        )
+    except ValidationError as ex:
+        flash(str(ex), "warning")
+        return redirect(url_for("usuario.history", **redirect_kwargs))
+
+    if reservation.review is not None:
+        flash("Esta reseña ya fue publicada y no se puede modificar.", "warning")
+        return redirect(url_for("usuario.history", **redirect_kwargs))
+
+    try:
+        review = reservation.review
+        if review is None:
+            review = Review(
+                id_reserva=reservation.id_reserva,
+                puntaje=rating,
+                comentario=comment or None,
+            )
+            db.session.add(review)
+        else:
+            review.puntaje = rating
+            review.comentario = comment or None
+
+        _refresh_restaurant_rating(reservation.id_restaurant)
+        db.session.commit()
+        flash("Reseña guardada correctamente.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo guardar la reseña.", "danger")
+
+    return redirect(url_for("usuario.history", **redirect_kwargs))
+
+
+@usuario_bp.route("/perfil/reservas/<uuid:id_reserva>/review/delete", methods=["POST"])
+@login_required
+def delete_user_review(id_reserva):
+    reservation = (
+        db.session.query(Reserva)
+        .options(joinedload(Reserva.review))
+        .filter(
+            Reserva.id_reserva == id_reserva,
+            Reserva.user_id == current_user.user_id,
+        )
+        .first_or_404()
+    )
+
+    redirect_month = (request.form.get("month") or "").strip()
+    redirect_kwargs = {"month": redirect_month} if redirect_month else {}
+
+    if reservation.review is None:
+        flash("Esa reserva no tiene reseña cargada.", "warning")
+        return redirect(url_for("usuario.history", **redirect_kwargs))
+
+    try:
+        db.session.delete(reservation.review)
+        _refresh_restaurant_rating(reservation.id_restaurant)
+        db.session.commit()
+        flash("Reseña eliminada correctamente.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo eliminar la reseña.", "danger")
 
     return redirect(url_for("usuario.history", **redirect_kwargs))
 

@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+{% block title %}Reseñas - Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/dashboard.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+  {% include 'includes/_admin_sidebar.html' %}
+
+  <main class="admin-main rv-main">
+    <div class="rv-header">
+      <div>
+        <h1 class="rv-title">Reseñas del restaurante</h1>
+        <p class="rv-subtitle">{{ restaurant.name if restaurant else 'Mi restaurante' }}</p>
+      </div>
+    </div>
+
+    <div class="rv-filters">
+      {% for filter_item in review_filters %}
+      <a
+        href="{{ url_for('restaurante.reviews', filter=filter_item.slug) }}"
+        class="rv-filter-chip {{ 'is-active' if filter_item.active else '' }}">
+        {{ filter_item.label }}
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="rv-list">
+      {% for review in reviews %}
+      <article class="rv-card">
+        <div class="rv-card-head">
+          <div class="rv-user">
+            <div class="rv-user-avatar">
+              {% if review.user_photo_url %}
+              <img src="{{ url_for('static', filename=review.user_photo_url) }}" alt="Foto de {{ review.user_name }}">
+              {% else %}
+              {{ review.user_initials }}
+              {% endif %}
+            </div>
+            <div>
+              <div class="rv-user-name">{{ review.user_name }}</div>
+              <div class="rv-user-date">{{ review.date_label }}</div>
+            </div>
+          </div>
+
+          <div class="rv-rating">
+            <div class="rv-stars">
+              {% for i in range(1, 6) %}
+              <i class="bi bi-star{% if review.rating >= i %}-fill{% endif %}"></i>
+              {% endfor %}
+            </div>
+            <span class="rv-status-badge rv-status-badge--{{ review.status_slug }}">{{ review.status_label }}</span>
+          </div>
+        </div>
+
+        <p class="rv-comment">{{ review.comment }}</p>
+
+        {% if review.has_response %}
+        <div class="rv-response-box">
+          <div class="rv-response-label">Respuesta del local</div>
+          <p class="rv-response-copy">{{ review.response }}</p>
+        </div>
+        {% endif %}
+
+        {% if not review.has_response %}
+        <form method="POST" action="{{ url_for('restaurante.save_review_reply', review_id=review.review_id) }}" class="rv-reply-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="filter" value="{{ request.args.get('filter', 'all') }}">
+          <textarea
+            name="reply"
+            class="rv-reply-input"
+            rows="2"
+            placeholder="Escribí tu respuesta..."></textarea>
+          <button type="submit" class="rv-reply-btn">
+            <i class="bi bi-send"></i>
+            Publicar
+          </button>
+        </form>
+        {% endif %}
+      </article>
+      {% else %}
+      <div class="rv-empty">
+        <i class="bi bi-chat-square-text"></i>
+        <h2>No hay reseñas para mostrar</h2>
+        <p>Cuando tus clientes dejen reseñas, van a aparecer acá.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+</div>
+
+<style>
+  .rv-main {
+    flex: 1;
+    min-height: 100vh;
+    background: #F5F0EB;
+    padding: 34px 28px 44px;
+  }
+  .rv-header {
+    margin-bottom: 18px;
+  }
+  .rv-title {
+    margin: 0;
+    color: #1F2038;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .rv-subtitle {
+    margin: 6px 0 0;
+    color: #7E7582;
+    font-size: 0.96rem;
+  }
+  .rv-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .rv-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 15px;
+    border-radius: 999px;
+    border: 1px solid #D9CCBB;
+    background: #fff;
+    color: #5F596B;
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  .rv-filter-chip.is-active {
+    background: #FF6B35;
+    border-color: #FF6B35;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(255, 107, 53, 0.22);
+  }
+  .rv-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .rv-card {
+    border: 1px solid #E1D4C3;
+    border-radius: 18px;
+    background: #fff;
+    padding: 18px 18px 16px;
+    box-shadow: 0 10px 24px rgba(47, 32, 24, 0.04);
+  }
+  .rv-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 12px;
+  }
+  .rv-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .rv-user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #3D5AC7;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .rv-user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .rv-user-name {
+    color: #23243E;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+  .rv-user-date {
+    color: #9891A0;
+    font-size: 0.8rem;
+    margin-top: 2px;
+  }
+  .rv-rating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .rv-stars {
+    display: flex;
+    gap: 2px;
+    color: #FF7A3D;
+    font-size: 0.88rem;
+  }
+  .rv-status-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  .rv-status-badge--answered {
+    background: #D8F3E4;
+    color: #14895F;
+  }
+  .rv-status-badge--pending {
+    background: #FFF1EB;
+    color: #E25D28;
+  }
+  .rv-comment {
+    margin: 0 0 14px;
+    color: #4F4958;
+    line-height: 1.6;
+    font-size: 0.94rem;
+  }
+  .rv-response-box {
+    border: 1px solid #E9DFD3;
+    background: #FAF5EE;
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .rv-response-label {
+    color: #FF6B35;
+    font-size: 0.77rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .rv-response-copy {
+    margin: 0;
+    color: #4F4958;
+    line-height: 1.55;
+    font-size: 0.92rem;
+  }
+  .rv-reply-form {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .rv-reply-input {
+    flex: 1 1 420px;
+    min-height: 54px;
+    border-radius: 12px;
+    border: 1px solid #E2D5C4;
+    background: #FFFCF8;
+    padding: 12px 14px;
+    color: #302C3B;
+    resize: vertical;
+  }
+  .rv-reply-input:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.14);
+  }
+  .rv-reply-btn {
+    border: 0;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 10px;
+    background: #FF6B35;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 10px 20px rgba(255, 107, 53, 0.18);
+  }
+  .rv-empty {
+    border: 1px dashed #D8CCBC;
+    border-radius: 20px;
+    padding: 42px 22px;
+    text-align: center;
+    color: #8E8692;
+    background: rgba(255, 255, 255, 0.6);
+  }
+  .rv-empty i {
+    font-size: 2rem;
+    color: #CBBEAE;
+    margin-bottom: 10px;
+  }
+  .rv-empty h2 {
+    margin: 0 0 6px;
+    color: #2A2A42;
+    font-size: 1.15rem;
+    font-weight: 800;
+  }
+  .rv-empty p {
+    margin: 0;
+  }
+  @media (max-width: 900px) {
+    .rv-main {
+      padding: 24px 18px 36px;
+    }
+    .rv-card-head {
+      flex-direction: column;
+    }
+    .rv-rating {
+      justify-content: flex-start;
+    }
+    .rv-reply-form {
+      flex-direction: column;
+    }
+    .rv-reply-input,
+    .rv-reply-btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}

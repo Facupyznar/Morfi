@@ -16,6 +16,8 @@ from app.models.reserva import Reserva
 from app.models.enums import ReservaStatus
 from app.models.menu import Menu
 from app.models.user_favorites import UserFavorites
+from app.models.review import Review
+from app.models.user import User
 from app.routes.usuario import usuario_bp
 
 
@@ -242,6 +244,14 @@ def restaurant_detail(restaurant_id):
         .order_by(Menu.categoria, Menu.nombre)
         .all()
     )
+    review_records = (
+        db.session.query(Review, Reserva, User)
+        .join(Reserva, Review.id_reserva == Reserva.id_reserva)
+        .join(User, Reserva.user_id == User.user_id)
+        .filter(Reserva.id_restaurant == restaurant_record.id_restaurant)
+        .order_by(Reserva.fecha_hora.desc())
+        .all()
+    )
 
     # Horario: parsear el JSON guardado por el socio
     horario_list = _parse_horario_restaurant(restaurant_record)
@@ -270,6 +280,7 @@ def restaurant_detail(restaurant_id):
         "id":           str(restaurant_record.id_restaurant),
         "name":         restaurant_record.name,
         "rating":       round(float(restaurant_record.puntaje or 0), 1),
+        "reviews_count": len(review_records),
         "tags":         tag_names[:3],
         "image_url":    image_url,
         "logo_url":     logo_url,
@@ -286,10 +297,26 @@ def restaurant_detail(restaurant_id):
         "latitude":     float(restaurant_record.latitude) if restaurant_record.latitude else None,
         "longitude":    float(restaurant_record.longitude) if restaurant_record.longitude else None,
     }
+    reviews_payload = []
+    for review, reservation, user in review_records:
+        reviewer_name = getattr(user, "name", None) or getattr(user, "username", "Usuario")
+        reviews_payload.append(
+            {
+                "id": str(review.id_review),
+                "name": reviewer_name,
+                "initials": _friend_initials(user),
+                "photo_url": getattr(user, "foto_perfil", None),
+                "rating": int(review.puntaje or 0),
+                "comment": review.comentario or "Sin comentario.",
+                "response": review.respuesta_socio or "",
+                "date_label": reservation.fecha_hora.strftime("%d/%m/%Y") if reservation.fecha_hora else "",
+            }
+        )
     return render_template(
         "usuario/restaurant_detail.html",
         restaurant=restaurant_data,
         menu_items=menu_items,
+        reviews=reviews_payload,
         is_in_wishlist=is_in_wishlist,
     )
 

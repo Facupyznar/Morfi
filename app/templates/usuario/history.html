@@ -82,6 +82,9 @@
               <button class="nav-link active border-0 border-bottom border-3 border-transparent px-0 pb-2 fw-bold text-muted" data-bs-toggle="tab" data-bs-target="#reservas">Reservas</button>
             </li>
             <li class="nav-item">
+              <button class="nav-link border-0 border-bottom border-3 border-transparent px-0 pb-2 fw-bold text-muted" data-bs-toggle="tab" data-bs-target="#visitados">Visitados</button>
+            </li>
+            <li class="nav-item">
               <button class="nav-link border-0 border-bottom border-3 border-transparent px-0 pb-2 fw-bold text-muted" data-bs-toggle="tab" data-bs-target="#beneficios">Beneficios canjeados</button>
             </li>
           </ul>
@@ -109,8 +112,18 @@
                     {% if reservation.status_label %}
                     <span class="history-status history-status--{{ reservation.status_variant }}">{{ reservation.status_label }}</span>
                     {% endif %}
-                    {% if reservation.action_label and reservation.restaurant_id %}
-                    <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=reservation.restaurant_id) }}" class="history-review-link">{{ reservation.action_label }}</a>
+                    {% if reservation.action_label %}
+                    <button
+                      type="button"
+                      class="history-review-link"
+                      data-reservation-id="{{ reservation.reservation_id }}"
+                      data-restaurant-name="{{ reservation.restaurant_name }}"
+                      data-rating="{{ reservation.review_rating or '' }}"
+                      data-comment="{{ reservation.review_comment or '' }}"
+                      data-has-review="{{ '1' if reservation.has_review else '0' }}"
+                      onclick="openReviewModal(this)">
+                      {{ reservation.action_label }}
+                    </button>
                     {% endif %}
                     {% if reservation.can_cancel %}
                     <form method="POST" action="{{ url_for('usuario.cancel_user_reservation', id_reserva=reservation.reservation_id) }}" class="mb-0">
@@ -126,6 +139,49 @@
                 <div class="card-morfi p-4">
                   <h6 class="mb-1 fw-bold">No hay reservas en este mes</h6>
                   <small class="text-muted">Cuando hagas una reserva, la vas a ver acá.</small>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="visitados">
+              <div class="d-flex flex-column gap-3">
+                {% for reservation in visited_reservations %}
+                <div class="history-reservation-card">
+                  <div class="history-reservation-media">
+                    {% if reservation.image_path %}
+                    <img src="{{ url_for('static', filename=reservation.image_path) }}" alt="{{ reservation.restaurant_name }}">
+                    {% else %}
+                    <div class="history-reservation-placeholder">
+                      {{ reservation.restaurant_name[:2]|upper }}
+                    </div>
+                    {% endif %}
+                  </div>
+                  <div class="history-reservation-main">
+                    <h6 class="history-reservation-title">{{ reservation.restaurant_name }}</h6>
+                    <div class="history-reservation-meta">{{ reservation.date_label }} · {{ reservation.time_label }} · {{ reservation.diners_label }}</div>
+                  </div>
+                  <div class="history-reservation-side">
+                    <span class="history-status history-status--{{ reservation.status_variant }}">{{ reservation.status_label }}</span>
+                    {% if reservation.action_label %}
+                    <button
+                      type="button"
+                      class="history-review-link"
+                      data-reservation-id="{{ reservation.reservation_id }}"
+                      data-restaurant-name="{{ reservation.restaurant_name }}"
+                      data-rating="{{ reservation.review_rating or '' }}"
+                      data-comment="{{ reservation.review_comment or '' }}"
+                      data-has-review="{{ '1' if reservation.has_review else '0' }}"
+                      onclick="openReviewModal(this)">
+                      {{ reservation.action_label }}
+                    </button>
+                    {% endif %}
+                  </div>
+                </div>
+                {% else %}
+                <div class="card-morfi p-4">
+                  <h6 class="mb-1 fw-bold">No hay restaurantes visitados en este mes</h6>
+                  <small class="text-muted">Solo vas a ver acá las reservas a las que realmente asististe.</small>
                 </div>
                 {% endfor %}
               </div>
@@ -147,6 +203,51 @@
       </div>
 
     </div>
+  </div>
+</div>
+
+<div class="delete-overlay" id="reviewModal" onclick="closeReviewOnOverlay(event)" style="display:none;">
+  <div class="delete-modal-box review-modal-box">
+    <div class="delete-modal-icon-wrap">
+      <i class="bi bi-star-fill"></i>
+    </div>
+    <h3 class="delete-modal-title" id="reviewModalTitle">Dejar reseña</h3>
+    <p class="delete-modal-desc" id="reviewModalDesc">
+      Contanos cómo fue tu experiencia.
+    </p>
+    <form method="POST" id="reviewForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="month" value="{{ selected_month }}">
+
+      <label class="review-field-label" for="reviewRating">Puntaje</label>
+      <select id="reviewRating" name="rating" class="form-select review-field-input" required>
+        <option value="">Seleccioná una puntuación</option>
+        <option value="5">5 · Excelente</option>
+        <option value="4">4 · Muy bueno</option>
+        <option value="3">3 · Bien</option>
+        <option value="2">2 · Regular</option>
+        <option value="1">1 · Malo</option>
+      </select>
+
+      <label class="review-field-label mt-3" for="reviewComment">Comentario</label>
+      <textarea
+        id="reviewComment"
+        name="comment"
+        class="form-control review-field-textarea"
+        rows="4"
+        maxlength="500"
+        placeholder="Escribí tu experiencia"></textarea>
+
+      <button type="submit" class="btn-confirm-delete mt-4" id="reviewSubmitBtn">Guardar reseña</button>
+    </form>
+    <form method="POST" id="reviewDeleteForm" class="review-delete-form" style="display:none;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="month" value="{{ selected_month }}">
+      <button type="submit" class="review-delete-btn">Eliminar reseña</button>
+    </form>
+    <button type="button" class="btn-cancel-delete review-close-btn" onclick="closeReviewModal()">
+      Cerrar
+    </button>
   </div>
 </div>
 
@@ -225,13 +326,17 @@
     color: #E34959;
 }
 .history-review-link {
+    border: 0;
+    background: transparent;
     color: var(--morfi-orange);
     font-size: 0.95rem;
     font-weight: 700;
     text-decoration: none;
+    padding: 0;
 }
 .history-review-link:hover {
     text-decoration: underline;
+    background: transparent;
 }
 .history-cancel-btn {
     border: 1px solid #E7C1B5;
@@ -257,5 +362,90 @@
         margin-left: 86px;
     }
 }
+.review-modal-box {
+    max-width: 520px;
+}
+.review-field-label {
+    display: block;
+    text-align: left;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--morfi-dark);
+    margin-bottom: 8px;
+}
+.review-field-input,
+.review-field-textarea {
+    border-radius: 14px;
+    border: 1px solid #E3D7C7;
+    background: #FFFCF8;
+}
+.review-field-input:focus,
+.review-field-textarea:focus {
+    border-color: #D95C2E;
+    box-shadow: 0 0 0 0.2rem rgba(217, 92, 46, 0.12);
+}
+.review-field-textarea.is-readonly {
+    cursor: default;
+    caret-color: transparent;
+}
+.review-field-textarea.is-readonly:focus {
+    border-color: #E3D7C7;
+    box-shadow: none;
+}
+.review-delete-btn {
+    width: 100%;
+    border: 1px solid #F2C7CD;
+    background: #FFF5F6;
+    color: #C94252;
+    border-radius: 999px;
+    min-height: 44px;
+    font-weight: 700;
+}
+.review-delete-btn:hover {
+    background: #FEEBED;
+}
+.review-delete-form {
+    width: 100%;
+    margin-top: 10px;
+}
+.review-close-btn {
+    margin-top: 14px;
+}
 </style>
+
+<script>
+  function openReviewModal(button) {
+    const reservationId = button.dataset.reservationId;
+    const restaurantName = button.dataset.restaurantName || 'el restaurante';
+    const rating = button.dataset.rating || '';
+    const comment = button.dataset.comment || '';
+    const hasReview = button.dataset.hasReview === '1';
+
+    document.getElementById('reviewForm').action = `/perfil/reservas/${reservationId}/review`;
+    document.getElementById('reviewDeleteForm').action = `/perfil/reservas/${reservationId}/review/delete`;
+    document.getElementById('reviewRating').value = rating;
+    document.getElementById('reviewComment').value = comment;
+    document.getElementById('reviewModalTitle').textContent = hasReview ? 'Ver reseña' : 'Dejar reseña';
+    document.getElementById('reviewModalDesc').textContent = hasReview
+      ? `Esta reseña ya fue publicada para ${restaurantName}.`
+      : `Contanos cómo fue tu experiencia en ${restaurantName}.`;
+    document.getElementById('reviewSubmitBtn').textContent = 'Guardar reseña';
+    document.getElementById('reviewRating').disabled = hasReview;
+    document.getElementById('reviewComment').readOnly = hasReview;
+    document.getElementById('reviewComment').classList.toggle('is-readonly', hasReview);
+    document.getElementById('reviewSubmitBtn').style.display = hasReview ? 'none' : 'block';
+    document.getElementById('reviewDeleteForm').style.display = hasReview ? 'block' : 'none';
+    document.getElementById('reviewModal').style.display = 'flex';
+  }
+
+  function closeReviewModal() {
+    document.getElementById('reviewModal').style.display = 'none';
+  }
+
+  function closeReviewOnOverlay(event) {
+    if (event.target === document.getElementById('reviewModal')) {
+      closeReviewModal();
+    }
+  }
+</script>
 {% endblock %}

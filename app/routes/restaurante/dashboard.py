@@ -33,6 +33,7 @@ from app.location import resolve_location_payload
 from app.models.enums import TagCategory
 from app.models.menu import Menu
 from app.models.menu_tags import MenuTags
+from app.models.review import Review
 from app.models.reserva import Reserva
 from app.models.restaurant import Restaurant
 from app.models.restaurant_tags import RestaurantTags
@@ -264,6 +265,14 @@ def _upsert_menu_item(item, *, restaurant, name, description, selected_tags, pri
     ).delete(synchronize_session=False)
     for tag in selected_tags:
         db.session.add(MenuTags(id_plato=item.id_plato, id_tag=tag.id_tag))
+
+
+def _review_initials(user):
+    value = (getattr(user, "name", None) or getattr(user, "username", "") or "US").strip()
+    parts = [part for part in value.split() if part]
+    if len(parts) >= 2:
+        return f"{parts[0][0]}{parts[1][0]}".upper()
+    return value[:2].upper() or "US"
 
 
 @restaurante_bp.route("/restaurante/dashboard")
@@ -569,6 +578,126 @@ def update_menu_item_availability(item_id):
     db.session.commit()
     flash("Disponibilidad actualizada correctamente.", "success")
     return redirect(url_for("restaurante.menu", page=redirect_page))
+
+
+@restaurante_bp.route("/restaurante/reviews")
+@login_required
+def reviews():
+    if not _admin_required():
+        return redirect(url_for("usuario.home"))
+
+    restaurant = _get_owned_restaurant()
+    if restaurant is None:
+        return redirect(url_for("restaurante.dashboard"))
+
+    selected_filter = (request.args.get("filter") or "all").strip().lower()
+    valid_filters = {"all", "pending", "positive", "negative"}
+    if selected_filter not in valid_filters:
+        selected_filter = "all"
+
+    review_rows = (
+        db.session.query(Review, Reserva, User)
+        .join(Reserva, Review.id_reserva == Reserva.id_reserva)
+        .join(User, Reserva.user_id == User.user_id)
+        .filter(Reserva.id_restaurant == restaurant.id_restaurant)
+        .order_by(Reserva.fecha_hora.desc())
+        .all()
+    )
+
+    reviews_payload = []
+    for review, reservation, user in review_rows:
+        has_response = bool((review.respuesta_socio or "").strip())
+        rating = int(review.puntaje or 0)
+
+        if selected_filter == "pending" and has_response:
+            continue
+        if selected_filter == "positive" and rating < 4:
+            continue
+        if selected_filter == "negative" and rating > 2:
+            continue
+
+        reviews_payload.append(
+            {
+                "id": str(review.id_review),
+                "review_id": str(review.id_review),
+                "reservation_id": str(reservation.id_reserva),
+                "user_name": getattr(user, "name", None) or getattr(user, "username", "Usuario"),
+                "user_initials": _review_initials(user),
+                "user_photo_url": getattr(user, "foto_perfil", None),
+                "date_label": reservation.fecha_hora.strftime("%d %b %Y").lower() if reservation.fecha_hora else "",
+                "rating": rating,
+                "comment": review.comentario or "Sin comentario.",
+                "response": review.respuesta_socio or "",
+                "has_response": has_response,
+                "status_label": "Respondida" if has_response else "Sin responder",
+                "status_slug": "answered" if has_response else "pending",
+                "restaurant_name": restaurant.name,
+            }
+        )
+
+    filter_items = [
+        {"slug": "all", "label": "Todas", "active": selected_filter == "all"},
+        {"slug": "pending", "label": "Sin responder", "active": selected_filter == "pending"},
+        {"slug": "positive", "label": "Positivas", "active": selected_filter == "positive"},
+        {"slug": "negative", "label": "Negativas", "active": selected_filter == "negative"},
+    ]
+
+    return render_template(
+        "restaurante/reviews.html",
+        restaurant=restaurant,
+        reviews=reviews_payload,
+        review_filters=filter_items,
+        active_admin_section="Reseñas",
+    )
+
+
+@restaurante_bp.route("/restaurante/reviews/<uuid:review_id>/reply", methods=["POST"])
+@login_required
+def save_review_reply(review_id):
+    if not _admin_required():
+        return redirect(url_for("usuario.home"))
+
+    restaurant = _get_owned_restaurant()
+    if restaurant is None:
+        return redirect(url_for("restaurante.dashboard"))
+
+    review_record = (
+        db.session.query(Review)
+        .join(Reserva, Review.id_reserva == Reserva.id_reserva)
+        .filter(
+            Review.id_review == review_id,
+            Reserva.id_restaurant == restaurant.id_restaurant,
+        )
+        .first_or_404()
+    )
+
+    selected_filter = (request.form.get("filter") or "all").strip().lower()
+    redirect_kwargs = {"filter": selected_filter} if selected_filter else {}
+
+    if (review_record.respuesta_socio or "").strip():
+        flash("Esta reseña ya fue respondida y no se puede modificar.", "warning")
+        return redirect(url_for("restaurante.reviews", **redirect_kwargs))
+
+    try:
+        reply_text = validate_text(
+            request.form.get("reply", ""),
+            "La respuesta",
+            min_length=2,
+            max_length=400,
+        )
+    except ValidationError as ex:
+        flash(str(ex), "warning")
+        return redirect(url_for("restaurante.reviews", **redirect_kwargs))
+
+    try:
+        review_record.respuesta_socio = reply_text
+        db.session.commit()
+        flash("Respuesta publicada correctamente.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo guardar la respuesta.", "danger")
+
+    return redirect(url_for("restaurante.reviews", **redirect_kwargs))
 
 
 

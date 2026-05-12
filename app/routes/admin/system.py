@@ -1,7 +1,7 @@
 import uuid
 from collections import defaultdict
 
-from flask import redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
@@ -63,6 +63,18 @@ def _category_title(category_value):
         TagCategory.OTRO.value: "Otros",
     }
     return labels.get(category_value, category_value.replace("_", " ").title())
+
+
+def _refresh_restaurant_rating(restaurant_id):
+    average_score = (
+        db.session.query(func.avg(Review.puntaje))
+        .join(Reserva, Review.id_reserva == Reserva.id_reserva)
+        .filter(Reserva.id_restaurant == restaurant_id)
+        .scalar()
+    )
+    restaurant = db.session.get(Restaurant, restaurant_id)
+    if restaurant is not None:
+        restaurant.puntaje = average_score or 0
 
 
 @admin_bp.route("/admin")
@@ -185,6 +197,34 @@ def reviews():
         ],
         active_system_section="Reseñas",
     )
+
+
+@admin_bp.route("/admin/reviews/<uuid:review_id>/delete", methods=["POST"])
+@login_required
+def delete_review(review_id):
+    denied_response = _require_system_access()
+    if denied_response is not None:
+        return denied_response
+
+    review_record = (
+        db.session.query(Review)
+        .join(Reserva, Review.id_reserva == Reserva.id_reserva)
+        .filter(Review.id_review == review_id)
+        .first_or_404()
+    )
+    reservation = review_record.reserva
+
+    try:
+        db.session.delete(review_record)
+        if reservation is not None:
+            _refresh_restaurant_rating(reservation.id_restaurant)
+        db.session.commit()
+        flash("Reseña eliminada correctamente.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo eliminar la reseña.", "danger")
+
+    return redirect(url_for("admin.reviews"))
 
 
 @admin_bp.route("/admin/tags")

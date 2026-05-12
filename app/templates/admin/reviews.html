@@ -62,19 +62,19 @@
                             <td class="system-danger-cell">{{ review.report_count }}</td>
                             <td class="system-muted-cell">{{ review.created_at_label }}</td>
                             <td>
-                                {% if review.status_slug == 'pending' %}
                                 <div class="system-table-actions">
-                                    <button type="button" class="system-inline-btn system-inline-btn--danger" disabled>
-                                        <i class="bi bi-trash"></i>
-                                        <span>Eliminar</span>
-                                    </button>
-                                    <button type="button" class="system-inline-btn" disabled>Desestimar</button>
+                                    <span class="system-badge system-badge--active">{{ review.status_label or 'Publicada' }}</span>
+                                    <button
+                                        type="button"
+                                        class="system-inline-btn system-inline-btn--danger"
+                                        data-review-id="{{ review.id }}"
+                                        data-user-name="{{ review.user_name }}"
+                                        data-restaurant-name="{{ review.restaurant_name }}"
+                                        onclick="openDeleteReviewModal(this)">
+                                            <i class="bi bi-trash"></i>
+                                            <span>Eliminar</span>
+                                        </button>
                                 </div>
-                                {% elif review.status_slug == 'removed' %}
-                                <span class="system-removed-label"><i class="bi bi-x-circle"></i>Eliminada</span>
-                                {% else %}
-                                <span class="system-badge system-badge--active">{{ review.status_label or 'Publicada' }}</span>
-                                {% endif %}
                             </td>
                         </tr>
                         {% else %}
@@ -88,4 +88,168 @@
         </section>
     </main>
 </div>
+
+<div class="delete-overlay" id="deleteReviewModal" onclick="closeDeleteReviewOnOverlay(event)" style="display:none;">
+    <div class="delete-modal-box">
+        <div class="delete-modal-icon-wrap">
+            <i class="bi bi-trash3-fill"></i>
+        </div>
+        <h3 class="delete-modal-title">¿Eliminar reseña?</h3>
+        <p class="delete-modal-desc" id="deleteReviewModalDesc">
+            Esta acción eliminará la reseña definitivamente.
+        </p>
+        <ul class="delete-modal-list">
+            <li>La reseña dejará de verse en el restaurante</li>
+            <li>El puntaje promedio se recalculará automáticamente</li>
+            <li>Esta acción no se puede deshacer</li>
+        </ul>
+        <form method="POST" id="deleteReviewForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-confirm-delete">Sí, eliminar reseña</button>
+        </form>
+        <button type="button" class="btn-cancel-delete" onclick="closeDeleteReviewModal()">
+            Cancelar
+        </button>
+    </div>
+</div>
+
+<style>
+    .system-alert-banner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .system-alert-banner p {
+        margin: 0;
+    }
+
+    .system-chip-row {
+        margin-bottom: 24px;
+    }
+
+    .system-table-actions {
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .system-inline-btn {
+        cursor: pointer;
+        font: inherit;
+        line-height: 1;
+    }
+
+    .delete-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 16, 28, 0.42);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1200;
+        padding: 20px;
+    }
+
+    .delete-modal-box {
+        width: min(100%, 520px);
+        background: #fff;
+        border-radius: 24px;
+        padding: 30px 28px 24px;
+        box-shadow: 0 24px 60px rgba(19, 14, 23, 0.18);
+        text-align: center;
+    }
+
+    .delete-modal-icon-wrap {
+        width: 74px;
+        height: 74px;
+        margin: 0 auto 18px;
+        border-radius: 50%;
+        background: #FFF0EB;
+        color: #D4183D;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+    }
+
+    .delete-modal-title {
+        margin: 0 0 10px;
+        color: #1A1A2E;
+        font-family: var(--morfi-font-display);
+        font-size: 1.8rem;
+        font-style: italic;
+        font-weight: 800;
+    }
+
+    .delete-modal-desc {
+        margin: 0 0 14px;
+        color: #6B6B8A;
+        line-height: 1.6;
+    }
+
+    .delete-modal-list {
+        margin: 0 0 20px;
+        padding-left: 18px;
+        text-align: left;
+        color: #4A4558;
+        line-height: 1.6;
+    }
+
+    .btn-confirm-delete,
+    .btn-cancel-delete {
+        width: 100%;
+        min-height: 46px;
+        border-radius: 14px;
+        font: inherit;
+        font-weight: 800;
+        border: 1px solid transparent;
+    }
+
+    .btn-confirm-delete {
+        margin-top: 6px;
+        background: #D4183D;
+        color: #fff;
+    }
+
+    .btn-confirm-delete:hover {
+        background: #BB1638;
+    }
+
+    .btn-cancel-delete {
+        margin-top: 12px;
+        background: #fff;
+        border-color: #D9CEBD;
+        color: #1A1A2E;
+    }
+
+    .btn-cancel-delete:hover {
+        background: #F7F3EE;
+    }
+</style>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    function openDeleteReviewModal(button) {
+        const reviewId = button.dataset.reviewId;
+        const userName = button.dataset.userName || 'el usuario';
+        const restaurantName = button.dataset.restaurantName || 'el restaurante';
+
+        document.getElementById('deleteReviewForm').action = `/admin/reviews/${reviewId}/delete`;
+        document.getElementById('deleteReviewModalDesc').textContent =
+            `Vas a eliminar la reseña de ${userName} sobre ${restaurantName}.`;
+        document.getElementById('deleteReviewModal').style.display = 'flex';
+    }
+
+    function closeDeleteReviewModal() {
+        document.getElementById('deleteReviewModal').style.display = 'none';
+    }
+
+    function closeDeleteReviewOnOverlay(event) {
+        if (event.target === document.getElementById('deleteReviewModal')) {
+            closeDeleteReviewModal();
+        }
+    }
+</script>
 {% endblock %}
