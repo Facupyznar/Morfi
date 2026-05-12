@@ -35,12 +35,12 @@
       <form action="{{ url_for('auth.register_partner') }}" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <input type="text"  name="name"     class="morfi-custom-input" placeholder="Nombre del restaurante" required minlength="2" maxlength="50">
-        <input type="text"  name="username" class="morfi-custom-input" placeholder="Nombre de usuario" required minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+">
-        <input type="text"  name="address"  class="morfi-custom-input" id="partner-address" placeholder="Dirección" required minlength="3" maxlength="255">
-        <input type="hidden" id="partner-lat" name="latitude">
-        <input type="hidden" id="partner-lng" name="longitude">
-        <input type="email" name="email"    class="morfi-custom-input" placeholder="Email de contacto" required maxlength="255">
+        <input type="text"  name="name"     class="morfi-custom-input" placeholder="Nombre del restaurante" required minlength="2" maxlength="50" value="{{ form_data.name if form_data else '' }}">
+        <input type="text"  name="username" class="morfi-custom-input" placeholder="Nombre de usuario" required minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" value="{{ form_data.username if form_data else '' }}">
+        <input type="text"  name="address"  class="morfi-custom-input" id="partner-address" placeholder="Dirección" required minlength="3" maxlength="255" value="{{ form_data.address if form_data else '' }}">
+        <input type="hidden" id="partner-lat" name="latitude" value="{{ form_data.latitude if form_data else '' }}">
+        <input type="hidden" id="partner-lng" name="longitude" value="{{ form_data.longitude if form_data else '' }}">
+        <input type="email" name="email"    class="morfi-custom-input" placeholder="Email de contacto" required maxlength="255" value="{{ form_data.email if form_data else '' }}">
 
         <!-- Contraseña -->
         <div class="input-eye-wrapper">

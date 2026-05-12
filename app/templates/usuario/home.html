@@ -75,16 +75,28 @@
             <div class="sidebar-card mb-4">
                 <h3 class="baloo h6 mb-4">Amigos activos</h3>
                 <div class="friend-list">
-                    {% for friend in [('JP', 'Juan Pérez', 'Visitó Lo de Carlitos ayer'), ('MG', 'María García', 'Reservó en Sakura Ramen')] %}
+                    {% for friend in active_friends %}
                     <div class="friend-item d-flex align-items-center gap-3 mb-3">
-                        <div class="avatar-xs">{{ friend[0] }}</div>
+                        <div class="avatar-xs">
+                            {% if friend.photo_url %}
+                            <img src="{{ url_for('static', filename=friend.photo_url) }}" alt="Foto de {{ friend.name }}" class="avatar-xs-img">
+                            {% else %}
+                            {{ friend.initials }}
+                            {% endif %}
+                        </div>
                         <div class="friend-info">
-                            <p class="mb-0 fw-bold">{{ friend[1] }}</p>
-                            <small class="text-muted">{{ friend[2] }}</small>
+                            <p class="mb-0 fw-bold">{{ friend.name }}</p>
+                            <small class="text-muted">{{ friend.status_text }}</small>
                         </div>
                     </div>
+                    {% else %}
+                    <p class="text-muted mb-0" style="font-size:.82rem;">Todavía no agregaste amigos.</p>
                     {% endfor %}
                 </div>
+                <a href="{{ url_for('usuario.friends') }}" class="d-block mt-2 text-decoration-none"
+                   style="font-size:.8rem; color:#FF6B35;">
+                    Ver todos los amigos{% if friends_count %} ({{ friends_count }}){% endif %}
+                </a>
             </div>
 
             <div class="sidebar-card">
@@ -104,7 +116,7 @@
                         <i class="bi bi-heart-fill text-orange"></i>
                     </a>
                     {% else %}
-                    <p class="text-muted" style="font-size:.82rem;">Guardá restaurantes con el corazón ♡</p>
+                    <p class="text-muted" style="font-size:.82rem;">Guardá restaurantes</p>
                     {% endfor %}
                 </div>
                 {% if wishlist_sidebar %}

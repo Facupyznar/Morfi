@@ -1,0 +1,407 @@
+{% extends 'base.html' %}
+{% block title %}Amigos - Morfi{% endblock %}
+
+{% block navbar %}{% include 'includes/_navbar_auth.html' %}{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page-bg">
+  <div class="container-fluid px-4 py-4" style="max-width:1200px; margin:0 auto;">
+    <div class="row g-4">
+
+      <div class="col-lg-3 position-relative">
+        <a href="{{ url_for('usuario.home') }}" class="btn btn-outline-dark rounded-circle position-absolute"
+           style="top:-15px;left:-10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background-color:var(--morfi-beige);border-color:var(--morfi-border);z-index:10;">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+
+        <div class="profile-sidebar-card text-center">
+          <div class="profile-avatar-wrapper mx-auto">
+            <div class="profile-avatar-circle">
+              {% if user.photo_url %}
+                <img src="{{ url_for('static', filename=user.photo_url) }}" alt="Foto" class="profile-avatar-img">
+              {% else %}
+                {{ (user.name or 'U')[:2]|upper }}
+              {% endif %}
+            </div>
+          </div>
+          <div class="profile-user-name mt-2">{{ user.name }}</div>
+          <div class="profile-username">@{{ user.username }}</div>
+          <div class="profile-level-badge">Nivel {{ current_user.nivel }} · {{ user.level.current }}</div>
+          <div class="profile-progress mx-auto" style="max-width:160px;">
+            <div class="profile-progress-fill" style="width:{{ user.level.progress }}%"></div>
+          </div>
+          <div class="profile-xp-hint">{{ user.level.xp_missing }} visitas para {{ user.level.next }}</div>
+          <div class="profile-stats-row">
+            <div class="profile-stat-item">
+              <div class="profile-stat-value">{{ user.stats.friends }}</div>
+              <div class="profile-stat-label">Amigos</div>
+            </div>
+            <div class="profile-stat-divider"></div>
+            <div class="profile-stat-item">
+              <div class="profile-stat-value">{{ user.stats.visits }}</div>
+              <div class="profile-stat-label">Visitados</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-nav-card">
+          <a href="{{ url_for('usuario.profile') }}" class="profile-nav-item">
+            <i class="bi bi-person"></i> Mi perfil
+          </a>
+          <a href="{{ url_for('usuario.friends') }}" class="profile-nav-item active">
+            <i class="bi bi-people"></i> Amigos
+          </a>
+          <a href="{{ url_for('usuario.wishlist') }}" class="profile-nav-item">
+            <i class="bi bi-heart"></i> Wishlist
+          </a>
+          <a href="{{ url_for('usuario.history') }}" class="profile-nav-item">
+            <i class="bi bi-clock-history"></i> Actividad reciente
+          </a>
+          <a href="{{ url_for('usuario.security') }}" class="profile-nav-item">
+            <i class="bi bi-shield"></i> Cuenta y seguridad
+          </a>
+        </div>
+      </div>
+
+      <div class="col-lg-9">
+        <div class="profile-content-card">
+          <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+            <h2 class="profile-main-title mb-0">Amigos</h2>
+          </div>
+
+          <ul class="nav nav-tabs border-0 mb-4 gap-4" id="friendsTabs" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link active border-0 border-bottom border-3 border-transparent px-0 pb-2 fw-bold text-muted" data-bs-toggle="tab" data-bs-target="#friends-list">Amigos</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link border-0 border-bottom border-3 border-transparent px-0 pb-2 fw-bold text-muted" data-bs-toggle="tab" data-bs-target="#friend-requests">Solicitudes</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link border-0 border-bottom border-3 border-transparent px-0 pb-2 fw-bold text-muted" data-bs-toggle="tab" data-bs-target="#friend-search">Buscar</button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="friendsTabsContent">
+            <div class="tab-pane fade show active" id="friends-list">
+              <div class="d-flex flex-column gap-3">
+                {% for friend in accepted_friends %}
+                <a href="{{ url_for('usuario.friend_profile', friend_user_id=friend.id) }}" class="friends-card-row friends-card-link">
+                  <div class="friends-avatar">
+                    {% if friend.photo_url %}
+                    <img src="{{ url_for('static', filename=friend.photo_url) }}" alt="Foto de {{ friend.name }}" class="friends-avatar-img">
+                    {% else %}
+                    {{ friend.initials }}
+                    {% endif %}
+                  </div>
+                  <div class="friends-main">
+                    <h6 class="friends-name">{{ friend.name }}</h6>
+                    <div class="friends-meta">@{{ friend.username }}</div>
+                  </div>
+                  <span class="friends-badge">{{ friend.status_text }}</span>
+                </a>
+                {% else %}
+                <div class="card-morfi p-4 text-center">
+                  <h6 class="mb-1 fw-bold">Todavía no tenés amigos agregados</h6>
+                  <small class="text-muted">Cuando conectes con otros usuarios de Morfi, van a aparecer acá.</small>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="friend-requests">
+              <div class="d-flex flex-column gap-3">
+                {% for friend in pending_friends %}
+                <div class="friends-card-row">
+                  <div class="friends-avatar">
+                    {% if friend.photo_url %}
+                    <img src="{{ url_for('static', filename=friend.photo_url) }}" alt="Foto de {{ friend.name }}" class="friends-avatar-img">
+                    {% else %}
+                    {{ friend.initials }}
+                    {% endif %}
+                  </div>
+                  <div class="friends-main">
+                    <h6 class="friends-name">{{ friend.name }}</h6>
+                    <div class="friends-meta">@{{ friend.username }}</div>
+                  </div>
+                  {% if friend.can_respond %}
+                  <div class="friends-actions">
+                    <form method="POST" action="{{ url_for('usuario.accept_friend_request', friendship_id=friend.friendship_id) }}" class="mb-0">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="friends-action-btn friends-action-btn-accept">Aceptar</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('usuario.reject_friend_request', friendship_id=friend.friendship_id) }}" class="mb-0">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="friends-action-btn friends-action-btn-reject">Rechazar</button>
+                    </form>
+                  </div>
+                  {% else %}
+                  <span class="friends-badge friends-badge-pending">{{ friend.status_text }}</span>
+                  {% endif %}
+                </div>
+                {% else %}
+                <div class="card-morfi p-4 text-center">
+                  <h6 class="mb-1 fw-bold">No hay solicitudes de amistad</h6>
+                  <small class="text-muted">Cuando haya solicitudes pendientes, las vas a ver en esta pestaña.</small>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="friend-search">
+              <div class="friends-search-shell mb-4">
+                <i class="bi bi-search friends-search-icon"></i>
+                <input type="search" class="friends-search-input" id="friends-search-input" placeholder="Buscar amigos por nombre o usuario">
+              </div>
+
+              <div class="d-flex flex-column gap-3" id="friends-search-results">
+                {% for user_item in connectable_users %}
+                <div class="friends-card-row friends-search-row" data-search="{{ (user_item.name ~ ' @' ~ user_item.username)|lower }}">
+                  <div class="friends-avatar">
+                    {% if user_item.photo_url %}
+                    <img src="{{ url_for('static', filename=user_item.photo_url) }}" alt="Foto de {{ user_item.name }}" class="friends-avatar-img">
+                    {% else %}
+                    {{ user_item.initials }}
+                    {% endif %}
+                  </div>
+                  <div class="friends-main">
+                    <h6 class="friends-name">{{ user_item.name }}</h6>
+                    <div class="friends-meta">@{{ user_item.username }}</div>
+                  </div>
+                  <form method="POST" action="{{ url_for('usuario.connect_friend', friend_id=user_item.id) }}" class="mb-0 friends-search-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="friends-action-btn friends-action-btn-search">Conectar</button>
+                  </form>
+                </div>
+                {% else %}
+                <div class="card-morfi p-4 text-center" id="friends-search-empty-default">
+                  <h6 class="mb-1 fw-bold">No hay usuarios para mostrar</h6>
+                  <small class="text-muted">Cuando habilitemos la búsqueda, los resultados van a aparecer acá.</small>
+                </div>
+                {% endfor %}
+              </div>
+              {% if connectable_users %}
+              <div class="card-morfi p-4 text-center d-none" id="friends-search-empty">
+                <h6 class="mb-1 fw-bold">No encontramos usuarios</h6>
+                <small class="text-muted">Probá con otro nombre o username.</small>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+#friendsTabs .nav-link.active { color: var(--morfi-orange) !important; border-bottom-color: var(--morfi-orange) !important; background: none; }
+#friendsTabs .nav-link:hover:not(.active) { color: var(--morfi-dark) !important; }
+.friends-card-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px;
+    border: 1px solid #E3D7C7;
+    border-radius: 18px;
+    background: #fff;
+}
+.friends-card-link {
+    text-decoration: none;
+    color: inherit;
+    transition: transform .2s, box-shadow .2s;
+}
+.friends-card-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(35, 24, 21, 0.08);
+    color: inherit;
+}
+.friends-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    background: #FFF0EB;
+    color: var(--morfi-orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.friends-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.friends-main {
+    flex: 1;
+    min-width: 0;
+}
+.friends-name {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--morfi-dark);
+}
+.friends-meta {
+    color: #7A7A98;
+    font-size: 0.95rem;
+}
+.friends-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: #CFF5E3;
+    color: #0B7A56;
+    font-size: 0.92rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.friends-badge-pending {
+    background: #FFF0EB;
+    color: #D95C2E;
+}
+.friends-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+.friends-action-btn {
+    border: none;
+    border-radius: 999px;
+    min-height: 34px;
+    padding: 0 16px;
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+.friends-action-btn-accept {
+    background: #CFF5E3;
+    color: #0B7A56;
+}
+.friends-action-btn-reject {
+    background: #FFF0EB;
+    color: #D95C2E;
+}
+.friends-search-shell {
+    position: relative;
+}
+.friends-search-icon {
+    position: absolute;
+    top: 50%;
+    left: 18px;
+    transform: translateY(-50%);
+    color: #9A8F85;
+    font-size: 0.95rem;
+}
+.friends-search-input {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 16px;
+    border: 1px solid #E3D7C7;
+    background: #FFFCF8;
+    color: var(--morfi-dark);
+    font-size: 0.96rem;
+    padding: 0 18px 0 48px;
+    outline: none;
+}
+.friends-search-input::placeholder {
+    color: #9A8F85;
+}
+.friends-action-btn-search {
+    background: #FFF0EB;
+    color: #D95C2E;
+}
+@media (max-width: 767.98px) {
+    .friends-card-row {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+    .friends-badge {
+        margin-left: 78px;
+    }
+    .friends-actions {
+        margin-left: 78px;
+        width: calc(100% - 78px);
+    }
+}
+</style>
+
+<script>
+  const friendsSearchInput = document.getElementById('friends-search-input');
+  if (friendsSearchInput) {
+    const searchRows = Array.from(document.querySelectorAll('.friends-search-row'));
+    const searchEmptyState = document.getElementById('friends-search-empty');
+    const searchResults = document.getElementById('friends-search-results');
+    const searchDefaultEmptyState = document.getElementById('friends-search-empty-default');
+
+    function refreshSearchEmptyState() {
+      const visibleCount = searchRows.filter((row) => !row.classList.contains('d-none')).length;
+      const totalCount = searchRows.length;
+
+      if (searchDefaultEmptyState) {
+        searchDefaultEmptyState.classList.toggle('d-none', totalCount !== 0);
+      }
+      if (searchEmptyState) {
+        searchEmptyState.classList.toggle('d-none', visibleCount !== 0 || totalCount === 0);
+      }
+    }
+
+    friendsSearchInput.addEventListener('input', function () {
+      const query = this.value.trim().toLowerCase();
+
+      searchRows.forEach((row) => {
+        const matches = !query || row.dataset.search.includes(query);
+        row.classList.toggle('d-none', !matches);
+      });
+      refreshSearchEmptyState();
+    });
+
+    document.querySelectorAll('.friends-search-form').forEach((form) => {
+      form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const button = form.querySelector('button[type="submit"]');
+        const row = form.closest('.friends-search-row');
+        const formData = new FormData(form);
+
+        button.disabled = true;
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          });
+          const payload = await response.json();
+
+          if (response.ok && payload.ok) {
+            row.remove();
+            const rowIndex = searchRows.indexOf(row);
+            if (rowIndex >= 0) searchRows.splice(rowIndex, 1);
+            refreshSearchEmptyState();
+            if (window.showToast) window.showToast(payload.message, payload.category || 'success');
+          } else {
+            button.disabled = false;
+            if (window.showToast) window.showToast(payload.message || 'No se pudo enviar la solicitud.', payload.category || 'error');
+          }
+        } catch (error) {
+          button.disabled = false;
+          if (window.showToast) window.showToast('No se pudo enviar la solicitud.', 'error');
+        }
+      });
+    });
+
+    refreshSearchEmptyState();
+  }
+</script>
+{% endblock %}

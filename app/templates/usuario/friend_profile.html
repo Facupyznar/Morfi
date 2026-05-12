@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+{% block title %}Perfil de amigo - Morfi{% endblock %}
+
+{% block navbar %}{% include 'includes/_navbar_auth.html' %}{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page-bg">
+  <div class="container-fluid px-4 py-4" style="max-width:1200px; margin:0 auto;">
+    <div class="row g-4">
+
+      <div class="col-lg-3 position-relative">
+        <a href="{{ url_for('usuario.friends') }}" class="btn btn-outline-dark rounded-circle position-absolute"
+           style="top:-15px;left:-10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background-color:var(--morfi-beige);border-color:var(--morfi-border);z-index:10;">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+
+        <div class="profile-sidebar-card text-center">
+          <div class="profile-avatar-wrapper mx-auto">
+            <div class="profile-avatar-circle">
+              {% if user.photo_url %}
+                <img src="{{ url_for('static', filename=user.photo_url) }}" alt="Foto" class="profile-avatar-img">
+              {% else %}
+                {{ (user.name or 'U')[:2]|upper }}
+              {% endif %}
+            </div>
+          </div>
+          <div class="profile-user-name mt-2">{{ user.name }}</div>
+          <div class="profile-username">@{{ user.username }}</div>
+          <div class="profile-level-badge">Nivel {{ current_user.nivel }} · {{ user.level.current }}</div>
+          <div class="profile-progress mx-auto" style="max-width:160px;">
+            <div class="profile-progress-fill" style="width:{{ user.level.progress }}%"></div>
+          </div>
+          <div class="profile-xp-hint">{{ user.level.xp_missing }} visitas para {{ user.level.next }}</div>
+          <div class="profile-stats-row">
+            <div class="profile-stat-item">
+              <div class="profile-stat-value">{{ user.stats.friends }}</div>
+              <div class="profile-stat-label">Amigos</div>
+            </div>
+            <div class="profile-stat-divider"></div>
+            <div class="profile-stat-item">
+              <div class="profile-stat-value">{{ user.stats.visits }}</div>
+              <div class="profile-stat-label">Visitados</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-nav-card">
+          <a href="{{ url_for('usuario.profile') }}" class="profile-nav-item">
+            <i class="bi bi-person"></i> Mi perfil
+          </a>
+          <a href="{{ url_for('usuario.friends') }}" class="profile-nav-item active">
+            <i class="bi bi-people"></i> Amigos
+          </a>
+          <a href="{{ url_for('usuario.wishlist') }}" class="profile-nav-item">
+            <i class="bi bi-heart"></i> Wishlist
+          </a>
+          <a href="{{ url_for('usuario.history') }}" class="profile-nav-item">
+            <i class="bi bi-clock-history"></i> Actividad reciente
+          </a>
+          <a href="{{ url_for('usuario.security') }}" class="profile-nav-item">
+            <i class="bi bi-shield"></i> Cuenta y seguridad
+          </a>
+        </div>
+      </div>
+
+      <div class="col-lg-9">
+        <div class="profile-content-card">
+          <div class="d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap">
+            <h2 class="profile-main-title mb-0">Perfil de amigo</h2>
+            <button type="button" class="friend-remove-btn" onclick="openDeleteFriendModal()">
+              <i class="bi bi-person-dash"></i> Eliminar amigo
+            </button>
+          </div>
+
+          <div class="profile-info-card mb-4">
+            <div class="d-flex align-items-center gap-4 flex-wrap">
+              <div class="profile-avatar-circle" style="width:88px;height:88px;font-size:1.6rem;">
+                {% if friend.photo_url %}
+                  <img src="{{ url_for('static', filename=friend.photo_url) }}" alt="Foto" class="profile-avatar-img">
+                {% else %}
+                  {{ (friend.name or 'U')[:2]|upper }}
+                {% endif %}
+              </div>
+              <div class="flex-grow-1">
+                <div class="info-card-title mb-2">{{ friend.name }}</div>
+                <div class="info-grid">
+                  <div>
+                    <div class="info-field-label">Nombre completo</div>
+                    <div class="info-field-value">{{ friend.name }}</div>
+                  </div>
+                  <div>
+                    <div class="info-field-label">Username</div>
+                    <div class="info-field-value">@{{ friend.username }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-stats-row mt-4" style="border-top: 1px solid var(--profile-card-border);">
+              <div class="profile-stat-item">
+                <div class="profile-stat-value">{{ friend.stats.friends }}</div>
+                <div class="profile-stat-label">Amigos</div>
+              </div>
+              <div class="profile-stat-divider"></div>
+              <div class="profile-stat-item">
+                <div class="profile-stat-value">{{ friend.stats.visits }}</div>
+                <div class="profile-stat-label">Visitados</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-info-card">
+            <div class="info-card-title mb-3">Historial de restaurantes visitados</div>
+            <div class="d-flex flex-column gap-3">
+              {% for item in friend.visited_history %}
+              <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=item.restaurant_id) if item.restaurant_id else '#' }}"
+                 class="friend-history-row text-decoration-none">
+                <div class="friend-history-media">
+                  {% if item.image_path %}
+                  <img src="{{ url_for('static', filename=item.image_path) }}" alt="{{ item.restaurant_name }}">
+                  {% else %}
+                  <div class="friend-history-placeholder">{{ item.restaurant_name[:2]|upper }}</div>
+                  {% endif %}
+                </div>
+                <div class="friend-history-main">
+                  <div class="friend-history-title">{{ item.restaurant_name }}</div>
+                  <div class="friend-history-meta">Visitado el {{ item.date_label }}</div>
+                </div>
+              </a>
+              {% else %}
+              <div class="card-morfi p-4 text-center">
+                <h6 class="mb-1 fw-bold">Todavía no hay visitas para mostrar</h6>
+                <small class="text-muted">Cuando tu amigo complete reservas, su historial va a aparecer acá.</small>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="profile-info-card mt-4">
+            <div class="info-card-title mb-3">Wishlist</div>
+            <div class="d-flex flex-column gap-3">
+              {% for item in friend.wishlist %}
+              <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=item.restaurant_id) if item.restaurant_id else '#' }}"
+                 class="friend-history-row text-decoration-none">
+                <div class="friend-history-media">
+                  {% if item.image_path %}
+                  <img src="{{ url_for('static', filename=item.image_path) }}" alt="{{ item.restaurant_name }}">
+                  {% else %}
+                  <div class="friend-history-placeholder">{{ item.restaurant_name[:2]|upper }}</div>
+                  {% endif %}
+                </div>
+                <div class="friend-history-main">
+                  <div class="friend-history-title">{{ item.restaurant_name }}</div>
+                  <div class="friend-history-meta">Guardado en su wishlist</div>
+                </div>
+              </a>
+              {% else %}
+              <div class="card-morfi p-4 text-center">
+                <h6 class="mb-1 fw-bold">La wishlist está vacía</h6>
+                <small class="text-muted">Cuando tu amigo guarde restaurantes, van a aparecer acá.</small>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="delete-overlay" id="deleteFriendModal" onclick="closeDeleteFriendOnOverlay(event)">
+  <div class="delete-modal-box">
+    <div class="delete-modal-icon-wrap">
+      <i class="bi bi-person-dash-fill"></i>
+    </div>
+    <h3 class="delete-modal-title">¿Eliminar amigo?</h3>
+    <p class="delete-modal-desc">
+      Vas a eliminar a <strong>{{ friend.name }}</strong> de tu lista de amigos.
+    </p>
+    <ul class="delete-modal-list">
+      <li>Ya no va a figurar en tu lista de amigos</li>
+      <li>No vas a poder ver su perfil de amigo</li>
+      <li>Podrán volver a conectarse más adelante si quieren</li>
+    </ul>
+    <form method="POST" action="{{ url_for('usuario.delete_friend', friend_user_id=friend.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn-confirm-delete">Sí, eliminar amigo</button>
+    </form>
+    <button type="button" class="btn-cancel-delete" onclick="closeDeleteFriendModal()">
+      No, mantener amistad
+    </button>
+  </div>
+</div>
+
+<style>
+.friend-remove-btn {
+    border: 1px solid #F5C2C7;
+    background: #FFF5F5;
+    color: #C0392B;
+    border-radius: 999px;
+    min-height: 38px;
+    padding: 0 16px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.friend-remove-btn:hover {
+    background: #FDECEC;
+}
+.friend-history-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 18px;
+    border: 1px solid #E3D7C7;
+    border-radius: 18px;
+    background: #fff;
+    color: inherit;
+    transition: transform .2s, box-shadow .2s;
+}
+.friend-history-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(35, 24, 21, 0.08);
+    color: inherit;
+}
+.friend-history-media {
+    width: 68px;
+    height: 68px;
+    flex-shrink: 0;
+}
+.friend-history-media img,
+.friend-history-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 16px;
+    object-fit: cover;
+}
+.friend-history-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F2E9DF;
+    color: var(--morfi-dark);
+    font-weight: 800;
+}
+.friend-history-main {
+    min-width: 0;
+}
+.friend-history-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--morfi-dark);
+}
+.friend-history-meta {
+    color: #7A7A98;
+    font-size: 0.92rem;
+    margin-top: 4px;
+}
+</style>
+
+<script>
+  function openDeleteFriendModal() {
+    document.getElementById('deleteFriendModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeDeleteFriendModal() {
+    document.getElementById('deleteFriendModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  function closeDeleteFriendOnOverlay(e) {
+    if (e.target === document.getElementById('deleteFriendModal')) closeDeleteFriendModal();
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeDeleteFriendModal();
+    }
+  });
+</script>
+{% endblock %}

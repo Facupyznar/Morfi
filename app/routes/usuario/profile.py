@@ -20,7 +20,7 @@ from app.models.friends import Friends
 from app.helpers.auth import ModelUser
 from app.models.reserva import Reserva
 from app.models.tag import Tag
-from app.models.user import User
+from app.models.user import Role, User
 from app.models.user_tags import UserTags
 from app.helpers.validators import (
     ValidationError,
@@ -46,6 +46,70 @@ SETUP_EXEMPT_ENDPOINTS = {
 }
 
 ARG_TZ = timezone(timedelta(hours=-3))
+FRIEND_ELIGIBLE_ROLES = (Role.COMENSAL, Role.ADMIN_GLOBAL)
+
+
+def _friend_display_name(user_record):
+    return getattr(user_record, "name", None) or getattr(user_record, "username", "Usuario")
+
+
+def _friend_initials(user_record):
+    display_name = _friend_display_name(user_record).strip()
+    parts = [part for part in display_name.split() if part]
+    if len(parts) >= 2:
+        return f"{parts[0][0]}{parts[1][0]}".upper()
+    return display_name[:2].upper() or "US"
+
+
+def _existing_friend_user_ids(user_id):
+    relations = (
+        db.session.query(Friends.user_id_1, Friends.user_id_2)
+        .filter(
+            or_(Friends.user_id_1 == user_id, Friends.user_id_2 == user_id),
+            Friends.estado.in_(
+                [
+                    FriendshipStatus.PENDIENTE,
+                    FriendshipStatus.ACEPTADA,
+                    FriendshipStatus.BLOQUEADA,
+                ]
+            ),
+        )
+        .all()
+    )
+    connected_ids = set()
+    for user_id_1, user_id_2 in relations:
+        connected_ids.add(user_id_1)
+        connected_ids.add(user_id_2)
+    connected_ids.discard(user_id)
+    return connected_ids
+
+
+def _connectable_users(user_id):
+    excluded_ids = _existing_friend_user_ids(user_id)
+    query = (
+        db.session.query(User)
+        .filter(
+            User.user_id != user_id,
+            User.rol.in_(FRIEND_ELIGIBLE_ROLES),
+            User.is_active.is_(True),
+        )
+        .order_by(func.lower(User.name), func.lower(User.username))
+    )
+
+    if excluded_ids:
+        query = query.filter(User.user_id.notin_(excluded_ids))
+
+    users = query.all()
+    return [
+        {
+            "id": str(user.user_id),
+            "name": _friend_display_name(user),
+            "username": user.username,
+            "initials": _friend_initials(user),
+            "photo_url": getattr(user, "foto_perfil", None),
+        }
+        for user in users
+    ]
 
 @usuario_bp.before_app_request
 def enforce_profile_setup():
@@ -107,6 +171,98 @@ def _selected_tag_names(user_record):
             restriction_names.append(user_tag.tag.name)
 
     return cuisine_names, restriction_names
+
+
+def _build_sidebar_user_data(user_record):
+    level_names = {
+        1: "Invitado",
+        2: "Foodie Curioso",
+        3: "Catador Urbano",
+        4: "Explorador Gourmet",
+        5: "Leyenda Morfi",
+    }
+    raw_level = float(getattr(user_record, "nivel", 1) or 1)
+    current_level_number = max(1, min(5, int(raw_level)))
+    progress = int(round((raw_level - current_level_number) * 100))
+    progress = max(0, min(100, progress))
+    xp_missing = max(0, 500 - int((progress / 100) * 500))
+    visits_count = db.session.query(Reserva).filter(Reserva.user_id == user_record.user_id).count()
+    friends_count = (
+        db.session.query(Friends)
+        .filter(
+            Friends.estado == FriendshipStatus.ACEPTADA,
+            or_(Friends.user_id_1 == user_record.user_id, Friends.user_id_2 == user_record.user_id),
+        )
+        .count()
+    )
+
+    return {
+        "name": getattr(user_record, "name", None) or getattr(user_record, "username", ""),
+        "username": getattr(user_record, "username", ""),
+        "photo_url": getattr(user_record, "foto_perfil", None),
+        "stats": {"friends": friends_count, "visits": visits_count},
+        "level": {
+            "current": level_names[current_level_number],
+            "next": level_names.get(min(current_level_number + 1, 5), ""),
+            "progress": progress,
+            "xp_missing": xp_missing,
+        },
+    }
+
+
+def _friend_payloads(user_id):
+    friendships = (
+        db.session.query(Friends)
+        .options(joinedload(Friends.user_1), joinedload(Friends.user_2))
+        .filter(or_(Friends.user_id_1 == user_id, Friends.user_id_2 == user_id))
+        .order_by(Friends.fecha.desc())
+        .all()
+    )
+
+    accepted = []
+    pending = []
+
+    for friendship in friendships:
+        friend_user = friendship.user_2 if friendship.user_id_1 == user_id else friendship.user_1
+        if friend_user is None:
+            continue
+
+        payload = {
+            "friendship_id": str(friendship.id_amistad),
+            "id": str(friend_user.user_id),
+            "name": _friend_display_name(friend_user),
+            "username": friend_user.username,
+            "initials": _friend_initials(friend_user),
+            "photo_url": getattr(friend_user, "foto_perfil", None),
+            "can_respond": False,
+            "status_text": "Amigo" if friendship.estado == FriendshipStatus.ACEPTADA else "Solicitud pendiente",
+        }
+
+        if friendship.estado == FriendshipStatus.ACEPTADA:
+            accepted.append(payload)
+        elif friendship.estado == FriendshipStatus.PENDIENTE:
+            if friendship.user_id_2 == user_id:
+                payload["status_text"] = "Solicitud recibida"
+                payload["can_respond"] = True
+            else:
+                payload["status_text"] = "Solicitud enviada"
+            pending.append(payload)
+
+    return accepted, pending
+
+
+def _accepted_friendship(user_id, friend_user_id):
+    return (
+        db.session.query(Friends)
+        .filter(
+            Friends.estado == FriendshipStatus.ACEPTADA,
+            or_(
+                and_(Friends.user_id_1 == user_id, Friends.user_id_2 == friend_user_id),
+                and_(Friends.user_id_1 == friend_user_id, Friends.user_id_2 == user_id),
+            ),
+        )
+        .first()
+    )
 
 
 def _save_profile_photo(uploaded_file):
@@ -295,7 +451,142 @@ def save_gustos():
 @usuario_bp.route("/sync-contacts")
 @login_required
 def sync_contacts():
-    return render_template("usuario/sync_contacts.html")
+    return render_template(
+        "usuario/sync_contacts.html",
+        connectable_users=_connectable_users(current_user.user_id),
+    )
+
+
+@usuario_bp.route("/friends/<uuid:friend_id>/connect", methods=["POST"])
+@login_required
+def connect_friend(friend_id):
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    def _json_response(message, category, status_code=200):
+        if wants_json:
+            return jsonify({"ok": status_code < 400, "message": message, "category": category}), status_code
+        flash(message, category)
+        return None
+
+    if friend_id == current_user.user_id:
+        response = _json_response("No podés agregarte como amigo.", "warning", 400)
+        return response or redirect(url_for("usuario.sync_contacts"))
+
+    friend_user = (
+        db.session.query(User)
+        .filter(
+            User.user_id == friend_id,
+            User.rol.in_(FRIEND_ELIGIBLE_ROLES),
+            User.is_active.is_(True),
+        )
+        .first()
+    )
+    if friend_user is None:
+        response = _json_response("El usuario no está disponible para conectar.", "warning", 404)
+        return response or redirect(url_for("usuario.sync_contacts"))
+
+    existing_friendship = (
+        db.session.query(Friends)
+        .filter(
+            or_(
+                and_(Friends.user_id_1 == current_user.user_id, Friends.user_id_2 == friend_id),
+                and_(Friends.user_id_1 == friend_id, Friends.user_id_2 == current_user.user_id),
+            )
+        )
+        .first()
+    )
+    if existing_friendship is not None:
+        if existing_friendship.estado == FriendshipStatus.RECHAZADA:
+            try:
+                existing_friendship.user_id_1 = current_user.user_id
+                existing_friendship.user_id_2 = friend_id
+                existing_friendship.estado = FriendshipStatus.PENDIENTE
+                db.session.commit()
+                response = _json_response("Solicitud enviada correctamente.", "success")
+                if response:
+                    return response
+            except Exception:
+                db.session.rollback()
+                response = _json_response("No se pudo enviar la solicitud.", "danger", 500)
+                return response or redirect(url_for("usuario.sync_contacts"))
+            return redirect(url_for("usuario.sync_contacts"))
+
+        if (
+            existing_friendship.estado == FriendshipStatus.PENDIENTE
+            and existing_friendship.user_id_2 == current_user.user_id
+        ):
+            response = _json_response("Ya tenés una solicitud pendiente de esta persona.", "warning", 400)
+            return response or redirect(url_for("usuario.friends"))
+
+        response = _json_response("Esa conexión ya existe.", "warning", 400)
+        return response or redirect(url_for("usuario.sync_contacts"))
+
+    try:
+        db.session.add(
+            Friends(
+                user_id_1=current_user.user_id,
+                user_id_2=friend_id,
+                estado=FriendshipStatus.PENDIENTE,
+            )
+        )
+        db.session.commit()
+        response = _json_response("Solicitud enviada correctamente.", "success")
+        if response:
+            return response
+    except Exception:
+        db.session.rollback()
+        response = _json_response("No se pudo enviar la solicitud.", "danger", 500)
+        return response or redirect(url_for("usuario.sync_contacts"))
+
+    return redirect(url_for("usuario.sync_contacts"))
+
+
+@usuario_bp.route("/friends/<uuid:friendship_id>/accept", methods=["POST"])
+@login_required
+def accept_friend_request(friendship_id):
+    friendship = (
+        db.session.query(Friends)
+        .filter(
+            Friends.id_amistad == friendship_id,
+            Friends.user_id_2 == current_user.user_id,
+            Friends.estado == FriendshipStatus.PENDIENTE,
+        )
+        .first_or_404()
+    )
+
+    try:
+        friendship.estado = FriendshipStatus.ACEPTADA
+        db.session.commit()
+        flash("Solicitud aceptada.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo aceptar la solicitud.", "danger")
+
+    return redirect(url_for("usuario.friends"))
+
+
+@usuario_bp.route("/friends/<uuid:friendship_id>/reject", methods=["POST"])
+@login_required
+def reject_friend_request(friendship_id):
+    friendship = (
+        db.session.query(Friends)
+        .filter(
+            Friends.id_amistad == friendship_id,
+            Friends.user_id_2 == current_user.user_id,
+            Friends.estado == FriendshipStatus.PENDIENTE,
+        )
+        .first_or_404()
+    )
+
+    try:
+        friendship.estado = FriendshipStatus.RECHAZADA
+        db.session.commit()
+        flash("Solicitud rechazada.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo rechazar la solicitud.", "danger")
+
+    return redirect(url_for("usuario.friends"))
 
 
 @usuario_bp.route("/complete-setup", methods=["POST"])
@@ -409,6 +700,7 @@ def update_profile():
 @login_required
 def history():
     user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
+    user_data = _build_sidebar_user_data(user_record)
     month_param = (request.args.get("month") or "").strip()
     now = datetime.now()
 
@@ -511,9 +803,151 @@ def history():
 
     return render_template(
         "usuario/history.html",
+        user=user_data,
         reservations=reservations_payload,
         selected_month=month_value,
     )
+
+
+@usuario_bp.route("/perfil/amigos")
+@login_required
+def friends():
+    user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
+    user_data = _build_sidebar_user_data(user_record)
+    accepted_friends, pending_friends = _friend_payloads(user_record.user_id)
+    connectable_users = _connectable_users(user_record.user_id)
+
+    return render_template(
+        "usuario/friends.html",
+        user=user_data,
+        accepted_friends=accepted_friends,
+        pending_friends=pending_friends,
+        connectable_users=connectable_users,
+    )
+
+
+@usuario_bp.route("/perfil/amigos/<uuid:friend_user_id>")
+@login_required
+def friend_profile(friend_user_id):
+    if _accepted_friendship(current_user.user_id, friend_user_id) is None:
+        flash("Solo podés ver el perfil de tus amigos.", "warning")
+        return redirect(url_for("usuario.friends"))
+
+    friend_user = (
+        db.session.query(User)
+        .filter(
+            User.user_id == friend_user_id,
+            User.rol.in_(FRIEND_ELIGIBLE_ROLES),
+            User.is_active.is_(True),
+        )
+        .first_or_404()
+    )
+
+    visits_count = (
+        db.session.query(Reserva)
+        .filter(
+            Reserva.user_id == friend_user.user_id,
+            Reserva.estado_reserva == ReservaStatus.COMPLETADA,
+        )
+        .count()
+    )
+    friends_count = (
+        db.session.query(Friends)
+        .filter(
+            Friends.estado == FriendshipStatus.ACEPTADA,
+            or_(Friends.user_id_1 == friend_user.user_id, Friends.user_id_2 == friend_user.user_id),
+        )
+        .count()
+    )
+    visited_restaurants = (
+        db.session.query(Reserva)
+        .options(joinedload(Reserva.restaurant))
+        .filter(
+            Reserva.user_id == friend_user.user_id,
+            Reserva.estado_reserva == ReservaStatus.COMPLETADA,
+        )
+        .order_by(Reserva.fecha_hora.desc())
+        .all()
+    )
+
+    visited_history = []
+    for reserva in visited_restaurants:
+        restaurant = reserva.restaurant
+        visited_history.append(
+            {
+                "restaurant_name": restaurant.name if restaurant else "Restaurante",
+                "restaurant_id": str(restaurant.id_restaurant) if restaurant else None,
+                "image_path": (
+                    getattr(restaurant, "cover_url", None)
+                    or getattr(restaurant, "logo_url", None)
+                    or None
+                ),
+                "date_label": reserva.fecha_hora.strftime("%d/%m/%Y") if reserva.fecha_hora else "",
+            }
+        )
+
+    wishlist_items = (
+        db.session.query(UserFavorites)
+        .options(joinedload(UserFavorites.restaurant))
+        .filter(UserFavorites.user_id == friend_user.user_id)
+        .order_by(UserFavorites.fecha_agregado.desc())
+        .all()
+    )
+    wishlist_payload = []
+    for favorite in wishlist_items:
+        restaurant = favorite.restaurant
+        wishlist_payload.append(
+            {
+                "restaurant_name": restaurant.name if restaurant else "Restaurante",
+                "restaurant_id": str(restaurant.id_restaurant) if restaurant else None,
+                "image_path": (
+                    getattr(restaurant, "cover_url", None)
+                    or getattr(restaurant, "logo_url", None)
+                    or None
+                ),
+            }
+        )
+
+    friend_data = {
+        "id": str(friend_user.user_id),
+        "name": getattr(friend_user, "name", None) or getattr(friend_user, "username", "Usuario"),
+        "username": getattr(friend_user, "username", "usuario"),
+        "photo_url": getattr(friend_user, "foto_perfil", None),
+        "stats": {
+            "friends": friends_count,
+            "visits": visits_count,
+        },
+        "visited_history": visited_history,
+        "wishlist": wishlist_payload,
+    }
+
+    viewer_data = _build_sidebar_user_data(ModelUser.get_by_id(db, current_user.get_id()) or current_user)
+
+    return render_template(
+        "usuario/friend_profile.html",
+        user=viewer_data,
+        friend=friend_data,
+    )
+
+
+@usuario_bp.route("/perfil/amigos/<uuid:friend_user_id>/eliminar", methods=["POST"])
+@login_required
+def delete_friend(friend_user_id):
+    friendship = _accepted_friendship(current_user.user_id, friend_user_id)
+    if friendship is None:
+        flash("Esa amistad no existe o ya fue eliminada.", "warning")
+        return redirect(url_for("usuario.friends"))
+
+    try:
+        db.session.delete(friendship)
+        db.session.commit()
+        flash("Amigo eliminado correctamente.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("No se pudo eliminar el amigo.", "danger")
+        return redirect(url_for("usuario.friend_profile", friend_user_id=friend_user_id))
+
+    return redirect(url_for("usuario.friends"))
 
 
 @usuario_bp.route("/perfil/reservas/<uuid:id_reserva>/cancelar", methods=["POST"])
@@ -556,48 +990,9 @@ def security():
     """Página Cuenta y seguridad — reutiliza los mismos datos que profile()."""
     user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
     cuisine_names, restriction_names = _selected_tag_names(user_record)
- 
-    level_names = {
-        1: "Invitado",
-        2: "Foodie Curioso",
-        3: "Catador Urbano",
-        4: "Explorador Gourmet",
-        5: "Leyenda Morfi",
-    }
-    raw_level = float(getattr(user_record, "nivel", 1) or 1)
-    current_level_number = max(1, min(5, int(raw_level)))
-    progress = int(round((raw_level - current_level_number) * 100))
-    progress = max(0, min(100, progress))
-    xp_missing = max(0, 500 - int((progress / 100) * 500))
- 
-    visits_count = db.session.query(Reserva).filter(
-        Reserva.user_id == user_record.user_id
-    ).count()
-    friends_count = (
-        db.session.query(Friends)
-        .filter(
-            Friends.estado == FriendshipStatus.ACEPTADA,
-            or_(
-                Friends.user_id_1 == user_record.user_id,
-                Friends.user_id_2 == user_record.user_id,
-            ),
-        )
-        .count()
-    )
- 
-    user_data = {
-        "name": getattr(user_record, "name", None) or getattr(user_record, "username", ""),
-        "username": getattr(user_record, "username", ""),
-        "stats": {"friends": friends_count, "visits": visits_count},
-        "level": {
-            "current": level_names[current_level_number],
-            "next": level_names.get(min(current_level_number + 1, 5), ""),
-            "progress": progress,
-            "xp_missing": xp_missing,
-        },
-        "favorite_cuisines": cuisine_names,
-        "dietary_restrictions": restriction_names,
-    }
+    user_data = _build_sidebar_user_data(user_record)
+    user_data["favorite_cuisines"] = cuisine_names
+    user_data["dietary_restrictions"] = restriction_names
     return render_template(
         "usuario/cuenta_seguridad.html",
         user=user_data,
@@ -702,33 +1097,7 @@ def wishlist():
             "cover_url": r.cover_url,
         })
 
-    level_names = {1: "Invitado", 2: "Foodie Curioso", 3: "Catador Urbano", 4: "Explorador Gourmet", 5: "Leyenda Morfi"}
-    raw_level = float(getattr(user_record, "nivel", 1) or 1)
-    current_level_number = max(1, min(5, int(raw_level)))
-    progress = int(round((raw_level - current_level_number) * 100))
-    xp_missing = max(0, 500 - int((progress / 100) * 500))
-    visits_count = db.session.query(Reserva).filter(Reserva.user_id == user_record.user_id).count()
-    friends_count = (
-        db.session.query(Friends)
-        .filter(
-            Friends.estado == FriendshipStatus.ACEPTADA,
-            or_(Friends.user_id_1 == user_record.user_id, Friends.user_id_2 == user_record.user_id),
-        )
-        .count()
-    )
-
-    user_data = {
-        "name":     getattr(user_record, "name", None) or getattr(user_record, "username", ""),
-        "username": getattr(user_record, "username", ""),
-        "photo_url": getattr(user_record, "foto_perfil", None),
-        "stats": {"friends": friends_count, "visits": visits_count},
-        "level": {
-            "current":   level_names[current_level_number],
-            "next":      level_names.get(min(current_level_number + 1, 5), ""),
-            "progress":  progress,
-            "xp_missing": xp_missing,
-        },
-    }
+    user_data = _build_sidebar_user_data(user_record)
     return render_template("usuario/wishlist.html", user=user_data, wishlist=wishlist_items)
 
 

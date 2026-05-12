@@ -2,11 +2,14 @@ from datetime import datetime, timedelta, date, timezone
 
 from flask import jsonify, render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_required
+from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
 from app.database import db
 from app.helpers.validators import ValidationError, validate_int, validate_text
 from app.location import haversine_km, parse_float
+from app.models.friends import Friends
+from app.models.enums import FriendshipStatus
 from app.models.restaurant import Restaurant
 from app.models.restaurant_tags import RestaurantTags
 from app.models.reserva import Reserva
@@ -99,6 +102,48 @@ def _slots_para_fecha(restaurant, fecha: date):
     return slots
 
 
+def _friend_display_name(user_record):
+    return getattr(user_record, "name", None) or getattr(user_record, "username", "Usuario")
+
+
+def _friend_initials(user_record):
+    display_name = _friend_display_name(user_record).strip()
+    parts = [part for part in display_name.split() if part]
+    if len(parts) >= 2:
+        return f"{parts[0][0]}{parts[1][0]}".upper()
+    return display_name[:2].upper() or "US"
+
+
+def _accepted_friends_payload(user_id):
+    friendships = (
+        db.session.query(Friends)
+        .options(joinedload(Friends.user_1), joinedload(Friends.user_2))
+        .filter(
+            Friends.estado == FriendshipStatus.ACEPTADA,
+            or_(Friends.user_id_1 == user_id, Friends.user_id_2 == user_id),
+        )
+        .order_by(Friends.fecha.desc())
+        .all()
+    )
+
+    friends = []
+    for friendship in friendships:
+        friend_user = friendship.user_2 if friendship.user_id_1 == user_id else friendship.user_1
+        if friend_user is None:
+            continue
+        friends.append(
+            {
+                "id": str(friend_user.user_id),
+                "name": _friend_display_name(friend_user),
+                "username": friend_user.username,
+                "initials": _friend_initials(friend_user),
+                "photo_url": getattr(friend_user, "foto_perfil", None),
+                "status_text": "Amigo",
+            }
+        )
+    return friends
+
+
 # ── Rutas ─────────────────────────────────────────────────────────
 
 @usuario_bp.route('/home')
@@ -164,6 +209,7 @@ def home():
         restaurant_cards.sort(key=lambda r: r["distance"] if r["distance"] is not None else 999999)
 
     wishlist_sidebar = [r for r in restaurant_cards if r["in_wishlist"]][:5]
+    friends = _accepted_friends_payload(current_user.user_id)
 
     return render_template(
         'usuario/home.html',
@@ -172,6 +218,8 @@ def home():
         user_lat=default_user_lat,
         user_lng=default_user_lng,
         wishlist_sidebar=wishlist_sidebar,
+        active_friends=friends[:2],
+        friends_count=len(friends),
     )
 
 

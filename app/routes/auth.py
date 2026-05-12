@@ -87,6 +87,10 @@ def _build_partner_username(restaurant_name, email):
     return candidate
 
 
+def _extract_form_values(field_names):
+    return {field_name: request.form.get(field_name, "") for field_name in field_names}
+
+
 @auth_bp.route('/')
 def index():
     if current_user.is_authenticated:
@@ -151,6 +155,17 @@ def register_comensal():
     if current_user.is_authenticated:
         return redirect(_resolve_next_url())
 
+    form_fields = [
+        "name",
+        "username",
+        "email",
+        "address",
+        "latitude",
+        "longitude",
+        "fecha",
+    ]
+    form_data = _extract_form_values(form_fields)
+
     if request.method == "POST":
         try:
             username = validate_username(request.form.get("username", ""))
@@ -163,7 +178,7 @@ def register_comensal():
             birth_date = validate_birth_date(request.form.get("fecha", "").strip())
         except ValidationError as ex:
             flash(str(ex), "danger")
-            return render_template("auth/register.html")
+            return render_template("auth/register.html", form_data=form_data)
 
         latitude = request.form.get("latitude")
         longitude = request.form.get("longitude")
@@ -172,7 +187,7 @@ def register_comensal():
             location_payload = resolve_location_payload(address, latitude, longitude)
         except ValueError as ex:
             flash(str(ex), "danger")
-            return render_template("auth/register.html")
+            return render_template("auth/register.html", form_data=form_data)
 
         try:
             ModelUser.register(
@@ -189,15 +204,15 @@ def register_comensal():
             )
         except ValueError as ex:
             flash(str(ex), "danger")
-            return render_template("auth/register.html")
+            return render_template("auth/register.html", form_data=form_data)
         except Exception:
             flash("No se pudo completar el registro.", "danger")
-            return render_template("auth/register.html")
+            return render_template("auth/register.html", form_data=form_data)
 
         flash("¡Cuenta creada! Ya podés iniciar sesión.", "success")
         return redirect(url_for("auth.login"))
 
-    return render_template("auth/register.html")
+    return render_template("auth/register.html", form_data=form_data)
 
 
 @auth_bp.route("/register/restaurante", methods=["GET", "POST"])
@@ -205,6 +220,16 @@ def register_comensal():
 def register_partner():
     if current_user.is_authenticated:
         return redirect(_resolve_next_url())
+
+    form_fields = [
+        "name",
+        "username",
+        "address",
+        "latitude",
+        "longitude",
+        "email",
+    ]
+    form_data = _extract_form_values(form_fields)
 
     if request.method == "POST":
         latitude = request.form.get("latitude")
@@ -226,21 +251,21 @@ def register_partner():
             )
         except ValidationError as ex:
             flash(str(ex), "danger")
-            return render_template("auth/register_partner.html")
+            return render_template("auth/register_partner.html", form_data=form_data)
 
         try:
             location_payload = resolve_location_payload(address, latitude, longitude)
         except ValueError as ex:
             flash(str(ex), "danger")
-            return render_template("auth/register_partner.html")
+            return render_template("auth/register_partner.html", form_data=form_data)
 
         if db.session.query(User).filter(func.lower(User.username) == username.lower()).first():
             flash("El nombre de usuario ya está en uso.", "danger")
-            return render_template("auth/register_partner.html")
+            return render_template("auth/register_partner.html", form_data=form_data)
 
         if db.session.query(User).filter(func.lower(User.email) == email.lower()).first():
             flash("El correo electrónico ya está registrado.", "danger")
-            return render_template("auth/register_partner.html")
+            return render_template("auth/register_partner.html", form_data=form_data)
 
         try:
             user = User(
@@ -270,17 +295,17 @@ def register_partner():
         except ValueError as ex:
             db.session.rollback()
             flash(str(ex), "danger")
-            return render_template("auth/register_partner.html")
+            return render_template("auth/register_partner.html", form_data=form_data)
         except Exception:
             db.session.rollback()
             flash("No se pudo completar el registro del restaurante.", "danger")
-            return render_template("auth/register_partner.html")
+            return render_template("auth/register_partner.html", form_data=form_data)
 
         login_user(user)
         flash("Tu cuenta y tu restaurante fueron creados correctamente.", "success")
         return redirect(_resolve_post_login_redirect(user))
 
-    return render_template("auth/register_partner.html")
+    return render_template("auth/register_partner.html", form_data=form_data)
 
 
 @auth_bp.route("/logout")

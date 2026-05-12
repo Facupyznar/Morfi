@@ -1,85 +1,153 @@
 {% extends 'base.html' %}
 {% block title %}Historial de Consumo - Morfi{% endblock %}
 
+{% block navbar %}{% include 'includes/_navbar_auth.html' %}{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/profile.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex align-items-center mb-4">
-        <a href="javascript:history.back()" class="btn btn-outline-dark rounded-circle me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: var(--morfi-beige); border-color: var(--morfi-border);">
-            <i class="bi bi-arrow-left"></i>
+<div class="profile-page-bg">
+  <div class="container-fluid px-4 py-4" style="max-width:1200px; margin:0 auto;">
+    <div class="row g-4">
+
+      <div class="col-lg-3 position-relative">
+        <a href="{{ url_for('usuario.home') }}" class="btn btn-outline-dark rounded-circle position-absolute"
+           style="top:-15px;left:-10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background-color:var(--morfi-beige);border-color:var(--morfi-border);z-index:10;">
+          <i class="bi bi-arrow-left"></i>
         </a>
-        <h1 class="baloo text-dark mb-0 me-auto">Historial de Consumo</h1>
-        <form method="GET" class="mb-0">
-            <input type="month" name="month" class="form-control w-auto border-morfi" value="{{ selected_month }}" onchange="this.form.submit()">
-        </form>
-    </div>
 
-    <ul class="nav nav-tabs border-0 mb-4 gap-4" id="historyTabs" role="tablist">
-        <li class="nav-item">
-            <button class="nav-link active border-0 border-bottom border-3 border-transparent px-0 pb-2 fw-bold text-muted" data-bs-toggle="tab" data-bs-target="#reservas">Reservas</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link border-0 border-bottom border-3 border-transparent px-0 pb-2 fw-bold text-muted" data-bs-toggle="tab" data-bs-target="#beneficios">Beneficios canjeados</button>
-        </li>
-    </ul>
+        <div class="profile-sidebar-card text-center">
+          <div class="profile-avatar-wrapper mx-auto">
+            <div class="profile-avatar-circle">
+              {% if user.photo_url %}
+                <img src="{{ url_for('static', filename=user.photo_url) }}" alt="Foto" class="profile-avatar-img">
+              {% else %}
+                {{ (user.name or 'U')[:2]|upper }}
+              {% endif %}
+            </div>
+          </div>
+          <div class="profile-user-name mt-2">{{ user.name }}</div>
+          <div class="profile-username">@{{ user.username }}</div>
+          <div class="profile-level-badge">Nivel {{ current_user.nivel }} · {{ user.level.current }}</div>
+          <div class="profile-progress mx-auto" style="max-width:160px;">
+            <div class="profile-progress-fill" style="width:{{ user.level.progress }}%"></div>
+          </div>
+          <div class="profile-xp-hint">{{ user.level.xp_missing }} visitas para {{ user.level.next }}</div>
+          <div class="profile-stats-row">
+            <div class="profile-stat-item">
+              <div class="profile-stat-value">{{ user.stats.friends }}</div>
+              <div class="profile-stat-label">Amigos</div>
+            </div>
+            <div class="profile-stat-divider"></div>
+            <div class="profile-stat-item">
+              <div class="profile-stat-value">{{ user.stats.visits }}</div>
+              <div class="profile-stat-label">Visitados</div>
+            </div>
+          </div>
+        </div>
 
-    <div class="tab-content" id="historyTabsContent">
-        <div class="tab-pane fade show active" id="reservas">
-            <div class="d-flex flex-column gap-3">
+        <div class="profile-nav-card">
+          <a href="{{ url_for('usuario.profile') }}" class="profile-nav-item">
+            <i class="bi bi-person"></i> Mi perfil
+          </a>
+          <a href="{{ url_for('usuario.friends') }}" class="profile-nav-item">
+            <i class="bi bi-people"></i> Amigos
+          </a>
+          <a href="{{ url_for('usuario.wishlist') }}" class="profile-nav-item">
+            <i class="bi bi-heart"></i> Wishlist
+          </a>
+          <a href="{{ url_for('usuario.history') }}" class="profile-nav-item active">
+            <i class="bi bi-clock-history"></i> Actividad reciente
+          </a>
+          <a href="{{ url_for('usuario.security') }}" class="profile-nav-item">
+            <i class="bi bi-shield"></i> Cuenta y seguridad
+          </a>
+        </div>
+      </div>
+
+      <div class="col-lg-9">
+        <div class="profile-content-card">
+          <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+            <h2 class="profile-main-title mb-0 me-auto">Historial de Consumo</h2>
+            <form method="GET" class="mb-0">
+              <input type="month" name="month" class="form-control w-auto border-morfi" value="{{ selected_month }}" onchange="this.form.submit()">
+            </form>
+          </div>
+
+          <ul class="nav nav-tabs border-0 mb-4 gap-4" id="historyTabs" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link active border-0 border-bottom border-3 border-transparent px-0 pb-2 fw-bold text-muted" data-bs-toggle="tab" data-bs-target="#reservas">Reservas</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link border-0 border-bottom border-3 border-transparent px-0 pb-2 fw-bold text-muted" data-bs-toggle="tab" data-bs-target="#beneficios">Beneficios canjeados</button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="historyTabsContent">
+            <div class="tab-pane fade show active" id="reservas">
+              <div class="d-flex flex-column gap-3">
                 {% for reservation in reservations %}
                 <div class="history-reservation-card">
-                    <div class="history-reservation-media">
-                        {% if reservation.image_path %}
-                        <img src="{{ url_for('static', filename=reservation.image_path) }}" alt="{{ reservation.restaurant_name }}">
-                        {% else %}
-                        <div class="history-reservation-placeholder">
-                            {{ reservation.restaurant_name[:2]|upper }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="history-reservation-main">
-                        <h6 class="history-reservation-title">{{ reservation.restaurant_name }}</h6>
-                        <div class="history-reservation-meta">{{ reservation.date_label }} · {{ reservation.time_label }} · {{ reservation.diners_label }}</div>
-                        
-                    </div>
-                    {% if reservation.status_label or reservation.action_label or reservation.can_cancel %}
-                    <div class="history-reservation-side">
-                        {% if reservation.status_label %}
-                        <span class="history-status history-status--{{ reservation.status_variant }}">{{ reservation.status_label }}</span>
-                        {% endif %}
-                        {% if reservation.action_label and reservation.restaurant_id %}
-                        <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=reservation.restaurant_id) }}" class="history-review-link">{{ reservation.action_label }}</a>
-                        {% endif %}
-                        {% if reservation.can_cancel %}
-                        <form method="POST" action="{{ url_for('usuario.cancel_user_reservation', id_reserva=reservation.reservation_id) }}" class="mb-0">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="month" value="{{ selected_month }}">
-                            <button type="submit" class="history-cancel-btn">Cancelar reserva</button>
-                        </form>
-                        {% endif %}
+                  <div class="history-reservation-media">
+                    {% if reservation.image_path %}
+                    <img src="{{ url_for('static', filename=reservation.image_path) }}" alt="{{ reservation.restaurant_name }}">
+                    {% else %}
+                    <div class="history-reservation-placeholder">
+                      {{ reservation.restaurant_name[:2]|upper }}
                     </div>
                     {% endif %}
+                  </div>
+                  <div class="history-reservation-main">
+                    <h6 class="history-reservation-title">{{ reservation.restaurant_name }}</h6>
+                    <div class="history-reservation-meta">{{ reservation.date_label }} · {{ reservation.time_label }} · {{ reservation.diners_label }}</div>
+                  </div>
+                  {% if reservation.status_label or reservation.action_label or reservation.can_cancel %}
+                  <div class="history-reservation-side">
+                    {% if reservation.status_label %}
+                    <span class="history-status history-status--{{ reservation.status_variant }}">{{ reservation.status_label }}</span>
+                    {% endif %}
+                    {% if reservation.action_label and reservation.restaurant_id %}
+                    <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=reservation.restaurant_id) }}" class="history-review-link">{{ reservation.action_label }}</a>
+                    {% endif %}
+                    {% if reservation.can_cancel %}
+                    <form method="POST" action="{{ url_for('usuario.cancel_user_reservation', id_reserva=reservation.reservation_id) }}" class="mb-0">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="month" value="{{ selected_month }}">
+                      <button type="submit" class="history-cancel-btn">Cancelar reserva</button>
+                    </form>
+                    {% endif %}
+                  </div>
+                  {% endif %}
                 </div>
                 {% else %}
                 <div class="card-morfi p-4">
-                    <h6 class="mb-1 fw-bold">No hay reservas en este mes</h6>
-                    <small class="text-muted">Cuando hagas una reserva, la vas a ver acá.</small>
+                  <h6 class="mb-1 fw-bold">No hay reservas en este mes</h6>
+                  <small class="text-muted">Cuando hagas una reserva, la vas a ver acá.</small>
                 </div>
                 {% endfor %}
+              </div>
             </div>
-        </div>
 
-        <div class="tab-pane fade" id="beneficios">
-            <div class="d-flex flex-column gap-3">
+            <div class="tab-pane fade" id="beneficios">
+              <div class="d-flex flex-column gap-3">
                 <div class="card-morfi p-3 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0 fw-bold">Postre gratis</h6>
-                        <small class="text-muted">Lo de Carlitos · 28 mar 2026</small>
-                    </div>
-                    <span class="badge rounded-pill p-2 px-3" style="background-color: #FFF0EB; color: #C94A1A;">Nivel 3</span>
+                  <div>
+                    <h6 class="mb-0 fw-bold">Postre gratis</h6>
+                    <small class="text-muted">Lo de Carlitos · 28 mar 2026</small>
+                  </div>
+                  <span class="badge rounded-pill p-2 px-3" style="background-color: #FFF0EB; color: #C94A1A;">Nivel 3</span>
                 </div>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
+
     </div>
+  </div>
 </div>
 
 <style>

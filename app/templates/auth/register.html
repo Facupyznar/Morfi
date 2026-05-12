@@ -33,15 +33,15 @@
       <form id="registerForm" action="{{ url_for('auth.register_comensal') }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <input type="text"  name="name"     class="morfi-custom-input" placeholder="Nombre completo" required minlength="2" maxlength="50">
-        <input type="text"  name="username" class="morfi-custom-input" id="username" placeholder="Nombre de usuario" required minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+">
-        <input type="email" name="email"    class="morfi-custom-input" id="email" placeholder="Email" required maxlength="255">
-        <input type="text"  name="address"  class="morfi-custom-input" id="user-register-address" placeholder="Dirección" required minlength="3" maxlength="255">
-        <input type="hidden" id="user-register-lat" name="latitude">
-        <input type="hidden" id="user-register-lng" name="longitude">
+        <input type="text"  name="name"     class="morfi-custom-input" placeholder="Nombre completo" required minlength="2" maxlength="50" value="{{ form_data.name if form_data else '' }}">
+        <input type="text"  name="username" class="morfi-custom-input" id="username" placeholder="Nombre de usuario" required minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" value="{{ form_data.username if form_data else '' }}">
+        <input type="email" name="email"    class="morfi-custom-input" id="email" placeholder="Email" required maxlength="255" value="{{ form_data.email if form_data else '' }}">
+        <input type="text"  name="address"  class="morfi-custom-input" id="user-register-address" placeholder="Dirección" required minlength="3" maxlength="255" value="{{ form_data.address if form_data else '' }}">
+        <input type="hidden" id="user-register-lat" name="latitude" value="{{ form_data.latitude if form_data else '' }}">
+        <input type="hidden" id="user-register-lng" name="longitude" value="{{ form_data.longitude if form_data else '' }}">
 
         <div class="date-group">
-          <input type="date" name="fecha" id="fecha" class="morfi-custom-input" required>
+          <input type="date" name="fecha" id="fecha" class="morfi-custom-input" required value="{{ form_data.fecha if form_data else '' }}">
           <label for="fecha" class="input-sublabel">Fecha de nacimiento</label>
         </div>
 
