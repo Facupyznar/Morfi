@@ -227,17 +227,15 @@ def reservations():
         r.hora_local = (fh.astimezone(ARG_TZ) if fh.tzinfo else fh).strftime('%H:%M')
 
     # Stats del día
-    confirmadas = sum(1 for r in reservas if r.estado_reserva == ReservaStatus.CONFIRMADA)
-    pendientes  = sum(1 for r in reservas if r.estado_reserva == ReservaStatus.PENDIENTE)
-    ocupacion   = sum(
+    completadas  = sum(1 for r in reservas if r.estado_reserva == ReservaStatus.COMPLETADA)
+    personas_hoy = sum(
         r.cant_personas for r in reservas
-        if r.estado_reserva == ReservaStatus.CONFIRMADA
+        if r.estado_reserva == ReservaStatus.COMPLETADA
     )
 
     stats = {
-        "confirmadas":   confirmadas,
-        "pendientes":    pendientes,
-        "ocupacion_hoy": ocupacion,
+        "completadas":   completadas,
+        "personas_hoy":  personas_hoy,
     }
 
     default_horario = [
@@ -315,8 +313,13 @@ def cancelar_reserva(id_reserva):
 @login_required
 def cambiar_estado_reserva(id_reserva):
     from flask import jsonify
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or \
+              request.accept_mimetypes.best == "application/json"
+
     if not _admin_required():
-        return jsonify({"error": "Sin permiso"}), 403
+        if is_ajax:
+            return jsonify({"error": "Sin permiso"}), 403
+        return redirect(url_for("restaurante.reservations"))
 
     restaurant = _get_owned_restaurant()
     reserva = Reserva.query.filter_by(
@@ -338,15 +341,20 @@ def cambiar_estado_reserva(id_reserva):
             set(estado_map.keys()),
         )
     except ValidationError:
-        return jsonify({"error": "Estado inválido"}), 400
+        if is_ajax:
+            return jsonify({"error": "Estado inválido"}), 400
+        return redirect(url_for("restaurante.reservations"))
 
     reserva.estado_reserva = estado_map[nuevo]
     db.session.commit()
 
-    return jsonify({
-        "ok":     True,
-        "estado": nuevo,
-    })
+    fecha_param = request.form.get("fecha") or request.args.get("fecha")
+    redirect_url = url_for("restaurante.reservations") + (f"?fecha={fecha_param}" if fecha_param else "")
+
+    if is_ajax:
+        return jsonify({"ok": True, "estado": nuevo})
+
+    return redirect(redirect_url)
 
 
 # ── Configuración: capacidad y horarios ──────────────────────────

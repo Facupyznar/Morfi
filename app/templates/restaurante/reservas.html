@@ -45,33 +45,12 @@
         </div>
       </div>
       <div class="rv-stat-card">
-        <div class="rv-stat-icon rv-stat-icon--orange">
-          <i class="bi bi-graph-up"></i>
-        </div>
-        <div class="rv-stat-body">
-          <div class="rv-stat-value">
-            {{ stats.ocupacion_hoy | default(0) }}
-            <span class="rv-stat-of">/ {{ restaurant.capacidad | default(45) }}</span>
-          </div>
-          <div class="rv-stat-label">Ocupación hoy</div>
-        </div>
-      </div>
-      <div class="rv-stat-card">
         <div class="rv-stat-icon rv-stat-icon--green">
-          <i class="bi bi-calendar-check-fill"></i>
+          <i class="bi bi-patch-check-fill"></i>
         </div>
         <div class="rv-stat-body">
-          <div class="rv-stat-value">{{ stats.confirmadas | default(0) }}</div>
-          <div class="rv-stat-label">Confirmadas <span class="rv-stat-unit">reservas</span></div>
-        </div>
-      </div>
-      <div class="rv-stat-card">
-        <div class="rv-stat-icon rv-stat-icon--yellow">
-          <i class="bi bi-clock-history"></i>
-        </div>
-        <div class="rv-stat-body">
-          <div class="rv-stat-value">{{ stats.pendientes | default(0) }}</div>
-          <div class="rv-stat-label">Pendientes <span class="rv-stat-unit">por confirmar</span></div>
+          <div class="rv-stat-value">{{ stats.personas_hoy | default(0) }}</div>
+          <div class="rv-stat-label">Asistieron <span class="rv-stat-unit">hoy</span></div>
         </div>
       </div>
     </div>
@@ -305,10 +284,29 @@
                   </button>
                 </form>
               {% elif r.estado_reserva.value == 'confirmada' %}
-                <form method="POST" action="{{ url_for('restaurante.cancelar_reserva', id_reserva=r.id_reserva) }}" style="display:inline;">
+                <form method="POST" action="{{ url_for('restaurante.cambiar_estado_reserva', id_reserva=r.id_reserva) }}" style="display:inline;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="rv-btn rv-btn--delete" title="Cancelar">
-                    <i class="bi bi-trash"></i>
+                  <input type="hidden" name="estado" value="completada">
+                  <input type="hidden" name="fecha" value="{{ request.args.get('fecha', '') }}">
+                  <button type="submit" class="rv-btn rv-btn--asistio" title="Asistió">
+                    <i class="bi bi-person-check"></i>
+                  </button>
+                </form>
+                <form method="POST" action="{{ url_for('restaurante.cambiar_estado_reserva', id_reserva=r.id_reserva) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="estado" value="cancelada">
+                  <input type="hidden" name="fecha" value="{{ request.args.get('fecha', '') }}">
+                  <button type="submit" class="rv-btn rv-btn--noasistio" title="No asistió">
+                    <i class="bi bi-person-x"></i>
+                  </button>
+                </form>
+              {% elif r.estado_reserva.value in ('completada', 'cancelada') %}
+                <form method="POST" action="{{ url_for('restaurante.cambiar_estado_reserva', id_reserva=r.id_reserva) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="estado" value="confirmada">
+                  <input type="hidden" name="fecha" value="{{ request.args.get('fecha', '') }}">
+                  <button type="submit" class="rv-btn rv-btn--undo" title="Deshacer">
+                    <i class="bi bi-arrow-counterclockwise"></i>
                   </button>
                 </form>
               {% endif %}
@@ -491,6 +489,18 @@
     document.getElementById('drawer-overlay').classList.remove('active');
     document.getElementById('rv-drawer').classList.remove('open');
     drawerReservaId = null;
+  }
+
+  async function marcarEstadoRapido(reservaId, nuevoEstado) {
+    var csrfToken = '{{ csrf_token() }}';
+    var res = await fetch('/restaurante/reservas/' + reservaId + '/estado', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    'estado=' + nuevoEstado + '&csrf_token=' + encodeURIComponent(csrfToken),
+    });
+    var data = await res.json();
+    if (!data.ok) { alert('Error al cambiar estado'); return; }
+    location.reload();
   }
 
   async function cambiarEstado(nuevoEstado) {
