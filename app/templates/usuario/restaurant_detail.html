@@ -7,6 +7,7 @@
 {% block customCSS %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/restaurant.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/ofertas.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -252,10 +253,63 @@
 
         <!-- Benefits Tab -->
         <div id="tab-beneficios" class="tab-content" style="display:none;">
+          {% if not ofertas and not beneficios %}
           <div class="tab-placeholder">
             <i class="bi bi-gift" style="font-size:2rem; color:#D9CEBD;"></i>
-            <p class="mt-2 text-muted">Beneficios próximamente.</p>
+            <p class="mt-2 text-muted">Este restaurante todavía no tiene ofertas ni beneficios.</p>
           </div>
+          {% else %}
+
+          {% if ofertas %}
+          <h3 class="promo-section-title"><i class="bi bi-tags"></i> Ofertas vigentes</h3>
+          <div class="promo-offers-grid">
+            {% for o in ofertas %}
+            <article class="promo-offer-card">
+              <div class="promo-offer-media">
+                {% if o.imagen_path %}
+                <img src="{{ url_for('static', filename=o.imagen_path) }}" alt="{{ o.titulo }}">
+                {% else %}
+                <div class="promo-offer-media--empty"><i class="bi bi-tags"></i></div>
+                {% endif %}
+                {% if o.fecha_fin_iso %}
+                <span class="promo-countdown" data-deadline="{{ o.fecha_fin_iso }}">
+                  <i class="bi bi-clock"></i> <span class="promo-countdown-text">—</span>
+                </span>
+                {% endif %}
+              </div>
+              <div class="promo-offer-body">
+                <h4 class="promo-offer-title">{{ o.titulo }}</h4>
+                {% if o.descripcion %}<p class="promo-offer-desc">{{ o.descripcion }}</p>{% endif %}
+                <p class="promo-offer-until">Válida hasta el {{ o.fecha_fin_label }}</p>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if beneficios %}
+          <h3 class="promo-section-title mt-4"><i class="bi bi-gift"></i> Beneficios para clientes frecuentes</h3>
+          <div class="promo-benefits-list">
+            {% for b in beneficios %}
+            <article class="promo-benefit-card {{ 'promo-benefit-card--unlocked' if b.desbloqueado else '' }}">
+              <div class="promo-benefit-head">
+                <p class="promo-benefit-desc">{{ b.descripcion }}</p>
+                {% if b.desbloqueado %}
+                <span class="promo-benefit-tag promo-benefit-tag--on"><i class="bi bi-check-circle-fill"></i> Desbloqueado</span>
+                {% else %}
+                <span class="promo-benefit-tag">{{ b.restantes }} visita{{ 's' if b.restantes != 1 else '' }} más</span>
+                {% endif %}
+              </div>
+              <div class="promo-progress">
+                <div class="promo-progress-bar" style="width: {{ b.porcentaje }}%"></div>
+              </div>
+              <p class="promo-benefit-meta">{{ b.visitas }} / {{ b.objetivo }} visitas · {{ b.valor_label }}</p>
+            </article>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% endif %}
         </div>
       </div>
 
@@ -293,6 +347,7 @@
     }
   }
 </script>
+<script src="{{ url_for('static', filename='js/ofertas_countdown.js') }}"></script>
 <style>
   .reviews-shell {
     display: flex;

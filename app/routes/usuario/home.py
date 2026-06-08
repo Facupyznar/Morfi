@@ -6,6 +6,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
 from app.database import db
+from app.helpers.promos import beneficios_con_progreso, ofertas_vigentes
 from app.helpers.validators import ValidationError, validate_int, validate_text
 from app.location import haversine_km, parse_float
 from app.models.friends import Friends
@@ -336,6 +337,9 @@ def restaurant_detail(restaurant_id):
         .first()
     ) is not None
 
+    ofertas_vigentes_list = ofertas_vigentes(restaurant_record.id_restaurant)
+    beneficios_list = beneficios_con_progreso(restaurant_record.id_restaurant, current_user.user_id)
+
     return render_template(
         "usuario/restaurant_detail.html",
         restaurant=restaurant_data,
@@ -344,6 +348,8 @@ def restaurant_detail(restaurant_id):
         is_in_wishlist=is_in_wishlist,
         eligible_reserva_id=str(eligible_reserva.id_reserva) if eligible_reserva else None,
         user_has_review=user_has_review,
+        ofertas=ofertas_vigentes_list,
+        beneficios=beneficios_list,
     )
 
 

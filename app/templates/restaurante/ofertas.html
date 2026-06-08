@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Ofertas - Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/ofertas.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+  {% include 'includes/_admin_sidebar.html' %}
+
+  <main class="admin-main of-main">
+    <div class="of-header">
+      <div>
+        <h1 class="of-title">Ofertas temporales</h1>
+        <p class="of-subtitle">
+          Promociones con fecha de inicio y fin. {{ vigentes_count }} vigente{{ 's' if vigentes_count != 1 else '' }}.
+        </p>
+      </div>
+      <button class="of-btn-primary" onclick="openOfertaModal()">
+        <i class="bi bi-plus-lg"></i> Nueva oferta
+      </button>
+    </div>
+
+    <div class="of-grid">
+      {% for o in ofertas %}
+      <article class="of-card {{ 'of-card--inactive' if not o.activo else '' }}">
+        <div class="of-card-media">
+          {% if o.imagen_path %}
+          <img src="{{ url_for('static', filename=o.imagen_path) }}" alt="{{ o.titulo }}">
+          {% else %}
+          <div class="of-card-media--empty"><i class="bi bi-image"></i></div>
+          {% endif %}
+          <span class="of-badge of-badge--{{ 'vigente' if o.vigente else 'off' }}">
+            {{ 'Vigente' if o.vigente else ('Inactiva' if not o.activo else 'Fuera de fecha') }}
+          </span>
+        </div>
+        <div class="of-card-body">
+          <h3 class="of-card-title">{{ o.titulo }}</h3>
+          {% if o.descripcion %}<p class="of-card-desc">{{ o.descripcion }}</p>{% endif %}
+          <div class="of-card-dates">
+            <span><i class="bi bi-calendar-event"></i> {{ o.fecha_inicio_label }}</span>
+            <span><i class="bi bi-calendar-x"></i> {{ o.fecha_fin_label }}</span>
+          </div>
+        </div>
+        <div class="of-card-actions">
+          <button class="of-icon-btn" title="Editar" onclick="openOfertaEdit(this)"
+                  data-id="{{ o.id }}"
+                  data-titulo="{{ o.titulo|e }}"
+                  data-descripcion="{{ o.descripcion|e }}"
+                  data-inicio="{{ o.fecha_inicio }}"
+                  data-fin="{{ o.fecha_fin }}">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <form method="POST" action="{{ url_for('restaurante.toggle_offer', oferta_id=o.id) }}" class="of-inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="of-icon-btn" title="{{ 'Desactivar' if o.activo else 'Activar' }}" type="submit">
+              <i class="bi {{ 'bi-toggle-on' if o.activo else 'bi-toggle-off' }}"></i>
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('restaurante.delete_offer', oferta_id=o.id) }}" class="of-inline-form"
+                onsubmit="return confirm('¿Eliminar esta oferta? Esta acción no se puede deshacer.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="of-icon-btn of-icon-btn--danger" title="Eliminar" type="submit">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+      </article>
+      {% else %}
+      <div class="of-empty">
+        <i class="bi bi-tags"></i>
+        <p>Todavía no creaste ofertas.</p>
+        <button class="of-btn-primary" onclick="openOfertaModal()">
+          <i class="bi bi-plus-lg"></i> Crear la primera
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+</div>
+
+<!-- Modal alta/edición -->
+<div class="of-modal-backdrop" id="of-modal" onclick="closeOfertaOnBackdrop(event)">
+  <div class="of-modal">
+    <div class="of-modal-head">
+      <h2 id="of-modal-title">Nueva oferta</h2>
+      <button class="of-modal-close" onclick="closeOfertaModal()" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <form method="POST" id="of-form" action="{{ url_for('restaurante.offers') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label class="of-label">Título</label>
+      <input type="text" name="titulo" id="of-titulo" class="of-input" maxlength="120"
+             placeholder="Ej: 2x1 en cócteles" required>
+
+      <label class="of-label">Descripción <span class="of-optional">(opcional)</span></label>
+      <textarea name="descripcion" id="of-descripcion" class="of-input" rows="2" maxlength="400"
+                placeholder="Detalles de la promoción"></textarea>
+
+      <label class="of-label">Imagen <span class="of-optional">(opcional)</span></label>
+      <input type="file" name="imagen" id="of-imagen" class="of-input" accept=".png,.jpg,.jpeg,.webp">
+      <p class="of-hint" id="of-img-hint">PNG, JPG o WEBP. Al editar, dejala vacía para conservar la actual.</p>
+
+      <div class="of-row">
+        <div class="of-col">
+          <label class="of-label">Fecha y hora de inicio</label>
+          <input type="datetime-local" name="fecha_inicio" id="of-inicio" class="of-input" required>
+        </div>
+        <div class="of-col">
+          <label class="of-label">Fecha y hora de fin</label>
+          <input type="datetime-local" name="fecha_fin" id="of-fin" class="of-input" required>
+        </div>
+      </div>
+
+      <div class="of-modal-actions">
+        <button type="button" class="of-btn-secondary" onclick="closeOfertaModal()">Cancelar</button>
+        <button type="submit" class="of-btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  const ofModal = document.getElementById('of-modal');
+  const ofForm = document.getElementById('of-form');
+  const OF_CREATE_ACTION = "{{ url_for('restaurante.offers') }}";
+
+  function openOfertaModal() {
+    document.getElementById('of-modal-title').textContent = 'Nueva oferta';
+    ofForm.action = OF_CREATE_ACTION;
+    ofForm.reset();
+    ofModal.classList.add('is-open');
+  }
+
+  function openOfertaEdit(btn) {
+    document.getElementById('of-modal-title').textContent = 'Editar oferta';
+    ofForm.action = OF_CREATE_ACTION + '/' + btn.dataset.id + '/edit';
+    ofForm.reset();
+    document.getElementById('of-titulo').value = btn.dataset.titulo;
+    document.getElementById('of-descripcion').value = btn.dataset.descripcion;
+    document.getElementById('of-inicio').value = btn.dataset.inicio;
+    document.getElementById('of-fin').value = btn.dataset.fin;
+    ofModal.classList.add('is-open');
+  }
+
+  function closeOfertaModal() { ofModal.classList.remove('is-open'); }
+  function closeOfertaOnBackdrop(e) { if (e.target === ofModal) closeOfertaModal(); }
+
+  {% if open_drawer %}openOfertaModal();{% endif %}
+</script>
+{% endblock %}

@@ -19,4 +19,3 @@ class Menu(db.Model):
 
     restaurant = db.relationship("Restaurant", back_populates="menus")
     menu_tags = db.relationship("MenuTags", back_populates="menu", cascade="all, delete-orphan", lazy=True)
-    beneficio_platos = db.relationship("BeneficioPlato", back_populates="menu", cascade="all, delete-orphan", lazy=True)

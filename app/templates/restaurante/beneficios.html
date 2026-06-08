@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}Beneficios - Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/beneficios.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+  {% include 'includes/_admin_sidebar.html' %}
+
+  <main class="admin-main bn-main">
+    <div class="bn-header">
+      <div>
+        <h1 class="bn-title">Beneficios de fidelidad</h1>
+        <p class="bn-subtitle">
+          Premiá a tus comensales frecuentes. {{ activos_count }} activo{{ 's' if activos_count != 1 else '' }}.
+        </p>
+      </div>
+      <button class="bn-btn-primary" onclick="openBeneficioModal()">
+        <i class="bi bi-plus-lg"></i> Nuevo beneficio
+      </button>
+    </div>
+
+    <div class="bn-list">
+      {% for b in beneficios %}
+      <article class="bn-card {{ 'bn-card--inactive' if not b.activo else '' }}">
+        <div class="bn-card-icon"><i class="bi bi-gift"></i></div>
+        <div class="bn-card-body">
+          <div class="bn-card-top">
+            <span class="bn-badge bn-badge--{{ 'on' if b.activo else 'off' }}">
+              {{ 'Activo' if b.activo else 'Inactivo' }}
+            </span>
+          </div>
+          <p class="bn-card-desc">{{ b.descripcion }}</p>
+          <div class="bn-card-meta">
+            <span><i class="bi bi-check2-circle"></i> {{ b.valor_condicion }} visita{{ 's' if b.valor_condicion != 1 else '' }} completadas</span>
+            <span><i class="bi bi-tag"></i> {{ b.valor_beneficio }}{{ '%' if b.tipo_beneficio == 'porcentaje' else ' $' }} · {{ b.tipo_beneficio_label }}</span>
+          </div>
+        </div>
+        <div class="bn-card-actions">
+          <button class="bn-icon-btn"
+                  title="Editar"
+                  onclick="openBeneficioEdit(this)"
+                  data-id="{{ b.id }}"
+                  data-descripcion="{{ b.descripcion|e }}"
+                  data-valor-condicion="{{ b.valor_condicion }}"
+                  data-tipo="{{ b.tipo_beneficio }}"
+                  data-valor="{{ b.valor_beneficio }}">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <form method="POST" action="{{ url_for('restaurante.toggle_benefit', beneficio_id=b.id) }}" class="bn-inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="bn-icon-btn" title="{{ 'Desactivar' if b.activo else 'Activar' }}" type="submit">
+              <i class="bi {{ 'bi-toggle-on' if b.activo else 'bi-toggle-off' }}"></i>
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('restaurante.delete_benefit', beneficio_id=b.id) }}" class="bn-inline-form"
+                onsubmit="return confirm('¿Eliminar este beneficio? Esta acción no se puede deshacer.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="bn-icon-btn bn-icon-btn--danger" title="Eliminar" type="submit">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+      </article>
+      {% else %}
+      <div class="bn-empty">
+        <i class="bi bi-gift"></i>
+        <p>Todavía no creaste beneficios.</p>
+        <button class="bn-btn-primary" onclick="openBeneficioModal()">
+          <i class="bi bi-plus-lg"></i> Crear el primero
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+</div>
+
+<!-- Modal alta/edición -->
+<div class="bn-modal-backdrop" id="bn-modal" onclick="closeBeneficioOnBackdrop(event)">
+  <div class="bn-modal">
+    <div class="bn-modal-head">
+      <h2 id="bn-modal-title">Nuevo beneficio</h2>
+      <button class="bn-modal-close" onclick="closeBeneficioModal()" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <form method="POST" id="bn-form" action="{{ url_for('restaurante.benefits') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label class="bn-label">Descripción</label>
+      <textarea name="descripcion" id="bn-descripcion" class="bn-input" rows="2" maxlength="200"
+                placeholder="Ej: 15% de descuento para clientes frecuentes" required></textarea>
+
+      <label class="bn-label">Condición — visitas completadas</label>
+      <input type="number" name="valor_condicion" id="bn-valor-condicion" class="bn-input" min="1" max="1000"
+             placeholder="Ej: 5" required>
+      <p class="bn-hint">Se cuentan las reservas en estado “completada” del comensal en tu restaurante.</p>
+
+      <div class="bn-row">
+        <div class="bn-col">
+          <label class="bn-label">Tipo de beneficio</label>
+          <select name="tipo_beneficio" id="bn-tipo" class="bn-input" required>
+            {% for value, label in tipo_options %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bn-col">
+          <label class="bn-label">Valor</label>
+          <input type="number" name="valor_beneficio" id="bn-valor" class="bn-input" min="1" step="0.01"
+                 placeholder="Ej: 15" required>
+        </div>
+      </div>
+
+      <div class="bn-modal-actions">
+        <button type="button" class="bn-btn-secondary" onclick="closeBeneficioModal()">Cancelar</button>
+        <button type="submit" class="bn-btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  const bnModal = document.getElementById('bn-modal');
+  const bnForm = document.getElementById('bn-form');
+  const BN_CREATE_ACTION = "{{ url_for('restaurante.benefits') }}";
+
+  function openBeneficioModal() {
+    document.getElementById('bn-modal-title').textContent = 'Nuevo beneficio';
+    bnForm.action = BN_CREATE_ACTION;
+    bnForm.reset();
+    bnModal.classList.add('is-open');
+  }
+
+  function openBeneficioEdit(btn) {
+    document.getElementById('bn-modal-title').textContent = 'Editar beneficio';
+    bnForm.action = BN_CREATE_ACTION + '/' + btn.dataset.id + '/edit';
+    document.getElementById('bn-descripcion').value = btn.dataset.descripcion;
+    document.getElementById('bn-valor-condicion').value = btn.dataset.valorCondicion;
+    document.getElementById('bn-tipo').value = btn.dataset.tipo;
+    document.getElementById('bn-valor').value = btn.dataset.valor;
+    bnModal.classList.add('is-open');
+  }
+
+  function closeBeneficioModal() { bnModal.classList.remove('is-open'); }
+  function closeBeneficioOnBackdrop(e) { if (e.target === bnModal) closeBeneficioModal(); }
+
+  {% if open_drawer %}openBeneficioModal();{% endif %}
+</script>
+{% endblock %}

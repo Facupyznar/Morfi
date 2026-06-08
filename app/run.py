@@ -15,10 +15,13 @@ from app.routes.auth import auth_bp
 from app.routes.restaurante import restaurante_bp
 from app.routes.restaurante import dashboard as restaurante_routes
 from app.routes.restaurante import reservas_routes as restaurante_reservas_routes
+from app.routes.restaurante import beneficios_routes as restaurante_beneficios_routes
+from app.routes.restaurante import ofertas_routes as restaurante_ofertas_routes
 from app.routes.usuario import usuario_bp
 from app.routes.usuario import home as usuario_home_routes
 from app.routes.usuario import profile as usuario_profile_routes
 from app.routes.usuario import notifications as usuario_notifications_routes
+from app.routes.usuario import promos as usuario_promos_routes
 
 
 def create_app():

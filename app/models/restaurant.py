@@ -35,3 +35,4 @@ class Restaurant(db.Model):
     reservas = db.relationship("Reserva", back_populates="restaurant", cascade="all, delete-orphan", lazy=True)
     beneficios = db.relationship("Beneficio", back_populates="restaurant", cascade="all, delete-orphan", lazy=True)
     favoritos = db.relationship("UserFavorites", back_populates="restaurant", cascade="all, delete-orphan", lazy=True)
+    ofertas = db.relationship("Oferta", back_populates="restaurant", cascade="all, delete-orphan", lazy=True)

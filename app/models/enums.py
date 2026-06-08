@@ -35,6 +35,17 @@ class BeneficioAplicaA(enum.Enum):
     RESTAURANT = "restaurant"
 
 
+class CondicionTipo(enum.Enum):
+    """Condición que el comensal debe cumplir para acceder a un beneficio."""
+    VISITAS = "visitas"
+
+
+class BeneficioValorTipo(enum.Enum):
+    """Cómo se expresa el valor del beneficio para usuarios frecuentes."""
+    PORCENTAJE = "porcentaje"
+    MONTO_FIJO = "monto_fijo"
+
+
 class FriendshipStatus(enum.Enum):
     PENDIENTE = "pendiente"
     ACEPTADA = "aceptada"
