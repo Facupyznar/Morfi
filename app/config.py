@@ -37,4 +37,12 @@ class Config:
     SQLALCHEMY_DATABASE_URI = _build_database_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev_key_morfi")
-    WTF_CSRF_TIME_LIMIT = None  # Sin vencimiento de token CSRF en desarrollo
+    WTF_CSRF_TIME_LIMIT = None
+
+    # Flask-Mail (Gmail SMTP)
+    MAIL_SERVER         = "smtp.gmail.com"
+    MAIL_PORT           = 587
+    MAIL_USE_TLS        = True
+    MAIL_USERNAME       = os.environ.get("MAIL_USERNAME")
+    MAIL_PASSWORD       = os.environ.get("MAIL_PASSWORD")
+    MAIL_DEFAULT_SENDER = ("Morfi", os.environ.get("MAIL_USERNAME", "noreply@morfi.app"))

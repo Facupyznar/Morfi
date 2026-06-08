@@ -14,10 +14,102 @@
     <div class="morfi-nav-actions">
 
       <!-- Bell -->
-      <button type="button" class="morfi-icon-btn morfi-icon-btn--bell" aria-label="Notificaciones">
-        <i class="bi bi-bell"></i>
-        <span class="morfi-notification-dot" aria-hidden="true"></span>
-      </button>
+      <link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/notifications.css') }}">
+      <div class="morfi-bell-wrap">
+        <button type="button" class="morfi-icon-btn" id="bell-btn" aria-label="Notificaciones"
+                onclick="toggleNotifDropdown(event)">
+          <i class="bi bi-bell"></i>
+          <span class="morfi-notif-badge" id="notif-badge" style="display:none;">0</span>
+        </button>
+
+        <div class="notif-dropdown" id="notif-dropdown">
+          <div class="notif-dd-header">
+            <div>
+              <div class="notif-dd-title">Notificaciones</div>
+              <div class="notif-dd-sub" id="notif-dd-sub">Cargando...</div>
+            </div>
+            <button class="notif-dd-mark" onclick="markAllRead()">Marcar leídas</button>
+          </div>
+          <div class="notif-dd-list" id="notif-dd-list"></div>
+          <div class="notif-dd-footer">
+            <a href="{{ url_for('usuario.notifications_page') }}">Ver todas las notificaciones</a>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        var NOTIF_CSRF = '{{ csrf_token() }}';
+
+        const TIPO_ICON = {
+          review:    {icon:'bi-star',           bg:'#FFF0EB', color:'#FF6B35'},
+          reserva:   {icon:'bi-calendar-check', bg:'#E8F6F1', color:'#0B7A56'},
+          respuesta: {icon:'bi-chat-left-text', bg:'#EEF0FF', color:'#5B5BD6'},
+          amistad:   {icon:'bi-person-plus',    bg:'#F0F0F5', color:'#6B6B8A'},
+          beneficio: {icon:'bi-gift',           bg:'#FFF0EB', color:'#FF6B35'},
+        };
+
+        async function loadNotifications() {
+          try {
+            var res = await fetch('/notificaciones/dropdown');
+            var data = await res.json();
+
+            var badge = document.getElementById('notif-badge');
+            if (data.unread > 0) {
+              badge.textContent = data.unread > 9 ? '9+' : data.unread;
+              badge.style.display = 'flex';
+            } else {
+              badge.style.display = 'none';
+            }
+
+            var sub = document.getElementById('notif-dd-sub');
+            sub.textContent = data.unread > 0 ? data.unread + ' sin leer' : 'Todo leído';
+
+            var list = document.getElementById('notif-dd-list');
+            if (data.items.length === 0) {
+              list.innerHTML = '<div style="padding:24px;text-align:center;color:#8C8593;font-size:.85rem;">Sin notificaciones</div>';
+              return;
+            }
+            list.innerHTML = data.items.map(function(n) {
+              var t = TIPO_ICON[n.tipo] || {icon:'bi-bell', bg:'#F0F0F5', color:'#6B6B8A'};
+              return '<a href="' + n.url + '" class="notif-dd-item' + (n.leida ? '' : ' notif-dd-item--unread') + '">' +
+                '<div class="notif-dd-icon" style="background:' + t.bg + ';color:' + t.color + '"><i class="bi ' + t.icon + '"></i></div>' +
+                '<div class="notif-dd-body">' +
+                  '<div class="notif-dd-titulo">' + n.titulo + '</div>' +
+                  (n.descripcion ? '<div class="notif-dd-desc">' + n.descripcion + '</div>' : '') +
+                  '<div class="notif-dd-time">' + n.time_ago + '</div>' +
+                '</div>' +
+                (n.leida ? '' : '<div class="notif-dd-dot"></div>') +
+              '</a>';
+            }).join('');
+          } catch(e) {}
+        }
+
+        function toggleNotifDropdown(e) {
+          e.stopPropagation();
+          var dd = document.getElementById('notif-dropdown');
+          dd.classList.toggle('open');
+          if (dd.classList.contains('open')) loadNotifications();
+        }
+
+        async function markAllRead() {
+          await fetch('/notificaciones/marcar-leidas', {
+            method: 'POST',
+            headers: {'Content-Type':'application/x-www-form-urlencoded'},
+            body: 'csrf_token=' + encodeURIComponent(NOTIF_CSRF),
+          });
+          loadNotifications();
+        }
+
+        document.addEventListener('click', function(e) {
+          var dd = document.getElementById('notif-dropdown');
+          if (dd && !dd.contains(e.target) && e.target.id !== 'bell-btn') {
+            dd.classList.remove('open');
+          }
+        });
+
+        // Cargar badge al entrar
+        loadNotifications();
+      </script>
 
       <!-- User dropdown -->
       <div class="dropdown">

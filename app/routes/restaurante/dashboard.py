@@ -693,6 +693,31 @@ def save_review_reply(review_id):
         review_record.respuesta_socio = reply_text
         db.session.commit()
         flash("Respuesta publicada correctamente.", "success")
+
+        # Notificación in-app + mail al usuario que dejó la reseña
+        try:
+            from app.helpers.mail import mail_respuesta_resena
+            from app.routes.usuario.notifications import crear_notificacion
+            reserva = review_record.reserva
+            usuario = reserva.user if reserva else None
+            if usuario:
+                crear_notificacion(
+                    user_id=usuario.user_id,
+                    tipo="respuesta",
+                    titulo=f"{restaurant.name} respondió tu reseña",
+                    descripcion=f'"{reply_text[:80]}{"..." if len(reply_text) > 80 else ""}"',
+                    url_destino=f"/restaurante/{restaurant.id_restaurant}",
+                )
+                mail_respuesta_resena(
+                    usuario_email=usuario.email,
+                    usuario_nombre=usuario.name or usuario.username,
+                    restaurante_nombre=restaurant.name,
+                    respuesta_texto=reply_text,
+                    user_id=usuario.user_id,
+                )
+        except Exception as e:
+            current_app.logger.warning(f"[notif/mail] respuesta reseña: {e}")
+
     except Exception:
         db.session.rollback()
         flash("No se pudo guardar la respuesta.", "danger")

@@ -13,4 +13,5 @@ SQLAlchemy==2.0.48
 typing_extensions==4.15.0
 Werkzeug==3.1.6
 Flask-WTF
+Flask-Mail
 geopy==2.4.1

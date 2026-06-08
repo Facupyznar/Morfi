@@ -544,6 +544,27 @@ def connect_friend(friend_id):
             )
         )
         db.session.commit()
+
+        # Notificación in-app + mail al destinatario
+        try:
+            from app.routes.usuario.notifications import crear_notificacion
+            from app.helpers.mail import mail_solicitud_amistad
+            solicitante_nombre = current_user.name or current_user.username
+            crear_notificacion(
+                user_id=friend_id,
+                tipo="amistad",
+                titulo=f"{solicitante_nombre} te envió una solicitud de amistad",
+                url_destino="/perfil/amigos",
+            )
+            mail_solicitud_amistad(
+                usuario_email=friend_user.email,
+                usuario_nombre=friend_user.name or friend_user.username,
+                solicitante_nombre=solicitante_nombre,
+                user_id=friend_id,
+            )
+        except Exception:
+            pass
+
         response = _json_response("Solicitud enviada correctamente.", "success")
         if response:
             return response

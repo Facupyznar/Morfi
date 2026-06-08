@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Notificaciones — Morfi{% endblock %}
+
+{% block navbar %}
+{% include 'includes/_navbar_auth.html' %}
+{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/notifications.css') }}">
+{% endblock %}
+
+{% block content %}
+<div style="background:#F7F3EE; min-height:100vh;">
+  <div class="notif-page">
+
+    <!-- Header -->
+    <div class="notif-page-header">
+      <div>
+        <h1 class="notif-page-title">Notificaciones</h1>
+        <p class="notif-page-unread">
+          {% if unread_count > 0 %}{{ unread_count }} sin leer{% else %}Todo leído{% endif %}
+        </p>
+      </div>
+      {% if unread_count > 0 %}
+      <form method="POST" action="{{ url_for('usuario.mark_notifications_read') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="notif-mark-all">Marcar todo como leído</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <!-- Tabs -->
+    <div class="notif-tabs">
+      <a href="{{ url_for('usuario.notifications_page', filtro='todas') }}"
+         class="notif-tab {% if filtro == 'todas' %}notif-tab--active{% endif %}">Todas</a>
+      <a href="{{ url_for('usuario.notifications_page', filtro='no_leidas') }}"
+         class="notif-tab {% if filtro == 'no_leidas' %}notif-tab--active{% endif %}">No leídas</a>
+      <a href="{{ url_for('usuario.notifications_page', filtro='preferencias') }}"
+         class="notif-tab {% if filtro == 'preferencias' %}notif-tab--active{% endif %}">Preferencias</a>
+    </div>
+
+    {% if filtro == 'preferencias' %}
+    <!-- Preferencias -->
+    <div class="notif-prefs-card">
+      <div class="notif-prefs-intro">
+        <p>Activá o desactivá cada tipo de aviso por canal de forma independiente.</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('usuario.save_notification_prefs') }}" id="prefs-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Header columnas -->
+        <div class="notif-prefs-header">
+          <span class="notif-prefs-tipo-label">Tipo</span>
+          <span class="notif-prefs-channel"><i class="bi bi-phone"></i> In-app</span>
+          <span class="notif-prefs-channel"><i class="bi bi-envelope"></i> Mail</span>
+        </div>
+
+        {% set rows = [
+          ('review',    'Reseñas de amigos',       'Cuando un amigo deja una reseña',       prefs.review_inapp,    prefs.review_mail),
+          ('respuesta', 'Respuestas a tus reseñas','Cuando un restaurante responde',         prefs.respuesta_inapp, prefs.respuesta_mail),
+          ('reserva',   'Reservas',                'Confirmaciones y recordatorios',         prefs.reserva_inapp,   prefs.reserva_mail),
+          ('beneficio', 'Beneficios y ofertas',    'Promociones disponibles',                prefs.beneficio_inapp, prefs.beneficio_mail),
+          ('amistad',   'Solicitudes de amistad',  'Nuevas conexiones',                      prefs.amistad_inapp,   prefs.amistad_mail),
+        ] %}
+
+        {% for key, titulo, desc, val_inapp, val_mail in rows %}
+        <div class="notif-prefs-row">
+          <div class="notif-prefs-info">
+            <div class="notif-prefs-name">{{ titulo }}</div>
+            <div class="notif-prefs-desc">{{ desc }}</div>
+          </div>
+          <label class="notif-toggle">
+            <input type="checkbox" name="{{ key }}_inapp" value="1" {% if val_inapp %}checked{% endif %}
+                   onchange="this.form.submit()">
+            <span class="notif-toggle-slider"></span>
+          </label>
+          <label class="notif-toggle">
+            <input type="checkbox" name="{{ key }}_mail" value="1" {% if val_mail %}checked{% endif %}
+                   onchange="this.form.submit()">
+            <span class="notif-toggle-slider"></span>
+          </label>
+        </div>
+        {% endfor %}
+      </form>
+    </div>
+
+    {% else %}
+    <!-- Lista notificaciones -->
+    <div class="notif-list">
+      {% for n in items %}
+      <a href="{{ n.url }}" class="notif-item {% if not n.leida %}notif-item--unread{% endif %}">
+        <div class="notif-icon" style="background:{{ n.icon_bg }}; color:{{ n.icon_color }};">
+          <i class="bi {{ n.icon }}"></i>
+        </div>
+        <div class="notif-body">
+          <div class="notif-titulo">{{ n.titulo }}</div>
+          {% if n.descripcion %}
+          <div class="notif-desc">{{ n.descripcion }}</div>
+          {% endif %}
+          <div class="notif-time">{{ n.time_ago }}</div>
+        </div>
+        {% if not n.leida %}
+        <div class="notif-dot"></div>
+        {% endif %}
+      </a>
+      {% else %}
+      <div class="notif-empty">
+        <i class="bi bi-bell-slash"></i>
+        <p class="mb-0">No tenés notificaciones{% if filtro == 'no_leidas' %} sin leer{% endif %}.</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

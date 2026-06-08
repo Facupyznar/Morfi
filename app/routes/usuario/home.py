@@ -312,12 +312,38 @@ def restaurant_detail(restaurant_id):
                 "date_label": reservation.fecha_hora.strftime("%d/%m/%Y") if reservation.fecha_hora else "",
             }
         )
+    # Reserva COMPLETADA del usuario sin reseña → habilitado para reseñar
+    eligible_reserva = (
+        db.session.query(Reserva)
+        .outerjoin(Review, Review.id_reserva == Reserva.id_reserva)
+        .filter(
+            Reserva.user_id == current_user.user_id,
+            Reserva.id_restaurant == restaurant_record.id_restaurant,
+            Reserva.estado_reserva == ReservaStatus.COMPLETADA,
+            Review.id_review == None,
+        )
+        .first()
+    )
+
+    # Si ya dejó alguna reseña en este restaurante
+    user_has_review = (
+        db.session.query(Review)
+        .join(Reserva, Review.id_reserva == Reserva.id_reserva)
+        .filter(
+            Reserva.user_id == current_user.user_id,
+            Reserva.id_restaurant == restaurant_record.id_restaurant,
+        )
+        .first()
+    ) is not None
+
     return render_template(
         "usuario/restaurant_detail.html",
         restaurant=restaurant_data,
         menu_items=menu_items,
         reviews=reviews_payload,
         is_in_wishlist=is_in_wishlist,
+        eligible_reserva_id=str(eligible_reserva.id_reserva) if eligible_reserva else None,
+        user_has_review=user_has_review,
     )
 
 
@@ -487,6 +513,29 @@ def crear_reserva(restaurant_id):
         )
         db.session.add(nueva)
         db.session.commit()
+
+        # Notificación in-app + mail
+        try:
+            from app.routes.usuario.notifications import crear_notificacion
+            from app.helpers.mail import mail_reserva_confirmada
+            fecha_label = fecha_hora.strftime("%d/%m/%Y a las %H:%M hs")
+            crear_notificacion(
+                user_id=current_user.user_id,
+                tipo="reserva",
+                titulo="Reserva confirmada",
+                descripcion=f"{restaurant_record.name} · {fecha_label}",
+                url_destino=url_for("usuario.history"),
+            )
+            mail_reserva_confirmada(
+                usuario_email=current_user.email,
+                usuario_nombre=current_user.name or current_user.username,
+                restaurante_nombre=restaurant_record.name,
+                fecha_hora=fecha_label,
+                user_id=current_user.user_id,
+            )
+        except Exception as e:
+            pass  # nunca romper el flujo por una notificación
+
     except Exception:
         db.session.rollback()
         flash("No se pudo crear la reserva. Intentá de nuevo.", "danger")

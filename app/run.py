@@ -6,6 +6,7 @@ from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
 from app.database import db, ensure_menu_schema
+from app.helpers.mail import mail
 from app.helpers.markdown import render_markdown
 from app.models.user import User
 from app.routes.admin import admin_bp
@@ -17,6 +18,7 @@ from app.routes.restaurante import reservas_routes as restaurante_reservas_route
 from app.routes.usuario import usuario_bp
 from app.routes.usuario import home as usuario_home_routes
 from app.routes.usuario import profile as usuario_profile_routes
+from app.routes.usuario import notifications as usuario_notifications_routes
 
 
 def create_app():
@@ -26,6 +28,7 @@ def create_app():
     csrf = CSRFProtect()
     csrf.init_app(flask_app)
     db.init_app(flask_app)
+    mail.init_app(flask_app)
 
     with flask_app.app_context():
         db.create_all()
