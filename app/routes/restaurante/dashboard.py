@@ -1067,3 +1067,119 @@ def delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
     return redirect(url_for("restaurante.dashboard"))
+
+
+# ── Asistente IA ──────────────────────────────────────────────────
+
+@restaurante_bp.route("/restaurante/asistente")
+@login_required
+def asistente():
+    if not _admin_required():
+        return redirect(url_for("usuario.home"))
+    restaurant = _get_owned_restaurant()
+    return render_template(
+        "restaurante/asistente.html",
+        restaurant=restaurant,
+        active_admin_section="Asistente IA",
+    )
+
+
+@restaurante_bp.route("/restaurante/asistente/chat", methods=["POST"])
+@login_required
+def asistente_chat():
+    import json as _json
+    from flask import jsonify
+    if not _admin_required():
+        return jsonify({"error": "Sin permiso"}), 403
+
+    mensaje = (request.form.get("mensaje") or "").strip()
+    historial = _json.loads(request.form.get("historial", "[]"))
+
+    if not mensaje:
+        return jsonify({"error": "Mensaje vacío"}), 400
+
+    api_key = current_app.config.get("GEMINI_API_KEY")
+    if not api_key:
+        return jsonify({"respuesta": "El asistente no está configurado. Agregá GEMINI_API_KEY al .env."}), 200
+
+    restaurant = _get_owned_restaurant()
+    restaurant_name = restaurant.name if restaurant else "el restaurante"
+
+    # ── Recopilar datos reales del restaurante ──────────────────
+    context_data = ""
+    if restaurant:
+        from datetime import date
+        from sqlalchemy import cast, Date as SADate
+
+        # Menú
+        menu_items = db.session.query(Menu).filter_by(id_restaurant=restaurant.id_restaurant).all()
+        if menu_items:
+            platos = "\n".join(
+                f"- {item.nombre} ({item.categoria or 'Sin categoría'}) — ${item.precio:.2f} — {'Disponible' if item.disponibilidad else 'No disponible'}"
+                for item in menu_items
+            )
+            context_data += f"\n\nMENÚ ACTUAL:\n{platos}"
+
+        # Reservas de hoy
+        hoy = date.today()
+        reservas_hoy = db.session.query(Reserva).filter(
+            Reserva.id_restaurant == restaurant.id_restaurant,
+            cast(Reserva.fecha_hora, SADate) == hoy,
+        ).all()
+        if reservas_hoy:
+            res_texto = "\n".join(
+                f"- {r.hora_local if hasattr(r, 'hora_local') else r.fecha_hora.strftime('%H:%M')} hs, {r.cant_personas} personas, estado: {r.estado_reserva.value}"
+                for r in reservas_hoy
+            )
+            context_data += f"\n\nRESERVAS DE HOY ({hoy.strftime('%d/%m/%Y')}):\n{res_texto}"
+        else:
+            context_data += f"\n\nRESERVAS DE HOY: Sin reservas."
+
+        # Últimas reseñas
+        from app.models.review import Review as _Review
+        ultimas_resenas = (
+            db.session.query(_Review, Reserva)
+            .join(Reserva, _Review.id_reserva == Reserva.id_reserva)
+            .filter(Reserva.id_restaurant == restaurant.id_restaurant)
+            .order_by(Reserva.fecha_hora.desc())
+            .limit(5)
+            .all()
+        )
+        if ultimas_resenas:
+            res_texto = "\n".join(
+                f"- {r.puntaje}★: {r.comentario or 'Sin comentario'}"
+                for r, _ in ultimas_resenas
+            )
+            context_data += f"\n\nÚLTIMAS RESEÑAS:\n{res_texto}"
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=api_key)
+
+        system_prompt = (
+            f"Sos Morfi IA, el asistente inteligente del restaurante '{restaurant_name}'. "
+            "Ayudás al dueño o administrador con análisis de reservas, sugerencias de menú, "
+            "estrategias de promoción, respuestas a reseñas y cualquier consulta del negocio. "
+            "Respondé siempre en español argentino, de forma clara, concisa y profesional. "
+            f"Tenés acceso a los siguientes datos reales del restaurante:{context_data}"
+        )
+
+        # Construir historial + mensaje actual
+        contents = []
+        for msg in historial[-10:]:
+            role = "user" if msg.get("role") == "user" else "model"
+            contents.append(types.Content(role=role, parts=[types.Part(text=msg.get("text", ""))]))
+        contents.append(types.Content(role="user", parts=[types.Part(text=mensaje)]))
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents,
+            config=types.GenerateContentConfig(system_instruction=system_prompt),
+        )
+        return jsonify({"respuesta": response.text})
+
+    except Exception as e:
+        current_app.logger.warning(f"[gemini] error: {e}")
+        return jsonify({"respuesta": "Hubo un error al conectar con el asistente. Intentá de nuevo."}), 200

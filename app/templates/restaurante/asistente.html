@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% block title %}Asistente IA — Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/dashboard.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+{% set active_admin_section = 'Asistente IA' %}
+<div class="admin-layout">
+  {% include 'includes/_admin_sidebar.html' %}
+
+  <main style="display:flex; flex-direction:column; height:100vh; overflow:hidden; background:#F7F3EE; flex:1; min-width:0;">
+
+    <!-- Header -->
+    <div style="padding:24px 32px 0; flex-shrink:0;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div style="width:48px; height:48px; border-radius:50%; background:#FF6B35; display:flex; align-items:center; justify-content:center;">
+          <i class="bi bi-stars" style="color:#fff; font-size:1.3rem;"></i>
+        </div>
+        <div>
+          <h1 style="font-family:'Baloo 2',cursive; font-weight:800; font-style:italic; font-size:1.6rem; color:#1A1A2E; margin:0;">Morfi IA</h1>
+          <p style="color:#8C8593; font-size:0.82rem; margin:0;">Tu asistente inteligente · siempre disponible</p>
+        </div>
+        <button onclick="limpiarChat()" style="margin-left:auto; background:#fff; border:1px solid #E7DED2; border-radius:10px; padding:8px 16px; font-size:0.85rem; font-weight:600; color:#6B6B8A; cursor:pointer;">
+          <i class="bi bi-plus-lg me-1"></i> Nueva conversación
+        </button>
+      </div>
+    </div>
+
+    <!-- Chat area -->
+    <div id="chat-messages" style="flex:1; overflow-y:auto; padding:24px 32px; display:flex; flex-direction:column; gap:16px;">
+
+      <!-- Mensaje de bienvenida -->
+      <div class="ai-msg ai-msg--bot" id="welcome-msg">
+        <div class="ai-bubble ai-bubble--bot">
+          ¡Hola {{ restaurant.name if restaurant else '' }}! Soy tu asistente Morfi IA. Puedo ayudarte con análisis de reservas, sugerencias de menú, promociones y más. ¿Qué te gustaría saber?
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Chips sugeridos -->
+    <div id="chips-wrap" style="padding:0 32px 12px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="ai-chip" onclick="enviarChip('¿Cuáles son mis platos más pedidos?')">¿Cuáles son mis platos más pedidos?</button>
+      <button class="ai-chip" onclick="enviarChip('Reservas del fin de semana')">Reservas del fin de semana</button>
+      <button class="ai-chip" onclick="enviarChip('Sugerí una promoción para martes')">Sugerí una promoción para martes</button>
+    </div>
+
+    <!-- Input -->
+    <div style="padding:0 32px 24px; flex-shrink:0;">
+      <div style="display:flex; gap:10px; background:#fff; border:1px solid #E7DED2; border-radius:16px; padding:10px 14px; align-items:flex-end;">
+        <textarea id="chat-input" rows="1" placeholder="Preguntá lo que quieras..."
+          style="flex:1; border:none; outline:none; resize:none; font-family:'Manrope',sans-serif; font-size:0.92rem; color:#1A1A2E; background:transparent; max-height:120px; line-height:1.5;"
+          onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); enviar();}"></textarea>
+        <button onclick="enviar()" id="send-btn"
+          style="width:40px; height:40px; border-radius:50%; background:#FF6B35; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s;">
+          <i class="bi bi-send-fill" style="color:#fff; font-size:1rem;"></i>
+        </button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<style>
+  .ai-msg { display:flex; }
+  .ai-msg--user { justify-content:flex-end; }
+  .ai-msg--bot  { justify-content:flex-start; }
+
+  .ai-bubble {
+    max-width:72%;
+    padding:12px 16px;
+    border-radius:18px;
+    font-size:0.9rem;
+    line-height:1.6;
+    white-space:pre-wrap;
+  }
+  .ai-bubble--bot {
+    background:#fff;
+    border:1px solid #E7DED2;
+    color:#1A1A2E;
+    border-bottom-left-radius:4px;
+  }
+  .ai-bubble--user {
+    background:#FF6B35;
+    color:#fff;
+    border-bottom-right-radius:4px;
+  }
+
+  .ai-typing {
+    display:flex;
+    gap:5px;
+    align-items:center;
+    padding:12px 16px;
+    background:#fff;
+    border:1px solid #E7DED2;
+    border-radius:18px;
+    border-bottom-left-radius:4px;
+    width:fit-content;
+  }
+  .ai-typing span {
+    width:8px; height:8px; border-radius:50%;
+    background:#D9CEBD;
+    animation:bounce .9s infinite;
+  }
+  .ai-typing span:nth-child(2) { animation-delay:.2s; }
+  .ai-typing span:nth-child(3) { animation-delay:.4s; }
+  @keyframes bounce {
+    0%,60%,100% { transform:translateY(0); }
+    30% { transform:translateY(-6px); background:#FF6B35; }
+  }
+
+  .ai-chip {
+    background:#fff;
+    border:1px solid #E7DED2;
+    border-radius:999px;
+    padding:7px 14px;
+    font-size:0.82rem;
+    font-weight:600;
+    color:#1A1A2E;
+    cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .ai-chip:hover { background:#FFF0EB; border-color:#FF6B35; color:#FF6B35; }
+</style>
+
+<script>
+  var CSRF = '{{ csrf_token() }}';
+  var historial = [];
+
+  function agregarMensaje(texto, esUsuario) {
+    var container = document.getElementById('chat-messages');
+    var div = document.createElement('div');
+    div.className = 'ai-msg ' + (esUsuario ? 'ai-msg--user' : 'ai-msg--bot');
+    var bubble = document.createElement('div');
+    bubble.className = 'ai-bubble ' + (esUsuario ? 'ai-bubble--user' : 'ai-bubble--bot');
+    bubble.textContent = texto;
+    div.appendChild(bubble);
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return bubble;
+  }
+
+  function mostrarTyping() {
+    var container = document.getElementById('chat-messages');
+    var div = document.createElement('div');
+    div.className = 'ai-msg ai-msg--bot';
+    div.id = 'typing-indicator';
+    div.innerHTML = '<div class="ai-typing"><span></span><span></span><span></span></div>';
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function quitarTyping() {
+    var t = document.getElementById('typing-indicator');
+    if (t) t.remove();
+  }
+
+  async function enviar() {
+    var input = document.getElementById('chat-input');
+    var texto = input.value.trim();
+    if (!texto) return;
+
+    // Ocultar chips
+    document.getElementById('chips-wrap').style.display = 'none';
+
+    input.value = '';
+    input.style.height = 'auto';
+    agregarMensaje(texto, true);
+    historial.push({role: 'user', text: texto});
+
+    mostrarTyping();
+    document.getElementById('send-btn').disabled = true;
+
+    try {
+      var formData = new FormData();
+      formData.append('csrf_token', CSRF);
+      formData.append('mensaje', texto);
+      formData.append('historial', JSON.stringify(historial));
+
+      var res = await fetch('/restaurante/asistente/chat', {
+        method: 'POST',
+        body: formData,
+      });
+      var data = await res.json();
+      quitarTyping();
+      var respuesta = data.respuesta || 'No pude procesar tu consulta.';
+      agregarMensaje(respuesta, false);
+      historial.push({role: 'model', text: respuesta});
+    } catch(e) {
+      quitarTyping();
+      agregarMensaje('Error de conexión. Intentá de nuevo.', false);
+    }
+
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+
+  function enviarChip(texto) {
+    document.getElementById('chat-input').value = texto;
+    enviar();
+  }
+
+  function limpiarChat() {
+    historial = [];
+    var container = document.getElementById('chat-messages');
+    container.innerHTML = '';
+    var welcome = document.createElement('div');
+    welcome.className = 'ai-msg ai-msg--bot';
+    welcome.innerHTML = '<div class="ai-bubble ai-bubble--bot">¡Hola! ¿En qué puedo ayudarte hoy?</div>';
+    container.appendChild(welcome);
+    document.getElementById('chips-wrap').style.display = 'flex';
+  }
+
+  // Auto-resize textarea
+  document.getElementById('chat-input').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+</script>
+{% endblock %}

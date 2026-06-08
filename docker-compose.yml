@@ -33,6 +33,9 @@ services:
       SECRET_KEY: ${SECRET_KEY:-dev_key_morfi}
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
     ports:
       - "5001:5000"
     volumes:

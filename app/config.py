@@ -46,3 +46,6 @@ class Config:
     MAIL_USERNAME       = os.environ.get("MAIL_USERNAME")
     MAIL_PASSWORD       = os.environ.get("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = ("Morfi", os.environ.get("MAIL_USERNAME", "noreply@morfi.app"))
+
+    # Gemini AI
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")

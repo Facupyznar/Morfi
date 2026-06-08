@@ -252,4 +252,16 @@
 
   </main>
 </div>
+
+<!-- Botón flotante Asistente IA -->
+<a href="{{ url_for('restaurante.asistente') }}"
+   style="position:fixed; bottom:28px; right:28px; width:56px; height:56px; border-radius:50%;
+          background:#FF6B35; color:#fff; display:flex; align-items:center; justify-content:center;
+          box-shadow:0 8px 24px rgba(255,107,53,0.4); text-decoration:none; z-index:100;
+          transition:transform .2s, box-shadow .2s;"
+   title="Asistente IA"
+   onmouseover="this.style.transform='scale(1.08)'"
+   onmouseout="this.style.transform='scale(1)'">
+  <i class="bi bi-stars" style="font-size:1.4rem;"></i>
+</a>
 {% endblock %}
