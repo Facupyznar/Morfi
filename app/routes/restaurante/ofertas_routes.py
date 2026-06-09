@@ -40,7 +40,7 @@ def _parse_fecha(raw, field_label):
         raise ValidationError(f"{field_label} no tiene un formato válido.")
 
 
-def _parse_oferta_form(form, files):
+def _parse_oferta_form(form, files, is_edit=False):
     """Valida el formulario de oferta. Lanza ValidationError. No guarda la imagen."""
     titulo = validate_text(form.get("titulo", ""), "El título", min_length=3, max_length=120)
     descripcion = validate_text(
@@ -48,13 +48,40 @@ def _parse_oferta_form(form, files):
     ) or None
     fecha_inicio = _parse_fecha(form.get("fecha_inicio", ""), "La fecha de inicio")
     fecha_fin = _parse_fecha(form.get("fecha_fin", ""), "La fecha de fin")
+    now = datetime.now()
+    if not is_edit and fecha_inicio < now:
+        raise ValidationError("La fecha de inicio no puede ser en el pasado.")
+    if fecha_fin <= now:
+        raise ValidationError("La fecha de fin no puede ser en el pasado.")
     if fecha_fin <= fecha_inicio:
         raise ValidationError("La fecha de fin debe ser posterior a la fecha de inicio.")
     validate_image_file(files.get("imagen"), field_label="La imagen de la oferta")
     return titulo, descripcion, fecha_inicio, fecha_fin
 
 
+def _naive_dt(dt):
+    """Quita tzinfo para comparar con datetime.now() (naive local)."""
+    if dt is None:
+        return None
+    return dt.replace(tzinfo=None) if dt.tzinfo else dt
+
+
+def _estado_oferta(oferta) -> str:
+    """Devuelve 'vigente', 'proxima', 'vencida' o 'inactiva'."""
+    if not oferta.activo:
+        return "inactiva"
+    now = datetime.now()
+    inicio = _naive_dt(oferta.fecha_inicio)
+    fin    = _naive_dt(oferta.fecha_fin)
+    if fin and now > fin:
+        return "vencida"
+    if inicio and now < inicio:
+        return "proxima"
+    return "vigente"
+
+
 def _oferta_view(oferta):
+    estado = _estado_oferta(oferta)
     return {
         "id": str(oferta.id),
         "titulo": oferta.titulo,
@@ -65,17 +92,13 @@ def _oferta_view(oferta):
         "fecha_inicio_label": oferta.fecha_inicio.strftime("%d/%m/%Y %H:%M") if oferta.fecha_inicio else "",
         "fecha_fin_label": oferta.fecha_fin.strftime("%d/%m/%Y %H:%M") if oferta.fecha_fin else "",
         "activo": oferta.activo,
-        "vigente": _es_vigente(oferta),
+        "vigente": estado == "vigente",
+        "estado": estado,
     }
 
 
 def _es_vigente(oferta):
-    if not oferta.activo:
-        return False
-    now = datetime.now()
-    inicio = oferta.fecha_inicio.replace(tzinfo=None) if oferta.fecha_inicio and oferta.fecha_inicio.tzinfo else oferta.fecha_inicio
-    fin = oferta.fecha_fin.replace(tzinfo=None) if oferta.fecha_fin and oferta.fecha_fin.tzinfo else oferta.fecha_fin
-    return (inicio is None or inicio <= now) and (fin is None or now <= fin)
+    return _estado_oferta(oferta) == "vigente"
 
 
 @restaurante_bp.route("/restaurante/ofertas", methods=["GET", "POST"])

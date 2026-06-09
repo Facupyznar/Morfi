@@ -37,8 +37,10 @@
   font-size: .7rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px;
   text-transform: uppercase; letter-spacing: .03em; color: #fff;
 }
-.of-badge--vigente { background: #2e8b57; }
-.of-badge--off { background: #9a8f85; }
+.of-badge--vigente  { background: #2e8b57; }
+.of-badge--proxima  { background: #C1631A; }
+.of-badge--vencida  { background: #9a8f85; }
+.of-badge--inactiva { background: #9a8f85; }
 
 .of-card-body { padding: .9rem 1rem; flex: 1; }
 .of-card-title { font-size: 1.02rem; font-weight: 700; color: #2b2520; margin: 0 0 .3rem; }

@@ -35,8 +35,11 @@
           {% else %}
           <div class="of-card-media--empty"><i class="bi bi-image"></i></div>
           {% endif %}
-          <span class="of-badge of-badge--{{ 'vigente' if o.vigente else 'off' }}">
-            {{ 'Vigente' if o.vigente else ('Inactiva' if not o.activo else 'Fuera de fecha') }}
+          <span class="of-badge of-badge--{{ o.estado }}">
+            {% if o.estado == 'vigente' %}Vigente
+            {% elif o.estado == 'proxima' %}Próximamente
+            {% elif o.estado == 'vencida' %}Vencida
+            {% else %}Inactiva{% endif %}
           </span>
         </div>
         <div class="of-card-body">
@@ -116,6 +119,9 @@
           <input type="datetime-local" name="fecha_fin" id="of-fin" class="of-input" required>
         </div>
       </div>
+      <p class="of-hint" id="of-date-hint" style="color:#C05621; display:none;">
+        <i class="bi bi-exclamation-circle"></i> No podés ingresar fechas pasadas.
+      </p>
 
       <div class="of-modal-actions">
         <button type="button" class="of-btn-secondary" onclick="closeOfertaModal()">Cancelar</button>
@@ -131,11 +137,56 @@
   const ofModal = document.getElementById('of-modal');
   const ofForm = document.getElementById('of-form');
   const OF_CREATE_ACTION = "{{ url_for('restaurante.offers') }}";
+  const inputInicio = document.getElementById('of-inicio');
+  const inputFin    = document.getElementById('of-fin');
+  const dateHint    = document.getElementById('of-date-hint');
+
+  function _nowLocal() {
+    // Devuelve "YYYY-MM-DDTHH:MM" en hora local (formato requerido por datetime-local)
+    const d = new Date();
+    d.setSeconds(0, 0);
+    return d.toISOString().slice(0, 16);  // ISO es UTC, corregimos:
+    // Usamos offset local para que min sea hora local, no UTC
+  }
+
+  function _localMin() {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now - offset).toISOString().slice(0, 16);
+  }
+
+  function _setMinDates() {
+    const min = _localMin();
+    inputInicio.min = min;
+    inputFin.min    = min;
+  }
+
+  function _validateDates() {
+    const min = _localMin();
+    const inicioPasado = inputInicio.value && inputInicio.value < min;
+    const finPasado    = inputFin.value    && inputFin.value    < min;
+    if (inicioPasado || finPasado) {
+      dateHint.style.display = 'block';
+      return false;
+    }
+    dateHint.style.display = 'none';
+    return true;
+  }
+
+  inputInicio.addEventListener('change', _validateDates);
+  inputFin.addEventListener('change', _validateDates);
+
+  ofForm.addEventListener('submit', function(e) {
+    if (!_validateDates()) e.preventDefault();
+  });
 
   function openOfertaModal() {
     document.getElementById('of-modal-title').textContent = 'Nueva oferta';
     ofForm.action = OF_CREATE_ACTION;
     ofForm.reset();
+    dateHint.style.display = 'none';
+    _setMinDates();
     ofModal.classList.add('is-open');
   }
 
@@ -143,10 +194,12 @@
     document.getElementById('of-modal-title').textContent = 'Editar oferta';
     ofForm.action = OF_CREATE_ACTION + '/' + btn.dataset.id + '/edit';
     ofForm.reset();
-    document.getElementById('of-titulo').value = btn.dataset.titulo;
-    document.getElementById('of-descripcion').value = btn.dataset.descripcion;
-    document.getElementById('of-inicio').value = btn.dataset.inicio;
-    document.getElementById('of-fin').value = btn.dataset.fin;
+    dateHint.style.display = 'none';
+    _setMinDates();
+    document.getElementById('of-titulo').value       = btn.dataset.titulo;
+    document.getElementById('of-descripcion').value  = btn.dataset.descripcion;
+    inputInicio.value = btn.dataset.inicio;
+    inputFin.value    = btn.dataset.fin;
     ofModal.classList.add('is-open');
   }
 

@@ -50,6 +50,7 @@
           <button class="detail-tab active" data-tab="menu">Menú</button>
           <button class="detail-tab" data-tab="info">Info</button>
           <button class="detail-tab" data-tab="resenas">Reseñas</button>
+          <button class="detail-tab" data-tab="ofertas">Ofertas</button>
           <button class="detail-tab" data-tab="beneficios">Beneficios</button>
         </div>
 
@@ -251,17 +252,14 @@
           </div>
         </div>
 
-        <!-- Benefits Tab -->
-        <div id="tab-beneficios" class="tab-content" style="display:none;">
-          {% if not ofertas and not beneficios %}
+        <!-- Ofertas Tab -->
+        <div id="tab-ofertas" class="tab-content" style="display:none;">
+          {% if not ofertas %}
           <div class="tab-placeholder">
-            <i class="bi bi-gift" style="font-size:2rem; color:#D9CEBD;"></i>
-            <p class="mt-2 text-muted">Este restaurante todavía no tiene ofertas ni beneficios.</p>
+            <i class="bi bi-tags" style="font-size:2rem; color:#D9CEBD;"></i>
+            <p class="mt-2 text-muted">Este restaurante todavía no tiene ofertas vigentes.</p>
           </div>
           {% else %}
-
-          {% if ofertas %}
-          <h3 class="promo-section-title"><i class="bi bi-tags"></i> Ofertas vigentes</h3>
           <div class="promo-offers-grid">
             {% for o in ofertas %}
             <article class="promo-offer-card">
@@ -271,7 +269,11 @@
                 {% else %}
                 <div class="promo-offer-media--empty"><i class="bi bi-tags"></i></div>
                 {% endif %}
-                {% if o.fecha_fin_iso %}
+                {% if o.proxima %}
+                <span class="promo-countdown" style="background:rgba(193,99,26,0.85);">
+                  <i class="bi bi-clock"></i> Próximamente
+                </span>
+                {% elif o.fecha_fin_iso %}
                 <span class="promo-countdown" data-deadline="{{ o.fecha_fin_iso }}">
                   <i class="bi bi-clock"></i> <span class="promo-countdown-text">—</span>
                 </span>
@@ -280,15 +282,26 @@
               <div class="promo-offer-body">
                 <h4 class="promo-offer-title">{{ o.titulo }}</h4>
                 {% if o.descripcion %}<p class="promo-offer-desc">{{ o.descripcion }}</p>{% endif %}
+                {% if o.proxima %}
+                <p class="promo-offer-until">Disponible desde el {{ o.fecha_inicio_label }}</p>
+                {% else %}
                 <p class="promo-offer-until">Válida hasta el {{ o.fecha_fin_label }}</p>
+                {% endif %}
               </div>
             </article>
             {% endfor %}
           </div>
           {% endif %}
+        </div>
 
-          {% if beneficios %}
-          <h3 class="promo-section-title mt-4"><i class="bi bi-gift"></i> Beneficios para clientes frecuentes</h3>
+        <!-- Benefits Tab -->
+        <div id="tab-beneficios" class="tab-content" style="display:none;">
+          {% if not beneficios %}
+          <div class="tab-placeholder">
+            <i class="bi bi-gift" style="font-size:2rem; color:#D9CEBD;"></i>
+            <p class="mt-2 text-muted">Este restaurante todavía no tiene beneficios para clientes frecuentes.</p>
+          </div>
+          {% else %}
           <div class="promo-benefits-list">
             {% for b in beneficios %}
             <article class="promo-benefit-card {{ 'promo-benefit-card--unlocked' if b.desbloqueado else '' }}">
@@ -307,8 +320,6 @@
             </article>
             {% endfor %}
           </div>
-          {% endif %}
-
           {% endif %}
         </div>
       </div>

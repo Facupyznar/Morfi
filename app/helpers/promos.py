@@ -4,7 +4,7 @@ Centraliza el cálculo de vigencia de ofertas y el progreso de visitas de un
 comensal frente a los beneficios de fidelidad de un restaurante.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import func
 
@@ -32,27 +32,29 @@ def contar_visitas_completadas(user_id, restaurant_id) -> int:
     return int(total or 0)
 
 
-def _naive(dt):
-    """Normaliza un datetime a naive para poder compararlo con datetime.now()."""
+def _as_utc(dt):
+    """Normaliza un datetime a UTC-aware para comparaciones consistentes."""
     if dt is None:
         return None
-    return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def oferta_esta_vigente(oferta, now=None) -> bool:
     """True si la oferta está activa y la fecha actual cae dentro de su rango."""
     if not oferta.activo:
         return False
-    now = now or datetime.now()
-    inicio = _naive(oferta.fecha_inicio)
-    fin = _naive(oferta.fecha_fin)
+    now = now or datetime.now(timezone.utc)
+    inicio = _as_utc(oferta.fecha_inicio)
+    fin = _as_utc(oferta.fecha_fin)
     return (inicio is None or inicio <= now) and (fin is None or now <= fin)
 
 
 def oferta_payload(oferta) -> dict:
     """Construye el dict que consumen los templates (incluye ISO para el countdown)."""
-    fin = _naive(oferta.fecha_fin)
-    inicio = _naive(oferta.fecha_inicio)
+    fin = _as_utc(oferta.fecha_fin)
+    inicio = _as_utc(oferta.fecha_inicio)
     return {
         "id": str(oferta.id),
         "titulo": oferta.titulo,
@@ -65,15 +67,23 @@ def oferta_payload(oferta) -> dict:
 
 
 def ofertas_vigentes(restaurant_id) -> list:
-    """Devuelve los payloads de las ofertas vigentes de un restaurante."""
-    now = datetime.now()
+    """Devuelve ofertas activas (vigentes + próximas) de un restaurante."""
+    now = datetime.now(timezone.utc)
     ofertas = (
         db.session.query(Oferta)
         .filter(Oferta.id_restaurante == restaurant_id, Oferta.activo.is_(True))
         .order_by(Oferta.fecha_fin.asc())
         .all()
     )
-    return [oferta_payload(o) for o in ofertas if oferta_esta_vigente(o, now)]
+    result = []
+    for o in ofertas:
+        fin = _as_utc(o.fecha_fin)
+        # Excluir solo las ya vencidas; incluir vigentes y próximas
+        if fin is None or fin > now:
+            payload = oferta_payload(o)
+            payload["proxima"] = not oferta_esta_vigente(o, now)
+            result.append(payload)
+    return result
 
 
 def _valor_label(beneficio) -> str:
