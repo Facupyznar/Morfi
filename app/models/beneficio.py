@@ -25,14 +25,16 @@ class Beneficio(db.Model):
     descripcion = db.Column("Descripcion", db.Text, nullable=False)
     tipo_condicion = db.Column(
         "TipoCondicion",
-        db.Enum(CondicionTipo, name="beneficio_condicion_tipo"),
+        db.Enum(CondicionTipo, name="beneficio_condicion_tipo",
+                values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=CondicionTipo.VISITAS,
     )
     valor_condicion = db.Column("ValorCondicion", db.Integer, nullable=False)
     tipo_beneficio = db.Column(
         "TipoBeneficio",
-        db.Enum(BeneficioValorTipo, name="beneficio_valor_tipo"),
+        db.Enum(BeneficioValorTipo, name="beneficio_valor_tipo",
+                values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
     valor_beneficio = db.Column("ValorBeneficio", db.Numeric(10, 2), nullable=False)

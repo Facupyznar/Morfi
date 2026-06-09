@@ -17,6 +17,7 @@ from app.routes.restaurante import dashboard as restaurante_routes
 from app.routes.restaurante import reservas_routes as restaurante_reservas_routes
 from app.routes.restaurante import beneficios_routes as restaurante_beneficios_routes
 from app.routes.restaurante import ofertas_routes as restaurante_ofertas_routes
+from app.routes.restaurante import exportar_routes as restaurante_exportar_routes
 from app.routes.usuario import usuario_bp
 from app.routes.usuario import home as usuario_home_routes
 from app.routes.usuario import profile as usuario_profile_routes

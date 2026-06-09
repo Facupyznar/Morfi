@@ -1,0 +1,417 @@
+{% extends 'base.html' %}
+{% block title %}Exportar reportes - Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/dashboard.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+  .export-layout {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 28px;
+    padding: 32px 36px;
+    max-width: 1200px;
+  }
+
+  /* Panel izquierdo */
+  .export-panel {
+    background: #fff;
+    border-radius: 18px;
+    border: 1px solid #E7DED2;
+    padding: 28px 24px;
+    height: fit-content;
+  }
+  .export-panel h1 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #3D3530;
+    margin-bottom: 4px;
+  }
+  .export-panel .subtitle {
+    font-size: 0.85rem;
+    color: #8C8593;
+    margin-bottom: 24px;
+  }
+  .export-section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #8C8593;
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
+  .export-date-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .export-date-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #FAF5EE;
+    border: 1px solid #E7DED2;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    color: #3D3530;
+    width: 100%;
+  }
+  .export-date-input i { color: #C1631A; }
+  .export-date-input input[type="date"] {
+    border: none;
+    background: transparent;
+    font-size: 0.9rem;
+    color: #3D3530;
+    outline: none;
+    width: 100%;
+    cursor: pointer;
+  }
+
+  /* Checkboxes */
+  .metric-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 2px solid #E7DED2;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    margin-bottom: 8px;
+    user-select: none;
+  }
+  .metric-checkbox:has(input:checked) {
+    border-color: #C1631A;
+    background: #FFF5EE;
+  }
+  .metric-checkbox input[type="checkbox"] {
+    accent-color: #C1631A;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+  .metric-checkbox span {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #3D3530;
+  }
+
+  /* Formato */
+  .format-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .format-btn {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 10px;
+    border: 2px solid #E7DED2;
+    background: #FAF5EE;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #8C8593;
+    cursor: pointer;
+    transition: all .15s;
+    text-align: center;
+  }
+  .format-btn.active, .format-btn:hover {
+    border-color: #C1631A;
+    background: #fff;
+    color: #C1631A;
+  }
+
+  /* Botón descargar */
+  .btn-download {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #C1631A;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background .15s;
+  }
+  .btn-download:hover { background: #A8511A; }
+  .btn-download:disabled { background: #D9CEBD; cursor: not-allowed; }
+
+  /* Panel derecho: preview */
+  .export-preview {
+    background: #F5F0EB;
+    border-radius: 18px;
+    padding: 20px;
+    min-height: 500px;
+  }
+  .preview-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #8C8593;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .preview-card {
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 16px rgba(0,0,0,.07);
+  }
+  .preview-header {
+    background: #C1631A;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .preview-header-brand {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 800;
+  }
+  .preview-header-meta {
+    text-align: right;
+  }
+  .preview-header-meta .tag {
+    font-size: 0.65rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.7);
+    display: block;
+  }
+  .preview-header-meta .range {
+    font-size: 0.8rem;
+    color: #fff;
+    font-weight: 600;
+  }
+  .preview-body {
+    padding: 20px;
+  }
+  .preview-restaurant-name {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #3D3530;
+    margin-bottom: 2px;
+  }
+  .preview-restaurant-sub {
+    font-size: 0.78rem;
+    color: #8C8593;
+    margin-bottom: 20px;
+  }
+  .preview-section {
+    margin-bottom: 20px;
+  }
+  .preview-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #C1631A;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    background: #FAF5EE;
+    padding: 5px 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+  }
+  .preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+  .preview-table th {
+    background: #3D3530;
+    color: #fff;
+    padding: 5px 8px;
+    text-align: center;
+  }
+  .preview-table td {
+    padding: 5px 8px;
+    text-align: center;
+    border-bottom: 1px solid #F0EBE3;
+  }
+  .preview-table tr:nth-child(even) td { background: #FAF5EE; }
+  .preview-table tr.total td {
+    background: #F5F0EB;
+    font-weight: 700;
+  }
+  .preview-hidden {
+    display: none;
+  }
+</style>
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+  {% include 'includes/_admin_sidebar.html' %}
+
+  <main class="admin-main" style="overflow-y:auto;">
+    <div class="export-layout">
+
+      <!-- Panel configuración -->
+      <div class="export-panel">
+        <h1>Exportar reportes</h1>
+        <p class="subtitle">Generá reportes PDF con los datos de tu restaurante</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for cat, msg in messages %}
+          <div class="alert alert-{{ 'warning' if cat == 'warning' else 'danger' if cat == 'danger' else 'info' }} py-2 mb-3" style="font-size:.85rem;">
+            {{ msg }}
+          </div>
+          {% endfor %}
+        {% endwith %}
+
+        {% if not fpdf_available %}
+        <div style="background:#FFF5EE; border:1px solid #F4A340; border-radius:10px; padding:12px 14px; font-size:.82rem; color:#8C3D0A; margin-bottom:16px;">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>
+          <strong>fpdf2 no instalado.</strong> Ejecutá en el contenedor:<br>
+          <code style="background:#FAF5EE; padding:2px 6px; border-radius:4px;">pip install fpdf2</code><br>
+          y reiniciá la app.
+        </div>
+        {% endif %}
+
+        <form method="POST" id="export-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="export-section-label">Rango de fechas</div>
+          <div class="export-date-row">
+            <label class="export-date-input">
+              <i class="bi bi-calendar3"></i>
+              <input type="date" name="fecha_inicio" id="fecha-inicio"
+                     value="{{ default_inicio }}" required max="{{ default_fin }}">
+            </label>
+            <label class="export-date-input">
+              <i class="bi bi-calendar3"></i>
+              <input type="date" name="fecha_fin" id="fecha-fin"
+                     value="{{ default_fin }}" required max="{{ default_fin }}">
+            </label>
+          </div>
+
+          <div class="export-section-label">Métricas a incluir</div>
+          <label class="metric-checkbox">
+            <input type="checkbox" name="reservas" id="chk-reservas" checked onchange="updatePreview()">
+            <span>Reservas</span>
+          </label>
+          <label class="metric-checkbox">
+            <input type="checkbox" name="resenas" id="chk-resenas" onchange="updatePreview()">
+            <span>Reseñas</span>
+          </label>
+          <label class="metric-checkbox">
+            <input type="checkbox" name="ocupacion" id="chk-ocupacion" onchange="updatePreview()">
+            <span>Ocupación</span>
+          </label>
+
+          <div class="export-section-label">Formato</div>
+          <div class="format-row">
+            <div class="format-btn active">PDF</div>
+          </div>
+
+          <button type="submit" class="btn-download" {% if not fpdf_available %}disabled{% endif %}>
+            <i class="bi bi-download"></i> Descargar PDF
+          </button>
+        </form>
+      </div>
+
+      <!-- Panel preview -->
+      <div class="export-preview">
+        <div class="preview-label">
+          <i class="bi bi-eye"></i> Vista previa
+        </div>
+        <div class="preview-card">
+          <div class="preview-header">
+            <div class="preview-header-brand">Morfi</div>
+            <div class="preview-header-meta">
+              <span class="tag">Reporte</span>
+              <span class="range" id="preview-range">— → —</span>
+            </div>
+          </div>
+          <div class="preview-body">
+            <div class="preview-restaurant-name">{{ restaurant.name }}</div>
+            <div class="preview-restaurant-sub">{{ restaurant.address }} · Reporte generado el {{ now }}</div>
+
+            <!-- Reservas preview -->
+            <div class="preview-section" id="prev-reservas">
+              <div class="preview-section-title">Reservas</div>
+              <table class="preview-table">
+                <thead>
+                  <tr><th>Período</th><th>Cantidad</th><th>Comensales</th><th>Cancel.</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Semana 1</td><td>—</td><td>—</td><td>—</td></tr>
+                  <tr><td>Semana 2</td><td>—</td><td>—</td><td>—</td></tr>
+                  <tr><td>Semana 3</td><td>—</td><td>—</td><td>—</td></tr>
+                  <tr class="total"><td>TOTAL</td><td>—</td><td>—</td><td>—</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Reseñas preview -->
+            <div class="preview-section preview-hidden" id="prev-resenas">
+              <div class="preview-section-title">Reseñas</div>
+              <table class="preview-table">
+                <thead><tr><th>Total reseñas</th><th>Puntaje promedio</th></tr></thead>
+                <tbody><tr><td>—</td><td>— / 5</td></tr></tbody>
+              </table>
+            </div>
+
+            <!-- Ocupación preview -->
+            <div class="preview-section preview-hidden" id="prev-ocupacion">
+              <div class="preview-section-title">Ocupación semanal</div>
+              <table class="preview-table">
+                <thead><tr><th>Período</th><th>Comensales</th><th>Cap. total</th><th>Ocupación %</th></tr></thead>
+                <tbody>
+                  <tr><td>Semana 1</td><td>—</td><td>—</td><td>—%</td></tr>
+                  <tr><td>Semana 2</td><td>—</td><td>—</td><td>—%</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  function updatePreview() {
+    const chkMap = {
+      'chk-reservas':  'prev-reservas',
+      'chk-resenas':   'prev-resenas',
+      'chk-ocupacion': 'prev-ocupacion',
+    };
+    for (const [chkId, divId] of Object.entries(chkMap)) {
+      const checked = document.getElementById(chkId).checked;
+      document.getElementById(divId).classList.toggle('preview-hidden', !checked);
+    }
+  }
+
+  function updateRange() {
+    const ini = document.getElementById('fecha-inicio').value;
+    const fin = document.getElementById('fecha-fin').value;
+    const fmt = v => v ? v.split('-').reverse().join('/') : '—';
+    document.getElementById('preview-range').textContent = `${fmt(ini)} → ${fmt(fin)}`;
+    // Ensure fin >= ini
+    if (ini) document.getElementById('fecha-fin').min = ini;
+  }
+
+  document.getElementById('fecha-inicio').addEventListener('change', updateRange);
+  document.getElementById('fecha-fin').addEventListener('change', updateRange);
+  updateRange();
+  updatePreview();
+</script>
+{% endblock %}
