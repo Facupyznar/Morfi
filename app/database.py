@@ -10,6 +10,55 @@ def init_db(app):
     db.init_app(app)
 
 
+def ensure_user_schema():
+    """Migración idempotente para el login con Google sobre la tabla User.
+
+    Agrega google_id / avatar_url / profile_completed y relaja restricciones
+    NOT NULL en password y dirección/coordenadas. No destruye datos existentes.
+    """
+    inspector = inspect(db.engine)
+    if "User" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"]: column for column in inspector.get_columns("User")}
+
+    # La contraseña pasa a ser opcional (usuarios de Google no tienen hash).
+    if columns.get("password", {}).get("nullable") is False:
+        db.session.execute(text('ALTER TABLE "User" ALTER COLUMN "password" DROP NOT NULL'))
+
+    if "google_id" not in columns:
+        db.session.execute(text('ALTER TABLE "User" ADD COLUMN "google_id" VARCHAR(255)'))
+        db.session.execute(
+            text('CREATE UNIQUE INDEX IF NOT EXISTS "ix_User_google_id" ON "User" ("google_id")')
+        )
+
+    if "avatar_url" not in columns:
+        db.session.execute(text('ALTER TABLE "User" ADD COLUMN "avatar_url" VARCHAR(512)'))
+
+    if "profile_completed" not in columns:
+        # Usuarios ya existentes completaron su registro → TRUE.
+        db.session.execute(
+            text('ALTER TABLE "User" ADD COLUMN "profile_completed" BOOLEAN NOT NULL DEFAULT TRUE')
+        )
+        # Los nuevos registros (incluido Google) definen el valor explícitamente.
+        db.session.execute(text('ALTER TABLE "User" ALTER COLUMN "profile_completed" SET DEFAULT FALSE'))
+
+    # Dirección y coordenadas opcionales para el alta por Google.
+    for column_name in ("address", "latitude", "longitude"):
+        if columns.get(column_name, {}).get("nullable") is False:
+            db.session.execute(
+                text(f'ALTER TABLE "User" ALTER COLUMN "{column_name}" DROP NOT NULL')
+            )
+
+    # Flag de descubribilidad por contactos (default TRUE para todos).
+    if "discoverable_by_contacts" not in columns:
+        db.session.execute(
+            text('ALTER TABLE "User" ADD COLUMN "discoverable_by_contacts" BOOLEAN NOT NULL DEFAULT TRUE')
+        )
+
+    db.session.commit()
+
+
 def ensure_menu_schema():
     inspector = inspect(db.engine)
     if "Menu" not in inspector.get_table_names():

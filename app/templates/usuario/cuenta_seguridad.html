@@ -65,6 +65,9 @@
           <a href="{{ url_for('usuario.friends') }}" class="profile-nav-item">
             <i class="bi bi-people"></i> Amigos
           </a>
+          <a href="{{ url_for('usuario.discover_friends') }}" class="profile-nav-item">
+            <i class="bi bi-person-plus"></i> Encontrá amigos
+          </a>
           <a href="{{ url_for('usuario.wishlist') }}" class="profile-nav-item">
             <i class="bi bi-heart"></i> Wishlist
           </a>
@@ -111,6 +114,26 @@
             </div>
             <i class="bi bi-chevron-right security-row-arrow"></i>
           </a>
+        </div>
+
+        <!-- Privacidad: descubrimiento por contactos -->
+        <div class="security-card mb-4">
+          <form method="POST" action="{{ url_for('usuario.toggle_discoverable') }}"
+                class="security-row" style="border-bottom:none;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="security-row-text">
+              <div class="security-row-title">Que me encuentren por mis contactos</div>
+              <div class="security-row-sub">
+                Permití que otras personas te vean como sugerencia cuando conectan su agenda.
+              </div>
+            </div>
+            <label class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" name="discoverable" role="switch"
+                     onchange="this.form.submit()"
+                     {% if current_user.discoverable_by_contacts %}checked{% endif %}
+                     style="cursor:pointer; width:2.6em; height:1.4em;">
+            </label>
+          </form>
         </div>
 
         <!-- Danger zone -->

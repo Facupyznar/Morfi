@@ -99,6 +99,50 @@ h2 {
 .forgot a { color: #FF6B35; text-decoration: none; }
 .forgot a:hover { text-decoration: underline; }
 
+.btn-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #fff;
+  color: #1A1A2E;
+  border: 1px solid #D9CEBD;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.btn-google:hover {
+  background: #F7F3EE;
+  border-color: #FF9A6C;
+  box-shadow: 0 4px 14px rgba(26, 26, 46, 0.08);
+  color: #1A1A2E;
+}
+.btn-google-icon { flex-shrink: 0; }
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #B8A99A;
+  font-size: 13px;
+  margin: 18px 0;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #EDE6DC;
+}
+.auth-divider span { padding: 0 14px; }
+
 .btn-primary-morfi {
   width: 100%;
   background: #FF6B35;

@@ -24,12 +24,23 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(100), unique=True, nullable=False)
     name = db.Column(db.String(100))
     email = db.Column(db.String(255), unique=True, nullable=False)
-    password_hash = db.Column("password", db.String(255), nullable=False)
-    address = db.Column(db.String(255), nullable=False)
-    latitude = db.Column(db.Float, nullable=False)
-    longitude = db.Column(db.Float, nullable=False)
+    # Nullable: un usuario que ingresa con Google no tiene contraseña local.
+    password_hash = db.Column("password", db.String(255), nullable=True)
+    # Nullable: el alta por Google no recolecta dirección/coordenadas; se completan luego.
+    address = db.Column(db.String(255), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     nivel = db.Column(db.Numeric(3, 2), nullable=False, default=1.0)
     foto_perfil = db.Column(db.String(255))
+    # Identidad de Google (claim "sub" de OpenID Connect) para login social.
+    google_id = db.Column(db.String(255), unique=True, nullable=True, index=True)
+    # URL de avatar provista por Google (externa, no se guarda en static/).
+    avatar_url = db.Column(db.String(512), nullable=True)
+    # Controla el flujo de onboarding de primer acceso.
+    profile_completed = db.Column(db.Boolean, nullable=False, default=False)
+    # Privacidad: si está en False, este usuario no aparece como sugerencia
+    # cuando otra persona conecta su agenda de contactos, aunque su email coincida.
+    discoverable_by_contacts = db.Column(db.Boolean, nullable=False, default=True)
     rol = db.Column(
         SqlEnum(
             Role,
@@ -47,7 +58,7 @@ class User(db.Model, UserMixin):
         self,
         username,
         email,
-        password,
+        password=None,
         name=None,
         rol=Role.COMENSAL,
         address=None,
@@ -56,22 +67,31 @@ class User(db.Model, UserMixin):
         birth_date=None,
         is_active=True,
         is_admin=False,
+        google_id=None,
+        avatar_url=None,
+        profile_completed=False,
     ):
         self.username = username.strip()
         self.email = email.strip().lower()
         self.name = name.strip() if isinstance(name, str) and name.strip() else None
         self.rol = rol if isinstance(rol, Role) else Role(rol)
-        self.password = password
+        # La contraseña es opcional: las cuentas de Google no tienen hash local.
+        if password:
+            self.password = password
         self.is_active = bool(is_active)
         self.is_admin = bool(is_admin)
         self.birth_date = self.parse_birth_date(birth_date)
-        self.address = (address or "").strip()
-        if not self.address:
-            raise ValueError("La dirección es obligatoria.")
-        if latitude is None or longitude is None:
-            raise ValueError("Las coordenadas son obligatorias.")
-        self.latitude = float(latitude)
-        self.longitude = float(longitude)
+        self.google_id = google_id
+        self.avatar_url = avatar_url
+        self.profile_completed = bool(profile_completed)
+        # Dirección y coordenadas son obligatorias en el alta tradicional (validadas
+        # a nivel de ruta), pero opcionales en el alta por Google: se completan luego.
+        normalized_address = (address or "").strip()
+        self.address = normalized_address or None
+        if latitude is not None:
+            self.latitude = float(latitude)
+        if longitude is not None:
+            self.longitude = float(longitude)
 
     @staticmethod
     def parse_birth_date(value):

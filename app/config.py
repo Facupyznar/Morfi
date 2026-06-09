@@ -49,3 +49,19 @@ class Config:
 
     # Gemini AI
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+    # Google OAuth (login social para comensales)
+    GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+    # Redirect URI opcional. Si no se define, se construye con url_for(..., _external=True).
+    # En dev suele ser http://localhost:5000/login/google/callback
+    GOOGLE_OAUTH_REDIRECT_URI = os.environ.get("GOOGLE_OAUTH_REDIRECT_URI")
+
+    # Google Contacts (People API) — scope sensible pedido por autorización
+    # incremental SOLO al tocar "Encontrá amigos", nunca en el login.
+    GOOGLE_CONTACTS_REDIRECT_URI = os.environ.get("GOOGLE_CONTACTS_REDIRECT_URI")
+    # Incluir "otros contactos" (gente con la que interactuó pero no guardó).
+    GOOGLE_CONTACTS_INCLUDE_OTHER = (
+        os.environ.get("GOOGLE_CONTACTS_INCLUDE_OTHER", "false").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )

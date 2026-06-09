@@ -2,11 +2,12 @@ import uuid
 
 from flask import Flask
 from flask_login import LoginManager
-from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
-from app.database import db, ensure_menu_schema
+from app.database import db, ensure_menu_schema, ensure_user_schema
 from app.helpers.mail import mail
+from app.helpers.oauth import init_oauth
+from app.helpers.security import csrf
 from app.helpers.markdown import render_markdown
 from app.models.user import User
 from app.routes.admin import admin_bp
@@ -23,19 +24,21 @@ from app.routes.usuario import home as usuario_home_routes
 from app.routes.usuario import profile as usuario_profile_routes
 from app.routes.usuario import notifications as usuario_notifications_routes
 from app.routes.usuario import promos as usuario_promos_routes
+from app.routes.usuario import contacts as usuario_contacts_routes
 
 
 def create_app():
     flask_app = Flask(__name__)
     flask_app.config.from_object(Config)
 
-    csrf = CSRFProtect()
     csrf.init_app(flask_app)
     db.init_app(flask_app)
     mail.init_app(flask_app)
+    init_oauth(flask_app)
 
     with flask_app.app_context():
         db.create_all()
+        ensure_user_schema()
         ensure_menu_schema()
 
     login_manager = LoginManager()

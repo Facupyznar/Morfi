@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Conectar con amigos - Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/find_friends.css') }}">
+{% endblock %}
+
+{% macro friend_card(user, motivo=None) %}
+<div class="ff-row" id="ff-row-{{ user.id }}">
+  <div class="ff-person">
+    <div class="ff-avatar">
+      {% if user.photo_url %}
+        <img src="{{ url_for('static', filename=user.photo_url) }}" alt="{{ user.name }}">
+      {% elif user.avatar_url %}
+        <img src="{{ user.avatar_url }}" alt="{{ user.name }}" referrerpolicy="no-referrer">
+      {% else %}
+        <span>{{ user.initials }}</span>
+      {% endif %}
+    </div>
+    <div>
+      <div class="ff-name">{{ user.name }}</div>
+      {% if motivo %}
+        <div class="ff-motivo"><i class="bi bi-stars"></i> {{ motivo }}</div>
+      {% else %}
+        <div class="ff-username">@{{ user.username }}</div>
+      {% endif %}
+    </div>
+  </div>
+  <form method="POST"
+        action="{{ url_for('usuario.connect_friend', friend_id=user.id) }}"
+        class="ff-connect-form" data-user-id="{{ user.id }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="ff-connect-btn">Conectar</button>
+  </form>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="ff-wrap">
+
+  <header class="ff-header">
+    <div class="ff-icon"><i class="bi bi-people-fill"></i></div>
+    <h1>Conectá con amigos</h1>
+    <p>Encontrá gente que ya conocés y personas con tus mismos gustos.</p>
+  </header>
+
+  <!-- ════ Sección 1 — De tu agenda ════ -->
+  <section class="ff-section">
+    <h2 class="ff-section-title"><i class="bi bi-journal-bookmark"></i> De tu agenda</h2>
+
+    {% if contact_matches %}
+      <div class="ff-card">
+        <p class="ff-section-hint">Estos contactos tuyos ya están en Morfi:</p>
+        <div class="ff-list">
+          {% for user in contact_matches %}
+            {{ friend_card(user) }}
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="ff-card">
+        <a href="{{ url_for('usuario.contacts_connect') }}" class="ff-google-btn">
+          <svg class="ff-google-icon" viewBox="0 0 18 18" width="20" height="20" aria-hidden="true">
+            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.35 0-4.34-1.59-5.05-3.71H.96v2.33A9 9 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.95 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l2.99-2.33z"/>
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.96l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
+          </svg>
+          Conectar con Google Contacts
+        </a>
+        <p class="ff-privacy-note">
+          <i class="bi bi-shield-lock"></i>
+          Solo buscamos coincidencias en Morfi. No guardamos tu agenda.
+        </p>
+
+        <details class="ff-manual">
+          <summary>¿Preferís pegar los emails a mano?</summary>
+          <form action="{{ url_for('usuario.import_contacts') }}" method="POST" enctype="multipart/form-data" class="ff-manual-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label for="ff-emails">Pegá emails (uno por línea o separados por coma)</label>
+            <textarea id="ff-emails" name="emails" rows="4"
+                      placeholder="ana@gmail.com&#10;juan@hotmail.com"></textarea>
+            <label for="ff-csv" class="ff-csv-label">…o subí un CSV exportado de tu agenda</label>
+            <input type="file" id="ff-csv" name="csv" accept=".csv,text/csv">
+            <button type="submit" class="ff-submit">Buscar coincidencias</button>
+          </form>
+        </details>
+      </div>
+    {% endif %}
+
+    {% if contact_matches %}
+      <a href="{{ url_for('usuario.contacts_connect') }}" class="ff-relink">
+        <i class="bi bi-arrow-repeat"></i> Volver a sincronizar mi agenda
+      </a>
+    {% endif %}
+  </section>
+
+  <!-- ════ Sección 2 — Personas con tus mismos gustos ════ -->
+  <section class="ff-section">
+    <h2 class="ff-section-title"><i class="bi bi-stars"></i> Personas con tus mismos gustos</h2>
+
+    {% if affinity_suggestions %}
+      <div class="ff-card">
+        <div class="ff-list">
+          {% for s in affinity_suggestions %}
+            {{ friend_card(s, motivo=s.motivo) }}
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="ff-card ff-empty">
+        <i class="bi bi-emoji-smile"></i>
+        <p>Todavía no tenemos sugerencias para vos.</p>
+        <p class="ff-empty-sub">
+          Completá tus <a href="{{ url_for('usuario.edit_profile') }}">preferencias culinarias</a>
+          o conectá tu agenda para empezar a ver personas afines.
+        </p>
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+
+<script>
+  // Reutiliza usuario.connect_friend (XHR) para feedback sin recargar.
+  document.querySelectorAll('.ff-connect-form').forEach(function (form) {
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var btn = form.querySelector('.ff-connect-btn');
+      btn.disabled = true;
+      try {
+        var res = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          body: new FormData(form),
+        });
+        var data = await res.json();
+        if (data.ok) {
+          btn.textContent = 'Solicitud enviada';
+          btn.classList.add('ff-connect-btn--sent');
+        } else {
+          btn.disabled = false;
+          if (window.showToast) window.showToast(data.message || 'No se pudo enviar.', data.category || 'warning');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        if (window.showToast) window.showToast('No se pudo enviar la solicitud.', 'danger');
+      }
+    });
+  });
+</script>
+{% endblock %}

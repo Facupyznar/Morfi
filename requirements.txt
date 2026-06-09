@@ -16,3 +16,4 @@ Flask-WTF
 Flask-Mail
 geopy==2.4.1
 google-genai
+Authlib==1.3.2
