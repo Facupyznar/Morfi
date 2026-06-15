@@ -4,7 +4,7 @@ from flask import Flask
 from flask_login import LoginManager
 
 from app.config import Config
-from app.database import db, ensure_menu_schema, ensure_user_schema
+from app.database import db, ensure_menu_schema, ensure_user_schema, ensure_wishlist_schema
 from app.helpers.mail import mail
 from app.helpers.oauth import init_oauth
 from app.helpers.security import csrf
@@ -40,6 +40,7 @@ def create_app():
         db.create_all()
         ensure_user_schema()
         ensure_menu_schema()
+        ensure_wishlist_schema()
 
     login_manager = LoginManager()
     login_manager.login_view = "auth.login"

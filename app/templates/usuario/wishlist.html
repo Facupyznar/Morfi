@@ -20,9 +20,6 @@
     border-radius: 14px;
     overflow: hidden;
     height: 180px;
-    cursor: pointer;
-    text-decoration: none;
-    display: block;
     box-shadow: 0 2px 8px rgba(0,0,0,.15);
     transition: transform .2s, box-shadow .2s;
   }
@@ -37,28 +34,80 @@
     position: absolute; inset: 0;
     background: linear-gradient(to top, rgba(0,0,0,.65) 40%, transparent 100%);
   }
+  .wl-card-link { position: absolute; inset: 0; z-index: 1; }
+
   .wl-card-body {
     position: absolute; bottom: 0; left: 0; right: 0;
     padding: .75rem 1rem;
     color: #fff;
-    display: flex; align-items: flex-end; justify-content: space-between;
+    z-index: 2;
+    pointer-events: none;
   }
   .wl-card-name { font-weight: 700; font-size: .95rem; line-height: 1.2; }
   .wl-card-rating { font-size: .82rem; color: #FFD166; display: flex; align-items: center; gap: .25rem; margin-top: .2rem; }
 
-  .wl-heart-btn {
-    background: rgba(255,255,255,.15);
+  .wl-card-actions {
+    position: absolute; top: .55rem; right: .55rem;
+    display: flex; gap: .4rem;
+    z-index: 3;
+  }
+  .wl-action-btn {
+    background: rgba(0,0,0,.4);
     border: none;
     border-radius: 50%;
     width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
-    color: #FF6B35;
-    font-size: 1.1rem;
+    color: #fff;
+    font-size: 1rem;
     cursor: pointer;
-    flex-shrink: 0;
     transition: background .2s;
   }
-  .wl-heart-btn:hover { background: rgba(255,255,255,.3); }
+  .wl-action-btn:hover { background: rgba(0,0,0,.65); }
+  .wl-action-btn.heart { color: #FF6B35; }
+
+  .wl-visited-badge {
+    position: absolute; top: .55rem; left: .55rem;
+    z-index: 3;
+    background: rgba(38, 166, 91, .92);
+    color: #fff;
+    font-size: .72rem;
+    font-weight: 700;
+    padding: .2rem .55rem;
+    border-radius: 20px;
+    display: inline-flex; align-items: center; gap: .25rem;
+  }
+
+  .wl-tabs { border: none; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .wl-tabs .nav-link {
+    border: 1px solid var(--morfi-border, #e3dcd3);
+    border-radius: 20px;
+    color: #6b6259;
+    font-size: .86rem;
+    font-weight: 600;
+    padding: .35rem .9rem;
+  }
+  .wl-tabs .nav-link.active {
+    background: #FF6B35;
+    border-color: #FF6B35;
+    color: #fff;
+  }
+  .wl-tabs .nav-link .wl-count {
+    opacity: .75;
+    margin-left: .3rem;
+    font-weight: 500;
+  }
+
+  .wl-list-toolbar {
+    display: flex; align-items: center; gap: .5rem;
+    margin-bottom: 1rem;
+  }
+  .wl-tool-btn {
+    background: none; border: 1px solid var(--morfi-border, #e3dcd3);
+    border-radius: 8px; padding: .25rem .6rem;
+    font-size: .8rem; color: #6b6259; cursor: pointer;
+  }
+  .wl-tool-btn:hover { background: #f3eee7; }
+  .wl-tool-btn.danger { color: #c0392b; border-color: #e6c3bd; }
 
   .wl-empty {
     grid-column: 1 / -1;
@@ -112,61 +161,106 @@
           </div>
         </div>
 
-        <div class="profile-nav-card">
-          <a href="{{ url_for('usuario.profile') }}" class="profile-nav-item">
-            <i class="bi bi-person"></i> Mi perfil
-          </a>
-          <a href="{{ url_for('usuario.friends') }}" class="profile-nav-item">
-            <i class="bi bi-people"></i> Amigos
-          </a>
-          <a href="{{ url_for('usuario.wishlist') }}" class="profile-nav-item active">
-            <i class="bi bi-heart"></i> Wishlist
-          </a>
-          <a href="{{ url_for('usuario.history') }}" class="profile-nav-item">
-            <i class="bi bi-clock-history"></i> Actividad reciente
-          </a>
-          <a href="{{ url_for('usuario.security') }}" class="profile-nav-item">
-            <i class="bi bi-shield"></i> Cuenta y seguridad
-          </a>
-        </div>
+        {% include 'includes/_profile_nav.html' %}
       </div>
 
       <!-- ── MAIN CONTENT ── -->
       <div class="col-lg-9">
         <div class="profile-content-card">
-          <h2 class="profile-main-title mb-1">Wishlist</h2>
-          <p class="text-muted mb-4" style="font-size:.9rem;">
-            {{ wishlist|length }} restaurante{{ 's' if wishlist|length != 1 else '' }} guardado{{ 's' if wishlist|length != 1 else '' }}
-          </p>
+          <div class="d-flex align-items-start justify-content-between mb-1">
+            <div>
+              <h2 class="profile-main-title mb-1">Wishlist</h2>
+              <p class="text-muted mb-0" style="font-size:.9rem;">
+                {{ total }} restaurante{{ 's' if total != 1 else '' }} guardado{{ 's' if total != 1 else '' }}
+                · {{ lists|length }} lista{{ 's' if lists|length != 1 else '' }}
+              </p>
+            </div>
+            <button class="btn btn-sm" style="background:#FF6B35;color:#fff;border-radius:20px;"
+                    data-bs-toggle="modal" data-bs-target="#createListModal">
+              <i class="bi bi-plus-lg"></i> Crear lista
+            </button>
+          </div>
 
-          <div class="wishlist-grid">
-            {% for rest in wishlist %}
-            <a href="{{ url_for('usuario.restaurant_detail', restaurant_id=rest.id) }}" class="wl-card">
-              {% if rest.cover_url %}
-                <img class="wl-card-img" src="{{ url_for('static', filename=rest.cover_url) }}" alt="{{ rest.name }}">
-              {% else %}
-                <img class="wl-card-img" src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=600" alt="{{ rest.name }}">
-              {% endif %}
-              <div class="wl-card-overlay"></div>
-              <div class="wl-card-body">
-                <div>
-                  <div class="wl-card-name">{{ rest.name }}</div>
-                  <div class="wl-card-rating">
-                    <i class="bi bi-star-fill"></i> {{ "%.1f"|format(rest.rating) }}
-                  </div>
-                </div>
-                <button class="wl-heart-btn" data-id="{{ rest.id }}"
-                        onclick="removeFromWishlist(event, this, '{{ rest.id }}')">
-                  <i class="bi bi-heart-fill"></i>
+          <!-- Pestañas de listas -->
+          <ul class="nav wl-tabs mt-3" role="tablist">
+            {% for lst in lists %}
+            <li class="nav-item" role="presentation">
+              <button class="nav-link {{ 'active' if loop.first else '' }}"
+                      data-bs-toggle="pill" data-bs-target="#pane-{{ loop.index0 }}"
+                      type="button" role="tab">
+                {{ lst.name }}<span class="wl-count">{{ lst.cards|length }}</span>
+              </button>
+            </li>
+            {% endfor %}
+          </ul>
+
+          <!-- Paneles -->
+          <div class="tab-content">
+            {% for lst in lists %}
+            <div class="tab-pane fade {{ 'show active' if loop.first else '' }}"
+                 id="pane-{{ loop.index0 }}" role="tabpanel">
+
+              {% if lst.removable %}
+              <div class="wl-list-toolbar">
+                <span class="fw-bold" style="color:#3D3530;">{{ lst.name }}</span>
+                <button class="wl-tool-btn" type="button"
+                        onclick="openRename('{{ lst.id }}', this)" data-name="{{ lst.name }}">
+                  <i class="bi bi-pencil"></i> Renombrar
+                </button>
+                <button class="wl-tool-btn danger" type="button"
+                        onclick="deleteList('{{ lst.id }}', '{{ lst.name }}')">
+                  <i class="bi bi-trash"></i> Eliminar lista
                 </button>
               </div>
-            </a>
-            {% else %}
-            <div class="wl-empty">
-              <i class="bi bi-heart d-block mb-2"></i>
-              <p class="mb-0">Todavía no guardaste ningún restaurante.</p>
-              <a href="{{ url_for('usuario.home') }}" class="btn btn-sm mt-3"
-                 style="background:#FF6B35;color:#fff;border-radius:20px;">Explorar restaurantes</a>
+              {% endif %}
+
+              <div class="wishlist-grid">
+                {% for rest in lst.cards %}
+                <div class="wl-card" data-id="{{ rest.id }}">
+                  {% if rest.cover_url %}
+                    <img class="wl-card-img" src="{{ url_for('static', filename=rest.cover_url) }}" alt="{{ rest.name }}">
+                  {% else %}
+                    <img class="wl-card-img" src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=600" alt="{{ rest.name }}">
+                  {% endif %}
+                  <div class="wl-card-overlay"></div>
+                  <a class="wl-card-link" href="{{ url_for('usuario.restaurant_detail', restaurant_id=rest.id) }}"
+                     aria-label="{{ rest.name }}"></a>
+
+                  {% if rest.visited %}
+                  <span class="wl-visited-badge"><i class="bi bi-check-circle-fill"></i> Visitado</span>
+                  {% endif %}
+
+                  <div class="wl-card-actions">
+                    <button class="wl-action-btn" type="button" title="Mover a otra lista"
+                            onclick="openMove('{{ rest.id }}', '{{ lst.id }}')">
+                      <i class="bi bi-folder"></i>
+                    </button>
+                    <button class="wl-action-btn heart" type="button" title="Quitar de la wishlist"
+                            onclick="removeFromWishlist(this, '{{ rest.id }}')">
+                      <i class="bi bi-heart-fill"></i>
+                    </button>
+                  </div>
+
+                  <div class="wl-card-body">
+                    <div class="wl-card-name">{{ rest.name }}</div>
+                    <div class="wl-card-rating">
+                      <i class="bi bi-star-fill"></i> {{ "%.1f"|format(rest.rating) }}
+                    </div>
+                  </div>
+                </div>
+                {% else %}
+                <div class="wl-empty">
+                  <i class="bi bi-heart d-block mb-2"></i>
+                  {% if lst.removable %}
+                  <p class="mb-0">Esta lista está vacía. Movele restaurantes desde "{{ lists[0].name }}".</p>
+                  {% else %}
+                  <p class="mb-0">Todavía no guardaste ningún restaurante.</p>
+                  <a href="{{ url_for('usuario.home') }}" class="btn btn-sm mt-3"
+                     style="background:#FF6B35;color:#fff;border-radius:20px;">Explorar restaurantes</a>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
             </div>
             {% endfor %}
           </div>
@@ -176,29 +270,146 @@
     </div>
   </div>
 </div>
+
+<!-- Modal: crear lista -->
+<div class="modal fade" id="createListModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nueva lista</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="newListName" class="form-control" maxlength="60"
+               placeholder="Ej: Románticos, Con amigos…">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn" style="background:#FF6B35;color:#fff;" onclick="createList()">Crear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: renombrar lista -->
+<div class="modal fade" id="renameListModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Renombrar lista</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="renameListId">
+        <input type="text" id="renameListName" class="form-control" maxlength="60">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn" style="background:#FF6B35;color:#fff;" onclick="renameList()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: mover a lista -->
+<div class="modal fade" id="moveModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Mover a otra lista</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="moveRestaurantId">
+        <div id="moveOptions" class="d-grid gap-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block page_scripts %}
 <script>
-async function removeFromWishlist(e, btn, restaurantId) {
-  e.preventDefault();
-  e.stopPropagation();
-  const res = await fetch(`/perfil/wishlist/toggle/${restaurantId}`, {
-    method: 'POST',
-    headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
-  });
-  if (res.ok) {
+  const CSRF = '{{ csrf_token() }}';
+  const WISHLIST_LISTS = [
+    {% for lst in lists %}{ id: '{{ lst.id }}', name: {{ lst.name|tojson }} }{{ ',' if not loop.last else '' }}{% endfor %}
+  ];
+
+  async function postForm(url, data) {
+    const body = new URLSearchParams(data || {});
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    let payload = {};
+    try { payload = await res.json(); } catch (e) {}
+    return { ok: res.ok, payload };
+  }
+
+  async function removeFromWishlist(btn, restaurantId) {
+    const { ok } = await postForm(`/perfil/wishlist/toggle/${restaurantId}`);
+    if (!ok) { showToast('No se pudo quitar el restaurante', 'error'); return; }
     const card = btn.closest('.wl-card');
     card.style.transition = 'opacity .3s, transform .3s';
     card.style.opacity = '0';
     card.style.transform = 'scale(.9)';
-    setTimeout(() => {
-      card.remove();
-      const count = document.querySelectorAll('.wl-card').length;
-      document.querySelector('.text-muted').textContent =
-        `${count} restaurante${count !== 1 ? 's' : ''} guardado${count !== 1 ? 's' : ''}`;
-    }, 300);
+    setTimeout(() => { card.remove(); }, 300);
   }
-}
+
+  async function createList() {
+    const name = document.getElementById('newListName').value.trim();
+    if (!name) { showToast('Poné un nombre a la lista', 'warning'); return; }
+    const { ok, payload } = await postForm('/perfil/wishlist/listas/crear', { nombre: name });
+    if (ok) { location.reload(); }
+    else { showToast(payload.error || 'No se pudo crear la lista', 'error'); }
+  }
+
+  function openRename(listId, btn) {
+    document.getElementById('renameListId').value = listId;
+    document.getElementById('renameListName').value = btn.dataset.name || '';
+    new bootstrap.Modal(document.getElementById('renameListModal')).show();
+  }
+
+  async function renameList() {
+    const id = document.getElementById('renameListId').value;
+    const name = document.getElementById('renameListName').value.trim();
+    if (!name) { showToast('El nombre no puede estar vacío', 'warning'); return; }
+    const { ok, payload } = await postForm(`/perfil/wishlist/listas/${id}/renombrar`, { nombre: name });
+    if (ok) { location.reload(); }
+    else { showToast(payload.error || 'No se pudo renombrar', 'error'); }
+  }
+
+  async function deleteList(listId, listName) {
+    if (!confirm(`¿Eliminar la lista "${listName}"? Sus restaurantes vuelven a "${WISHLIST_LISTS[0].name}".`)) return;
+    const { ok, payload } = await postForm(`/perfil/wishlist/listas/${listId}/eliminar`);
+    if (ok) { location.reload(); }
+    else { showToast(payload.error || 'No se pudo eliminar', 'error'); }
+  }
+
+  function openMove(restaurantId, currentListId) {
+    document.getElementById('moveRestaurantId').value = restaurantId;
+    const container = document.getElementById('moveOptions');
+    container.innerHTML = '';
+    const others = WISHLIST_LISTS.filter(l => l.id !== currentListId);
+    if (others.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0 text-center">No tenés otras listas. Creá una primero.</p>';
+    } else {
+      others.forEach(l => {
+        const b = document.createElement('button');
+        b.className = 'btn btn-outline-secondary text-start';
+        b.innerHTML = `<i class="bi bi-folder me-2"></i>${l.name}`;
+        b.onclick = () => moveItem(restaurantId, l.id);
+        container.appendChild(b);
+      });
+    }
+    new bootstrap.Modal(document.getElementById('moveModal')).show();
+  }
+
+  async function moveItem(restaurantId, listId) {
+    const { ok, payload } = await postForm(`/perfil/wishlist/mover/${restaurantId}`, { wishlist_id: listId });
+    if (ok) { location.reload(); }
+    else { showToast(payload.error || 'No se pudo mover', 'error'); }
+  }
 </script>
 {% endblock %}

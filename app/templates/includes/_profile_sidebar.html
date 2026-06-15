@@ -1,0 +1,40 @@
+{# Columna lateral del perfil del comensal (botón volver + tarjeta de usuario + nav).
+   Requiere que la ruta pase `user` = _build_sidebar_user_data(...). #}
+<div class="col-lg-3 position-relative">
+  <a href="{{ url_for('usuario.home') }}" class="btn btn-outline-dark rounded-circle position-absolute"
+     style="top:-15px;left:-10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background-color:var(--morfi-beige);border-color:var(--morfi-border);z-index:10;">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+
+  <div class="profile-sidebar-card text-center">
+    <div class="profile-avatar-wrapper mx-auto">
+      <div class="profile-avatar-circle">
+        {% if user.photo_url %}
+          <img src="{{ url_for('static', filename=user.photo_url) }}" alt="Foto" class="profile-avatar-img">
+        {% else %}
+          {{ (user.name or 'U')[:2]|upper }}
+        {% endif %}
+      </div>
+    </div>
+    <div class="profile-user-name mt-2">{{ user.name }}</div>
+    <div class="profile-username">@{{ user.username }}</div>
+    <div class="profile-level-badge">Nivel {{ current_user.nivel }} · {{ user.level.current }}</div>
+    <div class="profile-progress mx-auto" style="max-width:160px;">
+      <div class="profile-progress-fill" style="width:{{ user.level.progress }}%"></div>
+    </div>
+    <div class="profile-xp-hint">{{ user.level.xp_missing }} visitas para {{ user.level.next }}</div>
+    <div class="profile-stats-row">
+      <div class="profile-stat-item">
+        <div class="profile-stat-value">{{ user.stats.friends }}</div>
+        <div class="profile-stat-label">Amigos</div>
+      </div>
+      <div class="profile-stat-divider"></div>
+      <div class="profile-stat-item">
+        <div class="profile-stat-value">{{ user.stats.visits }}</div>
+        <div class="profile-stat-label">Visitados</div>
+      </div>
+    </div>
+  </div>
+
+  {% include 'includes/_profile_nav.html' %}
+</div>

@@ -5,21 +5,27 @@
 
 {% block customCSS %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/profile.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/ofertas.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="ofg-page-bg">
-  <div class="ofg-container">
-    <div class="ofg-head">
-      <h1 class="ofg-title">Ofertas &amp; Beneficios</h1>
-      <p class="ofg-subtitle">
-        Promociones vigentes y beneficios de tus restaurantes guardados ·
-        {{ total_ofertas }} oferta{{ 's' if total_ofertas != 1 else '' }} · {{ total_beneficios }} beneficio{{ 's' if total_beneficios != 1 else '' }}
-      </p>
-    </div>
+<div class="profile-page-bg">
+  <div class="container-fluid px-4 py-4" style="max-width:1200px; margin:0 auto;">
+    <div class="row g-4">
 
-    {% for rest in restaurantes %}
+      {% include 'includes/_profile_sidebar.html' %}
+
+      <div class="col-lg-9">
+        <div class="ofg-head">
+          <h1 class="ofg-title">Ofertas &amp; Beneficios</h1>
+          <p class="ofg-subtitle">
+            Promociones vigentes y beneficios de tus restaurantes guardados ·
+            {{ total_ofertas }} oferta{{ 's' if total_ofertas != 1 else '' }} · {{ total_beneficios }} beneficio{{ 's' if total_beneficios != 1 else '' }}
+          </p>
+        </div>
+
+        {% for rest in restaurantes %}
     <section class="ofg-rest">
       <a class="ofg-rest-head" href="{{ url_for('usuario.restaurant_detail', restaurant_id=rest.id) }}">
         <div class="ofg-rest-thumb">
@@ -86,7 +92,10 @@
       <p>No hay ofertas ni beneficios disponibles en tus restaurantes guardados.</p>
       <a href="{{ url_for('usuario.home') }}" class="ofg-btn">Explorar restaurantes</a>
     </div>
-    {% endfor %}
+        {% endfor %}
+      </div>
+
+    </div>
   </div>
 </div>
 {% endblock %}

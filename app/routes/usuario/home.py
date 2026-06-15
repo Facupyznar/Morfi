@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 from app.database import db
 from app.helpers.promos import beneficios_con_progreso, ofertas_vigentes
 from app.helpers.validators import ValidationError, validate_int, validate_text
-from app.location import haversine_km, parse_float
+from app.location import haversine_km
 from app.models.friends import Friends
 from app.models.enums import FriendshipStatus
 from app.models.restaurant import Restaurant
@@ -53,6 +53,47 @@ def _parse_horario_restaurant(restaurant):
         return data if isinstance(data, list) else []
     except (json.JSONDecodeError, TypeError):
         return []
+
+
+def _abierto_ahora(restaurant, ahora: datetime) -> bool:
+    """True si el restaurante está abierto en este momento (hora AR).
+
+    Usa el JSON de horario (keys 'lun_jue'/'vie'/'sab'/'dom'). Si no tiene
+    horario cargado, se asume abierto con el default 12:00–23:00 (igual que la
+    generación de slots de reserva)."""
+    horario = _parse_horario_restaurant(restaurant)
+
+    dia = ahora.weekday()
+    if dia <= 3:
+        key_buscada = "lun_jue"
+    elif dia == 4:
+        key_buscada = "vie"
+    elif dia == 5:
+        key_buscada = "sab"
+    else:
+        key_buscada = "dom"
+
+    apertura = cierre = None
+    for entry in horario:
+        if entry.get("key") == key_buscada and entry.get("active"):
+            apertura = entry.get("open", "12:00")
+            cierre = entry.get("close", "23:00")
+            break
+
+    if not apertura:
+        if horario:
+            # Tiene horario configurado pero hoy está cerrado.
+            return False
+        apertura, cierre = "12:00", "23:00"
+
+    fmt = "%H:%M"
+    ahora_t = ahora.time()
+    open_t = datetime.strptime(apertura, fmt).time()
+    close_t = datetime.strptime(cierre, fmt).time()
+    if close_t <= open_t:
+        # Cierra pasada la medianoche.
+        return ahora_t >= open_t or ahora_t <= close_t
+    return open_t <= ahora_t <= close_t
 
 
 def _slots_para_fecha(restaurant, fecha: date):
@@ -152,23 +193,25 @@ def _accepted_friends_payload(user_id):
 @usuario_bp.route('/home')
 @login_required
 def home():
-    try:
-        user_lat = parse_float(request.args.get("user_lat"))
-        user_lng = parse_float(request.args.get("user_lng"))
-    except ValueError:
-        user_lat = None
-        user_lng = None
-    nearby_active = user_lat is not None and user_lng is not None
+    # Ubicación: fuente única = la dirección del perfil del usuario (lat/lng).
+    # La misma que usa la distancia de las cards y el chip "Cerca de mí".
+    user_lat = float(current_user.latitude) if getattr(current_user, "latitude", None) is not None else None
+    user_lng = float(current_user.longitude) if getattr(current_user, "longitude", None) is not None else None
+    has_location = user_lat is not None and user_lng is not None
 
-    if not nearby_active and getattr(current_user, "latitude", None) is not None and getattr(current_user, "longitude", None) is not None:
-        default_user_lat = float(current_user.latitude)
-        default_user_lng = float(current_user.longitude)
-    else:
-        default_user_lat = user_lat
-        default_user_lng = user_lng
+    # Texto del buscador (navbar). Filtra por nombre, tags (cocina) y dirección.
+    query = (request.args.get("q") or "").strip()
+    query_lower = query.lower()
 
-    distance_user_lat = default_user_lat
-    distance_user_lng = default_user_lng
+    # Filtro activo de los chips: 'rating' (mejor puntuados) o 'abierto' (disponible ahora).
+    filtro = request.args.get("filtro")
+    ahora_ar = datetime.now(timezone(timedelta(hours=-3)))
+
+    # Chip "Cerca de mí": filtra a ≤5 km usando la dirección del perfil (no el GPS).
+    cerca_requested = request.args.get("cerca") == "1"
+    nearby_active = cerca_requested and has_location
+    if cerca_requested and not has_location:
+        flash('Cargá tu dirección en el perfil para usar el filtro "Cerca de mí".', "warning")
 
     wishlist_ids = {
         str(fav.id_restaurante)
@@ -184,9 +227,9 @@ def home():
 
     for restaurant in restaurants:
         distance_km = None
-        if distance_user_lat is not None and distance_user_lng is not None:
+        if has_location:
             distance_km = haversine_km(
-                distance_user_lat, distance_user_lng,
+                user_lat, user_lng,
                 restaurant.latitude, restaurant.longitude,
             )
         if nearby_active and distance_km is not None and distance_km > 5:
@@ -195,6 +238,17 @@ def home():
         tag_names = [
             rt.tag.name for rt in restaurant.restaurant_tags if rt.tag is not None
         ]
+
+        if query_lower:
+            haystack = " ".join(
+                [restaurant.name or "", restaurant.address or "", " ".join(tag_names)]
+            ).lower()
+            if query_lower not in haystack:
+                continue
+
+        if filtro == "abierto" and not _abierto_ahora(restaurant, ahora_ar):
+            continue
+
         restaurant_cards.append({
             "id":             str(restaurant.id_restaurant),
             "name":           restaurant.name,
@@ -208,7 +262,9 @@ def home():
             "in_wishlist":    str(restaurant.id_restaurant) in wishlist_ids,
         })
 
-    if user_lat is not None and user_lng is not None:
+    if filtro == "rating":
+        restaurant_cards.sort(key=lambda r: r["rating"], reverse=True)
+    elif nearby_active:
         restaurant_cards.sort(key=lambda r: r["distance"] if r["distance"] is not None else 999999)
 
     wishlist_sidebar = [r for r in restaurant_cards if r["in_wishlist"]][:5]
@@ -217,9 +273,10 @@ def home():
     return render_template(
         'usuario/home.html',
         restaurants=restaurant_cards,
+        query=query,
+        filtro=filtro,
         nearby_active=nearby_active,
-        user_lat=default_user_lat,
-        user_lng=default_user_lng,
+        has_location=has_location,
         wishlist_sidebar=wishlist_sidebar,
         active_friends=friends[:2],
         friends_count=len(friends),

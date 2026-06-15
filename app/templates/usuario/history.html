@@ -49,23 +49,7 @@
           </div>
         </div>
 
-        <div class="profile-nav-card">
-          <a href="{{ url_for('usuario.profile') }}" class="profile-nav-item">
-            <i class="bi bi-person"></i> Mi perfil
-          </a>
-          <a href="{{ url_for('usuario.friends') }}" class="profile-nav-item">
-            <i class="bi bi-people"></i> Amigos
-          </a>
-          <a href="{{ url_for('usuario.wishlist') }}" class="profile-nav-item">
-            <i class="bi bi-heart"></i> Wishlist
-          </a>
-          <a href="{{ url_for('usuario.history') }}" class="profile-nav-item active">
-            <i class="bi bi-clock-history"></i> Actividad reciente
-          </a>
-          <a href="{{ url_for('usuario.security') }}" class="profile-nav-item">
-            <i class="bi bi-shield"></i> Cuenta y seguridad
-          </a>
-        </div>
+        {% include 'includes/_profile_nav.html' %}
       </div>
 
       <div class="col-lg-9">

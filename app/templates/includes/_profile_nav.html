@@ -1,0 +1,33 @@
+{# Navegación lateral del perfil del comensal.
+   Fuente única de verdad: mantener sincronizado con el dropdown de _navbar_auth.html.
+   El item activo se detecta solo según request.endpoint. #}
+<div class="profile-nav-card">
+  <a href="{{ url_for('usuario.profile') }}"
+     class="profile-nav-item {{ 'active' if request.endpoint == 'usuario.profile' else '' }}">
+    <i class="bi bi-person"></i> Mi perfil
+  </a>
+  <a href="{{ url_for('usuario.friends') }}"
+     class="profile-nav-item {{ 'active' if request.endpoint in ['usuario.friends', 'usuario.friend_profile'] else '' }}">
+    <i class="bi bi-people"></i> Amigos
+  </a>
+  <a href="{{ url_for('usuario.discover_friends') }}"
+     class="profile-nav-item {{ 'active' if request.endpoint == 'usuario.discover_friends' else '' }}">
+    <i class="bi bi-person-plus"></i> Encontrá amigos
+  </a>
+  <a href="{{ url_for('usuario.wishlist') }}"
+     class="profile-nav-item {{ 'active' if request.endpoint == 'usuario.wishlist' else '' }}">
+    <i class="bi bi-heart"></i> Wishlist
+  </a>
+  <a href="{{ url_for('usuario.ofertas') }}"
+     class="profile-nav-item {{ 'active' if request.endpoint == 'usuario.ofertas' else '' }}">
+    <i class="bi bi-tags"></i> Ofertas y beneficios
+  </a>
+  <a href="{{ url_for('usuario.history') }}"
+     class="profile-nav-item {{ 'active' if request.endpoint == 'usuario.history' else '' }}">
+    <i class="bi bi-clock-history"></i> Historial
+  </a>
+  <a href="{{ url_for('usuario.security') }}"
+     class="profile-nav-item {{ 'active' if request.endpoint == 'usuario.security' else '' }}">
+    <i class="bi bi-shield"></i> Cuenta y seguridad
+  </a>
+</div>

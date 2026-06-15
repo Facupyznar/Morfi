@@ -2,7 +2,11 @@
 
 {% block title %}Conectar con amigos - Morfi{% endblock %}
 
+{% block navbar %}{% include 'includes/_navbar_auth.html' %}{% endblock %}
+
 {% block customCSS %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/profile.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/usuario/find_friends.css') }}">
 {% endblock %}
 
@@ -37,6 +41,13 @@
 {% endmacro %}
 
 {% block content %}
+<div class="profile-page-bg">
+  <div class="container-fluid px-4 py-4" style="max-width:1200px; margin:0 auto;">
+    <div class="row g-4">
+
+      {% include 'includes/_profile_sidebar.html' %}
+
+      <div class="col-lg-9">
 <div class="ff-wrap">
 
   <header class="ff-header">
@@ -120,6 +131,11 @@
     {% endif %}
   </section>
 
+</div>
+
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>

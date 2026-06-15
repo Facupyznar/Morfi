@@ -10,6 +10,7 @@ from flask_login import current_user, login_required, logout_user
 from werkzeug.utils import secure_filename
 
 from app.models.user_favorites import UserFavorites
+from app.models.wishlist import Wishlist
 from app.models.restaurant import Restaurant
 from app.database import db
 from app.location import resolve_location_payload
@@ -1221,10 +1222,23 @@ def delete_account():
 
 # ── Wishlist ──────────────────────────────────────────────────────
 
+DEFAULT_LIST_ID = "default"
+DEFAULT_LIST_NAME = "Guardados"
+
+
 @usuario_bp.route("/perfil/wishlist")
 @login_required
 def wishlist():
     user_record = ModelUser.get_by_id(db, current_user.get_id()) or current_user
+
+    # Listas nombradas del usuario (la default "Guardados" es virtual, no se persiste).
+    named_lists = (
+        db.session.query(Wishlist)
+        .filter_by(user_id=current_user.user_id)
+        .order_by(Wishlist.created_at.asc())
+        .all()
+    )
+
     favorites = (
         db.session.query(UserFavorites)
         .filter_by(user_id=current_user.user_id)
@@ -1232,18 +1246,60 @@ def wishlist():
         .order_by(UserFavorites.fecha_agregado.desc())
         .all()
     )
-    wishlist_items = []
+
+    # "Visitado" = el usuario tiene una reserva COMPLETADA en ese restaurante.
+    visited_ids = {
+        str(row[0])
+        for row in db.session.query(Reserva.id_restaurant)
+        .filter(
+            Reserva.user_id == current_user.user_id,
+            Reserva.estado_reserva == ReservaStatus.COMPLETADA,
+        )
+        .distinct()
+        .all()
+    }
+
+    # Buckets por lista (default + cada lista nombrada).
+    buckets = {DEFAULT_LIST_ID: []}
+    for wl in named_lists:
+        buckets[str(wl.id)] = []
+
     for fav in favorites:
         r = fav.restaurant
-        wishlist_items.append({
-            "id":       str(r.id_restaurant),
-            "name":     r.name,
-            "rating":   round(float(r.puntaje or 0), 1),
+        bucket_key = str(fav.wishlist_id) if fav.wishlist_id else DEFAULT_LIST_ID
+        # Si la lista fue borrada en otra sesión, cae a la default.
+        if bucket_key not in buckets:
+            bucket_key = DEFAULT_LIST_ID
+        buckets[bucket_key].append({
+            "id":        str(r.id_restaurant),
+            "name":      r.name,
+            "rating":    round(float(r.puntaje or 0), 1),
             "cover_url": r.cover_url,
+            "visited":   str(r.id_restaurant) in visited_ids,
         })
 
+    lists = [{
+        "id":       DEFAULT_LIST_ID,
+        "name":     DEFAULT_LIST_NAME,
+        "removable": False,
+        "cards":    buckets[DEFAULT_LIST_ID],
+    }]
+    for wl in named_lists:
+        lists.append({
+            "id":        str(wl.id),
+            "name":      wl.nombre,
+            "removable": True,
+            "cards":     buckets[str(wl.id)],
+        })
+
+    total = len(favorites)
     user_data = _build_sidebar_user_data(user_record)
-    return render_template("usuario/wishlist.html", user=user_data, wishlist=wishlist_items)
+    return render_template(
+        "usuario/wishlist.html",
+        user=user_data,
+        lists=lists,
+        total=total,
+    )
 
 
 @usuario_bp.route("/perfil/wishlist/toggle/<restaurant_id>", methods=["POST"])
@@ -1269,6 +1325,107 @@ def toggle_wishlist(restaurant_id):
         db.session.commit()
         return jsonify({"in_wishlist": False})
     else:
+        # Al guardar, el restaurante entra a la lista por defecto "Guardados".
         db.session.add(UserFavorites(user_id=current_user.user_id, id_restaurante=rid))
         db.session.commit()
         return jsonify({"in_wishlist": True})
+
+
+@usuario_bp.route("/perfil/wishlist/listas/crear", methods=["POST"])
+@login_required
+def crear_wishlist_lista():
+    nombre = (request.form.get("nombre") or "").strip()
+    if not nombre:
+        return jsonify({"error": "El nombre no puede estar vacío"}), 400
+    if len(nombre) > 60:
+        nombre = nombre[:60]
+
+    # Evita listas duplicadas con el mismo nombre.
+    ya_existe = (
+        db.session.query(Wishlist)
+        .filter(Wishlist.user_id == current_user.user_id, func.lower(Wishlist.nombre) == nombre.lower())
+        .first()
+    )
+    if ya_existe:
+        return jsonify({"error": "Ya tenés una lista con ese nombre"}), 409
+
+    nueva = Wishlist(user_id=current_user.user_id, nombre=nombre)
+    db.session.add(nueva)
+    db.session.commit()
+    return jsonify({"id": str(nueva.id), "name": nueva.nombre})
+
+
+@usuario_bp.route("/perfil/wishlist/listas/<uuid:list_id>/renombrar", methods=["POST"])
+@login_required
+def renombrar_wishlist_lista(list_id):
+    nombre = (request.form.get("nombre") or "").strip()
+    if not nombre:
+        return jsonify({"error": "El nombre no puede estar vacío"}), 400
+    if len(nombre) > 60:
+        nombre = nombre[:60]
+
+    lista = (
+        db.session.query(Wishlist)
+        .filter_by(id=list_id, user_id=current_user.user_id)
+        .first()
+    )
+    if not lista:
+        return jsonify({"error": "Lista no encontrada"}), 404
+
+    lista.nombre = nombre
+    db.session.commit()
+    return jsonify({"id": str(lista.id), "name": lista.nombre})
+
+
+@usuario_bp.route("/perfil/wishlist/listas/<uuid:list_id>/eliminar", methods=["POST"])
+@login_required
+def eliminar_wishlist_lista(list_id):
+    lista = (
+        db.session.query(Wishlist)
+        .filter_by(id=list_id, user_id=current_user.user_id)
+        .first()
+    )
+    if not lista:
+        return jsonify({"error": "Lista no encontrada"}), 404
+
+    # Los favoritos de la lista vuelven a la default (no se borran).
+    db.session.query(UserFavorites).filter_by(
+        user_id=current_user.user_id, wishlist_id=lista.id
+    ).update({"wishlist_id": None})
+    db.session.delete(lista)
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@usuario_bp.route("/perfil/wishlist/mover/<restaurant_id>", methods=["POST"])
+@login_required
+def mover_wishlist_item(restaurant_id):
+    from uuid import UUID as _UUID
+    try:
+        rid = _UUID(restaurant_id)
+    except ValueError:
+        return jsonify({"error": "ID inválido"}), 400
+
+    favorite = db.session.query(UserFavorites).filter_by(
+        user_id=current_user.user_id, id_restaurante=rid
+    ).first()
+    if not favorite:
+        return jsonify({"error": "El restaurante no está en tu wishlist"}), 404
+
+    destino = (request.form.get("wishlist_id") or DEFAULT_LIST_ID).strip()
+    if destino == DEFAULT_LIST_ID:
+        favorite.wishlist_id = None
+    else:
+        try:
+            dest_id = _UUID(destino)
+        except ValueError:
+            return jsonify({"error": "Lista inválida"}), 400
+        lista = db.session.query(Wishlist).filter_by(
+            id=dest_id, user_id=current_user.user_id
+        ).first()
+        if not lista:
+            return jsonify({"error": "Lista no encontrada"}), 404
+        favorite.wishlist_id = lista.id
+
+    db.session.commit()
+    return jsonify({"ok": True, "wishlist_id": destino})

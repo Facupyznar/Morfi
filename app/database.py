@@ -59,6 +59,30 @@ def ensure_user_schema():
     db.session.commit()
 
 
+def ensure_wishlist_schema():
+    """Migración idempotente para las listas de wishlist.
+
+    La tabla ``Wishlist`` la crea ``db.create_all()``; acá solo agregamos la
+    columna ``WishlistId`` a ``User_favorites`` (NULL = lista por defecto).
+    """
+    inspector = inspect(db.engine)
+    if "User_favorites" not in inspector.get_table_names():
+        return
+
+    column_names = {column["name"] for column in inspector.get_columns("User_favorites")}
+
+    if "WishlistId" not in column_names:
+        db.session.execute(
+            text(
+                'ALTER TABLE "User_favorites" '
+                'ADD COLUMN "WishlistId" UUID '
+                'REFERENCES "Wishlist"("Id") ON DELETE SET NULL'
+            )
+        )
+
+    db.session.commit()
+
+
 def ensure_menu_schema():
     inspector = inspect(db.engine)
     if "Menu" not in inspector.get_table_names():

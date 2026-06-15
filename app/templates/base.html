@@ -172,11 +172,13 @@
                 }
             });
 
-            addressInput.addEventListener("change", function () {
-                if (!addressInput.value.trim()) {
-                    latInput.value = "";
-                    lngInput.value = "";
-                }
+            // Si el usuario edita la dirección a mano (tipeo o pegado), invalidamos
+            // las coordenadas previas para que el servidor geocodifique el texto
+            // nuevo. El picker (búsqueda o click en el mapa) setea el valor de forma
+            // programática, lo que NO dispara el evento "input".
+            addressInput.addEventListener("input", function () {
+                latInput.value = "";
+                lngInput.value = "";
             });
 
             return { map, setLocation };

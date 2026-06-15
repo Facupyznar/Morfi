@@ -11,3 +11,4 @@ from .tag import Tag
 from .user import User
 from .user_favorites import UserFavorites
 from .user_tags import UserTags
+from .wishlist import Wishlist

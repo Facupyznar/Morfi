@@ -8,6 +8,7 @@ from app.database import db
 from app.helpers.promos import beneficios_con_progreso, ofertas_vigentes
 from app.models.user_favorites import UserFavorites
 from app.routes.usuario import usuario_bp
+from app.routes.usuario.profile import _build_sidebar_user_data
 
 
 @usuario_bp.route("/ofertas")
@@ -46,6 +47,7 @@ def ofertas():
 
     return render_template(
         "usuario/ofertas.html",
+        user=_build_sidebar_user_data(current_user),
         restaurantes=restaurantes,
         total_ofertas=total_ofertas,
         total_beneficios=total_beneficios,

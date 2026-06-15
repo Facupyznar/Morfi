@@ -13,16 +13,28 @@
 {% block content %}
 <div class="container py-4">
     <div class="d-flex gap-2 mb-4 overflow-x-auto pb-2">
-        {% for filter in ["Cerca de mí", "Mejor puntuados", "Amigos recomiendan", "Disponible ahora"] %}
-        <button class="filter-chip {{ 'active' if (filter == 'Cerca de mí' and nearby_active) or (filter != 'Cerca de mí' and loop.first and not nearby_active) else '' }}" onclick="toggleFilter('{{ filter }}')" type="button">
-            {{ filter }}
+        <button class="filter-chip {{ 'active' if nearby_active else '' }}" onclick="toggleFilter('cerca')" type="button">
+            Cerca de mí
         </button>
-        {% endfor %}
+        <button class="filter-chip {{ 'active' if filtro == 'rating' else '' }}" onclick="toggleFilter('rating')" type="button">
+            Mejor puntuados
+        </button>
+        <button class="filter-chip {{ 'active' if filtro == 'abierto' else '' }}" onclick="toggleFilter('abierto')" type="button">
+            Disponible ahora
+        </button>
     </div>
 
     <div class="row g-4">
         <main class="col-lg-9">
+            {% if query %}
+            <h2 class="baloo h4 mb-4">
+                Resultados para "{{ query }}"
+                <a href="{{ url_for('usuario.home') }}" class="ms-2 text-decoration-none"
+                   style="font-size:.85rem; color:#FF6B35;">Limpiar</a>
+            </h2>
+            {% else %}
             <h2 class="baloo h4 mb-4">Para vos</h2>
+            {% endif %}
             <div class="row g-4">
                 {% for rest in restaurants %}
                 <div class="col-md-6 col-xl-4">
@@ -63,8 +75,19 @@
                 {% else %}
                 <div class="col-12">
                     <div class="card-morfi p-4">
+                        {% if query %}
+                        <h3 class="h5 mb-2">Sin resultados para "{{ query }}"</h3>
+                        <p class="text-muted mb-0">Probá con otro nombre, tipo de cocina o zona.</p>
+                        {% elif filtro == 'abierto' %}
+                        <h3 class="h5 mb-2">Ningún restaurante abierto ahora</h3>
+                        <p class="text-muted mb-0">Probá quitando el filtro "Disponible ahora".</p>
+                        {% elif nearby_active %}
                         <h3 class="h5 mb-2">No encontramos restaurantes cercanos</h3>
                         <p class="text-muted mb-0">Probá quitando el filtro "Cerca de mí" o cargá una ubicación válida en tu perfil.</p>
+                        {% else %}
+                        <h3 class="h5 mb-2">No hay restaurantes para mostrar</h3>
+                        <p class="text-muted mb-0">Volvé a intentar más tarde.</p>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -131,19 +154,27 @@
 
 {% block page_scripts %}
 <script>
-    function toggleFilter(filterName) {
-        if (filterName === 'Cerca de mí') {
-            const params = new URLSearchParams(window.location.search);
-            if (params.has("user_lat") && params.has("user_lng")) {
-                // Deselect logic
-                params.delete("user_lat");
-                params.delete("user_lng");
-                window.location.href = "{{ url_for('usuario.home') }}?" + params.toString();
+    function toggleFilter(kind) {
+        const params = new URLSearchParams(window.location.search);
+
+        if (kind === 'cerca') {
+            // Usa la dirección del perfil (no GPS): solo togglea el flag.
+            if (params.get("cerca") === "1") {
+                params.delete("cerca");
             } else {
-                activateNearbyFilter();
+                params.set("cerca", "1");
             }
+            window.location.href = "{{ url_for('usuario.home') }}?" + params.toString();
+            return;
         }
-        // In the future add toggling for other filters here
+
+        // 'rating' y 'abierto' son mutuamente excluyentes (un solo filtro a la vez).
+        if (params.get("filtro") === kind) {
+            params.delete("filtro");
+        } else {
+            params.set("filtro", kind);
+        }
+        window.location.href = "{{ url_for('usuario.home') }}?" + params.toString();
     }
 
     async function handleCardHeart(e, btn, restaurantId) {
@@ -161,27 +192,5 @@
         }
     }
 
-    function activateNearbyFilter() {
-        if (!navigator.geolocation) {
-            if(window.showToast) window.showToast("Tu navegador no soporta geolocalización.", 'error');
-            else window.alert("Tu navegador no soporta geolocalización.");
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            function (position) {
-                const params = new URLSearchParams(window.location.search);
-                params.set("user_lat", position.coords.latitude);
-                params.set("user_lng", position.coords.longitude);
-                if(window.showToast) window.showToast("Ubicación actualizada.", 'success');
-                window.location.href = "{{ url_for('usuario.home') }}?" + params.toString();
-            },
-            function () {
-                if(window.showToast) window.showToast("No pudimos obtener tu ubicación actual.", 'error');
-                else window.alert("No pudimos obtener tu ubicación actual.");
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
-    }
 </script>
 {% endblock %}

@@ -36,6 +36,7 @@ from app.helpers.oauth import oauth
 from app.helpers.security import csrf
 from app.models.user import User
 from app.routes.usuario import usuario_bp
+from app.routes.usuario.profile import _build_sidebar_user_data
 
 _SESSION_MATCH_IDS = "contact_match_ids"
 _SESSION_MATCH_SOURCE = "contact_match_source"
@@ -120,6 +121,7 @@ def discover_friends():
 
     return render_template(
         "usuario/discover_friends.html",
+        user=_build_sidebar_user_data(current_user),
         contact_matches=seccion_agenda,
         affinity_suggestions=seccion_afinidad,
         match_source=session.get(_SESSION_MATCH_SOURCE),
