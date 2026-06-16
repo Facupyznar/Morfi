@@ -23,7 +23,11 @@
           <div class="profile-avatar-wrapper mx-auto">
             <div class="profile-avatar-circle">
               {% if user.photo_url %}
+              {% if user.photo_url.startswith('http') %}
+                <img src="{{ user.photo_url }}" alt="Foto" class="profile-avatar-img" referrerpolicy="no-referrer">
+              {% else %}
                 <img src="{{ url_for('static', filename=user.photo_url) }}" alt="Foto" class="profile-avatar-img">
+              {% endif %}
               {% else %}
                 {{ (user.name or 'U')[:2]|upper }}
               {% endif %}
@@ -77,7 +81,11 @@
                 <a href="{{ url_for('usuario.friend_profile', friend_user_id=friend.id) }}" class="friends-card-row friends-card-link">
                   <div class="friends-avatar">
                     {% if friend.photo_url %}
-                    <img src="{{ url_for('static', filename=friend.photo_url) }}" alt="Foto de {{ friend.name }}" class="friends-avatar-img">
+              {% if friend.photo_url.startswith('http') %}
+                <img src="{{ friend.photo_url }}" alt="Foto" class="friends-avatar-img" referrerpolicy="no-referrer">
+              {% else %}
+                <img src="{{ url_for('static', filename=friend.photo_url) }}" alt="Foto" class="friends-avatar-img">
+              {% endif %}
                     {% else %}
                     {{ friend.initials }}
                     {% endif %}
@@ -103,7 +111,11 @@
                 <div class="friends-card-row">
                   <div class="friends-avatar">
                     {% if friend.photo_url %}
-                    <img src="{{ url_for('static', filename=friend.photo_url) }}" alt="Foto de {{ friend.name }}" class="friends-avatar-img">
+              {% if friend.photo_url.startswith('http') %}
+                <img src="{{ friend.photo_url }}" alt="Foto" class="friends-avatar-img" referrerpolicy="no-referrer">
+              {% else %}
+                <img src="{{ url_for('static', filename=friend.photo_url) }}" alt="Foto" class="friends-avatar-img">
+              {% endif %}
                     {% else %}
                     {{ friend.initials }}
                     {% endif %}
@@ -147,7 +159,11 @@
                 <div class="friends-card-row friends-search-row" data-search="{{ (user_item.name ~ ' @' ~ user_item.username)|lower }}">
                   <div class="friends-avatar">
                     {% if user_item.photo_url %}
-                    <img src="{{ url_for('static', filename=user_item.photo_url) }}" alt="Foto de {{ user_item.name }}" class="friends-avatar-img">
+              {% if user_item.photo_url.startswith('http') %}
+                <img src="{{ user_item.photo_url }}" alt="Foto" class="friends-avatar-img" referrerpolicy="no-referrer">
+              {% else %}
+                <img src="{{ url_for('static', filename=user_item.photo_url) }}" alt="Foto" class="friends-avatar-img">
+              {% endif %}
                     {% else %}
                     {{ user_item.initials }}
                     {% endif %}
