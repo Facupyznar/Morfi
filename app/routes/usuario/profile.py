@@ -109,7 +109,7 @@ def _connectable_users(user_id):
             "name": _friend_display_name(user),
             "username": user.username,
             "initials": _friend_initials(user),
-            "photo_url": getattr(user, "foto_perfil", None),
+            "photo_url": getattr(user, "foto_perfil", None) or getattr(user, "avatar_url", None),
         }
         for user in users
     ]
@@ -202,7 +202,7 @@ def _build_sidebar_user_data(user_record):
     return {
         "name": getattr(user_record, "name", None) or getattr(user_record, "username", ""),
         "username": getattr(user_record, "username", ""),
-        "photo_url": getattr(user_record, "foto_perfil", None),
+        "photo_url": getattr(user_record, "foto_perfil", None) or getattr(user_record, "avatar_url", None),
         "stats": {"friends": friends_count, "visits": visits_count},
         "level": {
             "current": level_names[current_level_number],
@@ -236,7 +236,7 @@ def _friend_payloads(user_id):
             "name": _friend_display_name(friend_user),
             "username": friend_user.username,
             "initials": _friend_initials(friend_user),
-            "photo_url": getattr(friend_user, "foto_perfil", None),
+            "photo_url": getattr(friend_user, "foto_perfil", None) or getattr(friend_user, "avatar_url", None),
             "can_respond": False,
             "status_text": "Amigo" if friendship.estado == FriendshipStatus.ACEPTADA else "Solicitud pendiente",
         }
@@ -375,7 +375,7 @@ def profile():
     user_data = {
         "name": display_name,
         "username": getattr(user_record, "username", "Usuario"),
-        "photo_url": getattr(user_record, "foto_perfil", None),
+        "photo_url": getattr(user_record, "foto_perfil", None) or getattr(user_record, "avatar_url", None),
         "member_since": member_since,
         "email": getattr(user_record, "email", ""),
         "location": location_text,
@@ -962,7 +962,7 @@ def friend_profile(friend_user_id):
         "id": str(friend_user.user_id),
         "name": getattr(friend_user, "name", None) or getattr(friend_user, "username", "Usuario"),
         "username": getattr(friend_user, "username", "usuario"),
-        "photo_url": getattr(friend_user, "foto_perfil", None),
+        "photo_url": getattr(friend_user, "foto_perfil", None) or getattr(friend_user, "avatar_url", None),
         "stats": {
             "friends": friends_count,
             "visits": visits_count,

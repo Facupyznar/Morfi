@@ -164,3 +164,8 @@ class User(db.Model, UserMixin):
 
     def get_id(self):
         return str(self.user_id)
+
+    @property
+    def photo_url(self):
+        """Devuelve la foto de perfil local o el avatar de Google."""
+        return self.foto_perfil or None
