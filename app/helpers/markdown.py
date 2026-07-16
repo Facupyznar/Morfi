@@ -15,7 +15,7 @@ _OL_RE = re.compile(r"^\d+\.\s+(.*)$")
 
 def _safe_href(raw_href):
     href = (raw_href or "").strip()
-    if href.startswith(("http://", "https://", "mailto:")):
+    if href.startswith(("http://", "https://", "mailto:", "/")):
         return html.escape(href, quote=True)
     return "#"
 
