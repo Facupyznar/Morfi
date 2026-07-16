@@ -43,18 +43,14 @@ def _semanas(fecha_inicio: date, fecha_fin: date) -> list[dict]:
 
 
 def _datos_reservas(restaurant_id, fecha_inicio: date, fecha_fin: date) -> list[dict]:
-    from sqlalchemy import func
-    from datetime import timezone
-
-    dt_inicio = datetime.combine(fecha_inicio, datetime.min.time())
-    dt_fin    = datetime.combine(fecha_fin,    datetime.max.time().replace(microsecond=0))
+    from sqlalchemy import cast, Date
 
     reservas = (
         db.session.query(Reserva)
         .filter(
             Reserva.id_restaurant == restaurant_id,
-            Reserva.fecha_hora >= dt_inicio,
-            Reserva.fecha_hora <= dt_fin,
+            cast(Reserva.fecha_hora, Date) >= fecha_inicio,
+            cast(Reserva.fecha_hora, Date) <= fecha_fin,
         )
         .all()
     )
@@ -62,9 +58,10 @@ def _datos_reservas(restaurant_id, fecha_inicio: date, fecha_fin: date) -> list[
     semanas = _semanas(fecha_inicio, fecha_fin)
     rows = []
     for sem in semanas:
-        sem_inicio = datetime.combine(sem["inicio"], datetime.min.time())
-        sem_fin    = datetime.combine(sem["fin"],    datetime.max.time().replace(microsecond=0))
-        en_semana  = [r for r in reservas if sem_inicio <= r.fecha_hora.replace(tzinfo=None) <= sem_fin]
+        en_semana = [
+            r for r in reservas
+            if sem["inicio"] <= r.fecha_hora.astimezone().date() <= sem["fin"]
+        ]
         confirmadas   = [r for r in en_semana if r.estado_reserva in (ReservaStatus.CONFIRMADA, ReservaStatus.COMPLETADA)]
         canceladas    = [r for r in en_semana if r.estado_reserva == ReservaStatus.CANCELADA]
         comensales    = sum(r.cant_personas for r in confirmadas)
@@ -81,17 +78,15 @@ def _datos_reservas(restaurant_id, fecha_inicio: date, fecha_fin: date) -> list[
 
 
 def _datos_resenas(restaurant_id, fecha_inicio: date, fecha_fin: date):
-    from sqlalchemy import func
-    dt_inicio = datetime.combine(fecha_inicio, datetime.min.time())
-    dt_fin    = datetime.combine(fecha_fin,    datetime.max.time().replace(microsecond=0))
+    from sqlalchemy import func, cast, Date
 
     result = (
         db.session.query(func.avg(Review.puntaje), func.count(Review.id_review))
         .join(Reserva, Review.id_reserva == Reserva.id_reserva)
         .filter(
             Reserva.id_restaurant == restaurant_id,
-            Reserva.fecha_hora >= dt_inicio,
-            Reserva.fecha_hora <= dt_fin,
+            cast(Reserva.fecha_hora, Date) >= fecha_inicio,
+            cast(Reserva.fecha_hora, Date) <= fecha_fin,
         )
         .one()
     )
@@ -100,19 +95,18 @@ def _datos_resenas(restaurant_id, fecha_inicio: date, fecha_fin: date):
 
 
 def _datos_ocupacion(restaurant, fecha_inicio: date, fecha_fin: date) -> list[dict]:
+    from sqlalchemy import cast, Date
     semanas = _semanas(fecha_inicio, fecha_fin)
     capacidad = restaurant.capacidad or 0
     rows = []
     for sem in semanas:
-        sem_inicio = datetime.combine(sem["inicio"], datetime.min.time())
-        sem_fin    = datetime.combine(sem["fin"],    datetime.max.time().replace(microsecond=0))
         comensales = (
             db.session.query(db.func.coalesce(db.func.sum(Reserva.cant_personas), 0))
             .filter(
                 Reserva.id_restaurant == restaurant.id_restaurant,
                 Reserva.estado_reserva.in_([ReservaStatus.CONFIRMADA, ReservaStatus.COMPLETADA]),
-                Reserva.fecha_hora >= sem_inicio,
-                Reserva.fecha_hora <= sem_fin,
+                cast(Reserva.fecha_hora, Date) >= sem["inicio"],
+                cast(Reserva.fecha_hora, Date) <= sem["fin"],
             )
             .scalar()
         )
@@ -288,6 +282,19 @@ def exportar():
 
     fecha_inicio = _parse_date(request.form.get("fecha_inicio", ""))
     fecha_fin    = _parse_date(request.form.get("fecha_fin", ""))
+
+    # DEBUG — borrar después
+    from sqlalchemy import cast, Date as SADate
+    print(f"DEBUG restaurant_id={restaurant.id_restaurant if restaurant else None}")
+    print(f"DEBUG fecha_inicio={fecha_inicio} fecha_fin={fecha_fin}")
+    if restaurant and fecha_inicio and fecha_fin:
+        count = db.session.query(Reserva).filter(
+            Reserva.id_restaurant == restaurant.id_restaurant,
+            cast(Reserva.fecha_hora, SADate) >= fecha_inicio,
+            cast(Reserva.fecha_hora, SADate) <= fecha_fin,
+        ).count()
+        print(f"DEBUG reservas en rango={count}")
+    # FIN DEBUG
 
     if not fecha_inicio or not fecha_fin:
         flash("Fechas inválidas.", "warning")
