@@ -962,8 +962,13 @@
   .rp-content { padding: 16px 14px 32px; gap: 14px; }
   .rp-cover { height: 200px; }
   .rp-cover--edit { height: 170px; }
-  .rp-cover-overlay { padding: 16px; }
+  .rp-cover-overlay {
+    padding: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
   .rp-name { font-size: 1.2rem; }
+  .rp-edit-btn { align-self: flex-start; }
   .rp-col-right { flex-direction: column; }
   .rp-field-row { flex-direction: column; }
   .rp-field-row > div { width: 100% !important; }

@@ -1013,3 +1013,41 @@
 
 .rv-dr-delete-btn:hover  { background: #FBBBB7; }
 .rv-dr-delete-btn:active { transform: scale(0.98); }
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
+@media (max-width: 991.98px) {
+  .rv-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rv-list {
+    max-height: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .rv-main {
+    padding: 20px 16px 32px;
+  }
+
+  .rv-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .rv-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .rv-stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .rv-drawer {
+    border-radius: 0;
+  }
+}

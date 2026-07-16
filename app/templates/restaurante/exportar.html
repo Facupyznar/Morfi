@@ -20,6 +20,7 @@
     border: 1px solid #E7DED2;
     padding: 28px 24px;
     height: fit-content;
+    min-width: 0;
   }
   .export-panel h1 {
     font-size: 1.35rem;
@@ -150,6 +151,7 @@
     border-radius: 18px;
     padding: 20px;
     min-height: 500px;
+    min-width: 0;
   }
   .preview-label {
     font-size: 0.7rem;
@@ -246,6 +248,13 @@
   }
   .preview-hidden {
     display: none;
+  }
+
+  @media (max-width: 900px) {
+    .export-layout {
+      grid-template-columns: 1fr;
+      padding: 20px 16px;
+    }
   }
 </style>
 {% endblock %}

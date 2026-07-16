@@ -113,12 +113,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   border: 1px solid var(--morfi-border, #D9CEBD);
   border-radius: 14px;
   padding: 12px 14px;
 }
-.ff-person { display: flex; align-items: center; gap: 12px; }
+.ff-person { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .ff-avatar {
   width: 50px;
   height: 50px;
