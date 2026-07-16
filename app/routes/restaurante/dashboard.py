@@ -1158,11 +1158,27 @@ def asistente_chat():
 
         client = genai.Client(api_key=api_key)
 
+        rutas_disponibles = [
+            ("Inicio del panel", url_for("restaurante.dashboard")),
+            ("Perfil del restaurante", url_for("restaurante.profile_view")),
+            ("Menú", url_for("restaurante.menu")),
+            ("Reservas", url_for("restaurante.reservations")),
+            ("Ofertas", url_for("restaurante.offers")),
+            ("Reseñas", url_for("restaurante.reviews")),
+            ("Beneficios", url_for("restaurante.benefits")),
+            ("Exportar reportes", url_for("restaurante.exportar")),
+            ("Seguridad de la cuenta", url_for("restaurante.security")),
+        ]
+        listado_rutas = "\n".join(f"- {nombre}: {path}" for nombre, path in rutas_disponibles)
+
         system_prompt = (
             f"Sos Morfi IA, el asistente inteligente del restaurante '{restaurant_name}'. "
             "Ayudás al dueño o administrador con análisis de reservas, sugerencias de menú, "
             "estrategias de promoción, respuestas a reseñas y cualquier consulta del negocio. "
             "Respondé siempre en español argentino, de forma clara, concisa y profesional. "
+            "Cuando corresponda, incluí un link en formato markdown a la pantalla relevante del panel, "
+            "usando exactamente una de estas rutas (no inventes otras ni pongas dominios):\n"
+            f"{listado_rutas}\n"
             f"Tenés acceso a los siguientes datos reales del restaurante:{context_data}"
         )
 
@@ -1178,7 +1194,9 @@ def asistente_chat():
             contents=contents,
             config=types.GenerateContentConfig(system_instruction=system_prompt),
         )
-        return jsonify({"respuesta": response.text})
+
+        from app.helpers.markdown import render_markdown
+        return jsonify({"respuesta": str(render_markdown(response.text))})
 
     except Exception as e:
         current_app.logger.warning(f"[gemini] error: {e}")

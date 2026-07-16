@@ -57,12 +57,17 @@
     <!-- Input -->
     <div style="padding:0 32px 24px; flex-shrink:0;">
       <div style="display:flex; gap:10px; background:#fff; border:1px solid #E7DED2; border-radius:16px; padding:10px 14px; align-items:flex-end;">
+        <button type="button" id="mic-btn" title="Hablar"
+          style="width:40px; height:40px; border-radius:50%; background:#F0F0F5; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s;">
+          <i class="bi bi-mic" id="mic-icon" style="color:#3D3530; font-size:1rem;"></i>
+        </button>
         <textarea id="chat-input" rows="1" placeholder="Preguntá lo que quieras..."
           style="flex:1; border:none; outline:none; resize:none; font-family:'Manrope',sans-serif; font-size:0.92rem; color:#1A1A2E; background:transparent; max-height:120px; line-height:1.5;"
           onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); enviar();}"></textarea>
         <button onclick="enviar()" id="send-btn"
           style="width:40px; height:40px; border-radius:50%; background:#FF6B35; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s;">
-          <i class="bi bi-send-fill" style="color:#fff; font-size:1rem;"></i>
+          <i class="bi bi-send-fill" id="send-icon" style="color:#fff; font-size:1rem;"></i>
+          <span id="send-spinner" class="spinner-border spinner-border-sm d-none" style="color:#fff; width:16px; height:16px;" role="status" aria-hidden="true"></span>
         </button>
       </div>
     </div>
@@ -230,7 +235,7 @@
       div.className = 'ai-msg ' + (m.role === 'user' ? 'ai-msg--user' : 'ai-msg--bot');
       var bubble = document.createElement('div');
       bubble.className = 'ai-bubble ' + (m.role === 'user' ? 'ai-bubble--user' : 'ai-bubble--bot');
-      bubble.textContent = m.text;
+      if (m.role === 'user') { bubble.textContent = m.text; } else { bubble.innerHTML = m.text; }
       div.appendChild(bubble);
       container.appendChild(div);
     });
@@ -269,7 +274,7 @@
       var bubble = div.querySelector('.ai-bubble');
       if (!bubble) return;
       var isUser = div.classList.contains('ai-msg--user');
-      msgs.push({ role: isUser ? 'user' : 'bot', text: bubble.textContent });
+      msgs.push({ role: isUser ? 'user' : 'bot', text: isUser ? bubble.textContent : bubble.innerHTML });
     });
 
     if (currentId) {
@@ -299,7 +304,7 @@
     div.className = 'ai-msg ' + (esUsuario ? 'ai-msg--user' : 'ai-msg--bot');
     var bubble = document.createElement('div');
     bubble.className = 'ai-bubble ' + (esUsuario ? 'ai-bubble--user' : 'ai-bubble--bot');
-    bubble.textContent = texto;
+    if (esUsuario) { bubble.textContent = texto; } else { bubble.innerHTML = texto; }
     div.appendChild(bubble);
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
@@ -323,6 +328,8 @@
 
   async function enviar() {
     var input = document.getElementById('chat-input');
+    document.getElementById('send-icon').classList.add('d-none');
+    document.getElementById('send-spinner').classList.remove('d-none');
     var texto = input.value.trim();
     if (!texto) return;
 
@@ -353,6 +360,8 @@
     }
 
     document.getElementById('send-btn').disabled = false;
+    document.getElementById('send-icon').classList.remove('d-none');
+    document.getElementById('send-spinner').classList.add('d-none');
     input.focus();
   }
 
@@ -361,6 +370,35 @@
     this.style.height = 'auto';
     this.style.height = Math.min(this.scrollHeight, 120) + 'px';
   });
+
+  // ── Voz (Web Speech API) ─────────────────────────────────────────────
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    var recognition = new SpeechRecognition();
+    recognition.lang = 'es-AR';
+    recognition.interimResults = false;
+    var escuchando = false;
+    var micBtn = document.getElementById('mic-btn');
+    var micIcon = document.getElementById('mic-icon');
+
+    recognition.addEventListener('result', function (event) {
+      document.getElementById('chat-input').value = event.results[0][0].transcript;
+    });
+    recognition.addEventListener('end', function () {
+      escuchando = false;
+      micIcon.className = 'bi bi-mic';
+      micBtn.style.background = '#F0F0F5';
+    });
+    micBtn.addEventListener('click', function () {
+      if (escuchando) { recognition.stop(); return; }
+      escuchando = true;
+      micIcon.className = 'bi bi-mic-fill';
+      micBtn.style.background = '#FFDDD0';
+      recognition.start();
+    });
+  } else {
+    document.getElementById('mic-btn').disabled = true;
+  }
 
   // Init
   renderHistorial();
