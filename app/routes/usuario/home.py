@@ -640,7 +640,7 @@ def reserva_confirmada(id_reserva):
     if restaurant and restaurant.requiere_sena:
         pago_aprobado = (
             db.session.query(Pago)
-            .filter_by(id_reserva=reserva.id_reserva, estado="aprobado")
+            .filter_by(id_reserva=reserva.id_reserva, estado="approved")
             .first() is not None
         )
         mostrar_qr = pago_aprobado

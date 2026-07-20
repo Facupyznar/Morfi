@@ -440,7 +440,7 @@ def checkin_validar():
     if restaurant.requiere_sena:
         pago_aprobado = (
             db.session.query(Pago)
-            .filter_by(id_reserva=reserva.id_reserva, estado="aprobado")
+            .filter_by(id_reserva=reserva.id_reserva, estado="approved")
             .first()
         )
         if not pago_aprobado:
