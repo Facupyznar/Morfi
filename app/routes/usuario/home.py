@@ -5,6 +5,7 @@ from flask import jsonify, render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
+from app.models.pago import Pago
 
 from app.database import db
 from app.helpers.promos import beneficios_con_progreso, ofertas_vigentes
@@ -634,10 +635,20 @@ def reserva_confirmada(id_reserva):
         reserva.token_validacion = uuid.uuid4().hex
         db.session.commit()
 
+    restaurant = reserva.restaurant
+    mostrar_qr = True
+    if restaurant and restaurant.requiere_sena:
+        pago_aprobado = (
+            db.session.query(Pago)
+            .filter_by(id_reserva=reserva.id_reserva, estado="aprobado")
+            .first() is not None
+        )
+        mostrar_qr = pago_aprobado
+
     return render_template(
         "usuario/reserva_confirmada.html",
-        reserva    = reserva,
-        restaurant = reserva.restaurant,
-        display_hour = display_hour,
-        qr_data_uri = qr_data_uri(reserva.token_validacion),
+        reserva       = reserva,
+        restaurant    = restaurant,
+        display_hour  = display_hour,
+        qr_data_uri   = qr_data_uri(reserva.token_validacion) if mostrar_qr else None,
     )

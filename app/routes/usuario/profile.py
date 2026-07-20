@@ -9,6 +9,7 @@ from flask import current_app, flash, jsonify, redirect, render_template, reques
 from flask_login import current_user, login_required, logout_user
 from werkzeug.utils import secure_filename
 
+from app.models.pago import Pago
 from app.models.user_favorites import UserFavorites
 from app.models.wishlist import Wishlist
 from app.models.wishlist_item import WishlistItem
@@ -806,11 +807,22 @@ def history():
         )
 
         reserva_qr = None
+        sena_pendiente = False
         if can_cancel:
-            if not reserva.token_validacion:
-                reserva.token_validacion = uuid.uuid4().hex
-                db.session.commit()
-            reserva_qr = qr_data_uri(reserva.token_validacion)
+            pago_aprobado = True
+            if restaurant and restaurant.requiere_sena:
+                pago_aprobado = (
+                    db.session.query(Pago)
+                    .filter_by(id_reserva=reserva.id_reserva, estado="aprobado")
+                    .first() is not None
+                )
+            if pago_aprobado:
+                if not reserva.token_validacion:
+                    reserva.token_validacion = uuid.uuid4().hex
+                    db.session.commit()
+                reserva_qr = qr_data_uri(reserva.token_validacion)
+            else:
+                sena_pendiente = True
 
         if getattr(getattr(reserva, "estado_reserva", None), "value", None) == "cancelada":
             status_label = "Cancelada"
@@ -852,6 +864,7 @@ def history():
             "review_comment": reserva.review.comentario if reserva.review else "",
             "has_review": reserva.review is not None,
             "qr_data_uri": reserva_qr,
+            "sena_pendiente": sena_pendiente,
         }
         reservations_payload.append(reservation_payload)
 

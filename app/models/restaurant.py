@@ -19,7 +19,7 @@ class Restaurant(db.Model):
     puntaje = db.Column("Puntaje", db.Numeric(3, 2), nullable=False, default=0)
     horario      = db.Column("Horario",      db.Text)
     estado       = db.Column("Estado",       db.Enum(RestaurantStatus, name="restaurant_status"), nullable=False, default=RestaurantStatus.ACTIVO)
-    # Campos nuevos — correr migration.sql después de actualizar el modelo
+    requiere_sena = db.Column("RequiereSena", db.Boolean, nullable=False, default=False, server_default="false")
     descripcion  = db.Column("Descripcion",  db.Text,          nullable=True)
     precio_rango = db.Column("PrecioRango",  db.String(5),     nullable=True)
     cover_url    = db.Column("CoverUrl",     db.String(255),   nullable=True)

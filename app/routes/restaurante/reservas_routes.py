@@ -18,6 +18,7 @@ from flask_login import current_user, login_required
 
 from app.database import db
 from app.helpers.validators import ValidationError, validate_choice, validate_int, validate_schedule_json
+from app.models.pago import Pago
 from app.models.enums import ReservaStatus
 from app.models.reserva import Reserva
 from app.models.restaurant import Restaurant
@@ -388,6 +389,7 @@ def reservas_config():
     # Horario (JSON enviado por el editor de franjas)
     import json as _json
     restaurant.horario = _json.dumps(horario_data, ensure_ascii=False)
+    restaurant.requiere_sena = request.form.get("requiere_sena") == "on"
 
     db.session.commit()
     flash("Configuración guardada correctamente.", "success")
@@ -435,6 +437,14 @@ def checkin_validar():
     if reserva.estado_reserva == ReservaStatus.CANCELADA:
         return jsonify({"ok": False, "mensaje": "La reserva está cancelada"}), 400
 
+    if restaurant.requiere_sena:
+        pago_aprobado = (
+            db.session.query(Pago)
+            .filter_by(id_reserva=reserva.id_reserva, estado="aprobado")
+            .first()
+        )
+        if not pago_aprobado:
+            return jsonify({"ok": False, "mensaje": "Este comensal todavía no pagó la seña."}), 400
     ARG_TZ = timezone(timedelta(hours=-3))
     fh = reserva.fecha_hora
     hora = (fh.astimezone(ARG_TZ) if fh.tzinfo else fh).strftime("%H:%M")

@@ -188,6 +188,17 @@
 
               <div class="rv-config-divider"></div>
 
+              <div class="rv-sched-row">
+                <label class="rv-toggle-wrap">
+                  <input type="checkbox" class="rv-toggle-input" name="requiere_sena"
+                         {% if restaurant.requiere_sena %}checked{% endif %}>
+                  <span class="rv-toggle-slider"></span>
+                </label>
+                <span class="rv-sched-label">Requerir seña para habilitar el QR</span>
+              </div>
+
+              <div class="rv-config-divider"></div>
+
               <!-- Horarios -->
               <div class="rv-config-label" style="margin-bottom:10px;">
                 <i class="bi bi-clock"></i> Horarios de atención
@@ -424,10 +435,10 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block page_scripts %}
 <script>
   let slotActivo = null;
-
+  
   function selectSlot(el, hora) {
     document.querySelectorAll('.rv-slot-item').forEach(s => s.classList.remove('rv-slot-item--active'));
     el.classList.add('rv-slot-item--active');
@@ -555,7 +566,7 @@
   });
 
   function serializeHorario() {
-    const rows  = document.querySelectorAll('.rv-sched-row');
+    const rows  = document.querySelectorAll('.rv-sched-row[data-key]');
     const data  = [];
     const labels = { lun_jue: 'Lun – Jue', vie: 'Viernes', sab: 'Sábado', dom: 'Domingo' };
     rows.forEach(row => {
