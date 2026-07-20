@@ -824,17 +824,17 @@ def history():
             else:
                 sena_pendiente = True
 
-        if getattr(getattr(reserva, "estado_reserva", None), "value", None) == "cancelada":
+        estado_value = getattr(getattr(reserva, "estado_reserva", None), "value", None)
+        if estado_value == "cancelada":
             status_label = "Cancelada"
             status_variant = "cancelled"
+        elif estado_value == "completada":
+            status_label = "Asistió"
+            status_variant = "attended"
+            action_label = "Dejar reseña"
         elif reservation_date and reservation_date <= comparison_now:
-            if getattr(getattr(reserva, "estado_reserva", None), "value", None) == "completada":
-                status_label = "Asistió"
-                status_variant = "attended"
-                action_label = "Dejar reseña"
-            else:
-                status_label = "No asistió"
-                status_variant = "missed"
+            status_label = "No asistió"
+            status_variant = "missed"
 
         reservation_payload = {
             "restaurant_name": restaurant.name if restaurant else "Reserva",
