@@ -97,7 +97,7 @@
           {% endif %}
 
           <!-- Grid 2 columnas: Horarios | Ubicación + Contacto -->
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:32px;">
+          <div class="info-two-col" style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:32px;">
 
             <!-- Horarios -->
             <div class="info-side-card">
@@ -192,7 +192,7 @@
             <h6 style="font-weight:700; color:#3D3530; margin-bottom:12px;">
               <i class="bi bi-images text-orange me-1"></i> Galería
             </h6>
-            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+            <div class="gallery-grid-4" style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
               {% for photo in restaurant.gallery %}
               <div style="aspect-ratio:1; overflow:hidden; border-radius:10px;">
                 <img src="{{ url_for('static', filename=photo) }}"
@@ -458,6 +458,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 16px;
     margin-bottom: 12px;
   }
@@ -465,6 +466,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
   }
   .review-user-avatar {
     width: 44px;

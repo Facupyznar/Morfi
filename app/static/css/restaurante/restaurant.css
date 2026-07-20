@@ -447,11 +447,19 @@
 
 @media (max-width: 768px) {
   .restaurant-hero {
-    padding: 16px 20px;
+    height: auto;
+    min-height: 220px;
+    padding: 16px 20px 20px;
   }
 
   .hero-title {
     font-size: 1.5rem;
+  }
+
+  .hero-actions {
+    position: static;
+    margin-top: 16px;
+    flex-wrap: wrap;
   }
 
   .menu-grid {
@@ -466,5 +474,13 @@
   .detail-tab {
     padding: 10px 16px;
     white-space: nowrap;
+  }
+
+  .info-two-col {
+    grid-template-columns: 1fr !important;
+  }
+
+  .gallery-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }

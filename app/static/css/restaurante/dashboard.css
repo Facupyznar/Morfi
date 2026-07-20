@@ -153,6 +153,15 @@
   color: #fff;
 }
 
+/* Contenido principal junto al sidebar — flex:1 + min-width:0 evitan que
+   páginas como exportar.html, ofertas.html, beneficios.html o reviews.html
+   se desborden horizontalmente (no cargan admin/dashboard.css, donde
+   originalmente vivía esta regla). */
+.admin-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 /* ── Responsive sidebar ─────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .admin-sidebar {
@@ -515,6 +524,10 @@
 .rd-card-link:hover { text-decoration: underline; }
 
 /* ── Table ────────────────────────────────────── */
+.rd-card:has(.rd-table) {
+  overflow-x: auto;
+}
+
 .rd-table {
   width: 100%;
   border-collapse: collapse;

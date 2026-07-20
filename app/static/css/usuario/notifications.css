@@ -382,3 +382,11 @@
 .morfi-bell-wrap {
   position: relative;
 }
+
+@media (max-width: 575.98px) {
+  .notif-dropdown {
+    width: calc(100vw - 32px);
+    left: 0;
+    right: auto;
+  }
+}
