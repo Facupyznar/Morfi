@@ -108,6 +108,7 @@ def pagar_reserva(id_reserva):
     db.session.commit()
 
     preferencia = _crear_preferencia(reserva, monto)
+    print("MP PREFERENCIA RESPONSE:", preferencia, flush=True)
     pago.preference_id = preferencia.get("id")
     db.session.commit()
 
