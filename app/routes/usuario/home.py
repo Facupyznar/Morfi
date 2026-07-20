@@ -432,7 +432,8 @@ def reserva_wizard(restaurant_id):
         "address":     restaurant_record.address or "",
         "capacidad":   restaurant_record.capacidad or 0,
     }
-    return render_template("usuario/reserva_wizard.html", restaurant=restaurant_data)
+    beneficios = beneficios_con_progreso(restaurant_record.id_restaurant, current_user.user_id)
+    return render_template("usuario/reserva_wizard.html", restaurant=restaurant_data, beneficios=beneficios)
 
 
 # ── API: disponibilidad de slots para una fecha ───────────────────

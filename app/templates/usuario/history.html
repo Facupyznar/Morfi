@@ -60,9 +60,17 @@
         <div class="profile-content-card">
           <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
             <h2 class="profile-main-title mb-0 me-auto">Historial de Consumo</h2>
+            <div class="btn-group btn-group-sm" role="group">
+              <a href="{{ url_for('usuario.history', month=selected_month) }}"
+                 class="btn {{ 'btn-orange-active' if not solo_proximas else 'btn-outline-secondary' }}">Todas</a>
+              <a href="{{ url_for('usuario.history', proximas=1) }}"
+                 class="btn {{ 'btn-orange-active' if solo_proximas else 'btn-outline-secondary' }}">Próximas</a>
+            </div>
+            {% if not solo_proximas %}
             <form method="GET" class="mb-0">
               <input type="month" name="month" class="form-control w-auto border-morfi" value="{{ selected_month }}" onchange="this.form.submit()">
             </form>
+            {% endif %}
           </div>
 
           <ul class="nav nav-tabs border-0 mb-4 gap-4" id="historyTabs" role="tablist">
@@ -245,6 +253,8 @@
 </div>
 
 <style>
+.btn-orange-active { background: #FF6B35; border-color: #FF6B35; color: #fff; }
+.btn-orange-active:hover { background: #e85d2b; border-color: #e85d2b; color: #fff; }
 #historyTabs .nav-link.active { color: var(--morfi-orange) !important; border-bottom-color: var(--morfi-orange) !important; background: none; }
 #historyTabs .nav-link:hover:not(.active) { color: var(--morfi-dark) !important; }
 .history-reservation-card {

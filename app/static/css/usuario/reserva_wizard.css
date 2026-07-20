@@ -477,3 +477,51 @@
   .btn-siguiente { padding: 13px 24px; }
   .wizard-stepper-wrap { padding: 20px 16px; }
 }
+
+.wizard-benefits { margin-top: 4px; }
+.wizard-benefits-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #FF6B35;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.wizard-benefit {
+  background: #FFF6F1;
+  border: 1px solid #F3D9CB;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.wizard-benefit-desc {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #3D3530;
+  margin-bottom: 6px;
+}
+.wizard-benefit-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wizard-benefit-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #C1631A;
+}
+.wizard-benefit-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #9A8F85;
+  background: #F0EBE3;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.wizard-benefit-tag--on {
+  color: #0B7A56;
+  background: #E8F6F1;
+}

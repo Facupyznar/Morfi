@@ -194,6 +194,26 @@
             <span class="sum-icon"></span>
             <span id="sum-comensales">2 comensales</span>
           </div>
+
+          {% if beneficios %}
+          <div class="summary-divider"></div>
+          <div class="wizard-benefits">
+            <div class="wizard-benefits-title"><i class="bi bi-gift"></i> Beneficios del restaurante</div>
+            {% for b in beneficios %}
+            <div class="wizard-benefit">
+              <div class="wizard-benefit-desc">{{ b.descripcion }}</div>
+              <div class="wizard-benefit-meta">
+                <span class="wizard-benefit-value">{{ b.valor_label }}</span>
+                {% if b.desbloqueado %}
+                <span class="wizard-benefit-tag wizard-benefit-tag--on">Disponible</span>
+                {% else %}
+                <span class="wizard-benefit-tag">A las {{ b.objetivo }} visita{{ 's' if b.objetivo != 1 else '' }}</span>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
         </div>
       </div>
 

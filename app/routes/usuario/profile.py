@@ -757,17 +757,23 @@ def history():
     else:
         next_month_start = datetime(selected_month.year, selected_month.month + 1, 1)
 
-    reservations = (
+    solo_proximas = request.args.get("proximas") == "1"
+
+    query = (
         db.session.query(Reserva)
         .options(joinedload(Reserva.restaurant), joinedload(Reserva.review))
-        .filter(
-            Reserva.user_id == user_record.user_id,
+        .filter(Reserva.user_id == user_record.user_id)
+    )
+
+    if solo_proximas:
+        query = query.filter(Reserva.fecha_hora >= datetime.now(ARG_TZ)).order_by(Reserva.fecha_hora.asc())
+    else:
+        query = query.filter(
             Reserva.fecha_hora >= month_start,
             Reserva.fecha_hora < next_month_start,
-        )
-        .order_by(Reserva.fecha_hora.desc())
-        .all()
-    )
+        ).order_by(Reserva.fecha_hora.desc())
+
+    reservations = query.all()
 
     month_names = {
         1: "ene",
@@ -866,6 +872,7 @@ def history():
         reservations=reservations_payload,
         visited_reservations=visited_payload,
         selected_month=month_value,
+        solo_proximas=solo_proximas,
     )
 
 
