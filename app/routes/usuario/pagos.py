@@ -25,7 +25,9 @@ def _monto_reserva(reserva):
 
 def _crear_preferencia(reserva, monto):
     restaurante = reserva.restaurant.name if reserva.restaurant else "tu reserva"
-    retorno = url_for("usuario.pago_retorno", _external=True)
+    es_local = "localhost" in request.host or "127.0.0.1" in request.host
+    scheme = "http" if es_local else "https"
+    retorno = url_for("usuario.pago_retorno", _external=True, _scheme=scheme)
     data = {
         "items": [
             {
@@ -41,7 +43,7 @@ def _crear_preferencia(reserva, monto):
             "pending": retorno,
             "failure": retorno,
         },
-        "notification_url": url_for("usuario.pago_webhook", _external=True),
+        "notification_url": url_for("usuario.pago_webhook", _external=True, _scheme=scheme),
     }
     if "localhost" not in retorno and "127.0.0.1" not in retorno:
         data["auto_return"] = "approved"
