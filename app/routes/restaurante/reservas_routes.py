@@ -13,7 +13,7 @@
 import json
 from datetime import date, datetime, timedelta, timezone
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.database import db
@@ -392,3 +392,68 @@ def reservas_config():
     db.session.commit()
     flash("Configuración guardada correctamente.", "success")
     return redirect(url_for("restaurante.reservations"))
+
+
+# ── Check-in por QR ───────────────────────────────────────────────
+
+@restaurante_bp.route("/restaurante/checkin")
+@login_required
+def checkin():
+    if not _admin_required():
+        return redirect(url_for("usuario.home"))
+
+    restaurant = _get_owned_restaurant()
+    if restaurant is None:
+        flash("No tenés un restaurante asociado.", "warning")
+        return redirect(url_for("restaurante.dashboard"))
+
+    return render_template(
+        "restaurante/checkin.html",
+        restaurant = restaurant,
+        active_admin_section = "Reservas",
+    )
+
+
+@restaurante_bp.route("/restaurante/checkin/validar", methods=["POST"])
+@login_required
+def checkin_validar():
+    if not _admin_required():
+        return jsonify({"ok": False, "mensaje": "Sin permiso"}), 403
+
+    restaurant = _get_owned_restaurant()
+    if restaurant is None:
+        return jsonify({"ok": False, "mensaje": "No tenés un restaurante asociado"}), 400
+
+    token = (request.form.get("token") or "").strip()
+    if not token:
+        return jsonify({"ok": False, "mensaje": "Código inválido"}), 400
+
+    reserva = Reserva.query.filter_by(token_validacion=token).first()
+    if reserva is None or reserva.id_restaurant != restaurant.id_restaurant:
+        return jsonify({"ok": False, "mensaje": "La reserva no corresponde a este local"}), 404
+
+    if reserva.estado_reserva == ReservaStatus.CANCELADA:
+        return jsonify({"ok": False, "mensaje": "La reserva está cancelada"}), 400
+
+    ARG_TZ = timezone(timedelta(hours=-3))
+    fh = reserva.fecha_hora
+    hora = (fh.astimezone(ARG_TZ) if fh.tzinfo else fh).strftime("%H:%M")
+    cliente = reserva.user.name or reserva.user.username
+
+    if reserva.estado_reserva == ReservaStatus.COMPLETADA:
+        return jsonify({
+            "ok": True,
+            "mensaje": "La asistencia ya estaba confirmada",
+            "cliente": cliente,
+            "hora": hora,
+        })
+
+    reserva.estado_reserva = ReservaStatus.COMPLETADA
+    db.session.commit()
+
+    return jsonify({
+        "ok": True,
+        "mensaje": "Asistencia confirmada",
+        "cliente": cliente,
+        "hora": hora,
+    })

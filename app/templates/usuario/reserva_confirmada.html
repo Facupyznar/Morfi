@@ -130,6 +130,28 @@
   }
 
   .btn-historial:hover { background: #EAE4DC; }
+
+  .success-qr {
+    background: #F5F0EB;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 28px;
+  }
+
+  .success-qr img {
+    width: 200px;
+    height: 200px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px;
+  }
+
+  .success-qr-text {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #9A8F85;
+    margin-top: 14px;
+  }
 </style>
 {% endblock %}
 
@@ -171,6 +193,13 @@
         <span class="detail-value">{{ reserva.cant_personas }} persona{{ 's' if reserva.cant_personas > 1 else '' }}</span>
       </div>
     </div>
+
+    {% if qr_data_uri %}
+    <div class="success-qr">
+      <img src="{{ qr_data_uri }}" alt="Código QR de la reserva">
+      <div class="success-qr-text">Mostrá este código en el restaurante</div>
+    </div>
+    {% endif %}
 
     <div class="success-actions">
       <a href="{{ url_for('usuario.home') }}" class="btn-home">

@@ -34,7 +34,7 @@
          class="btn-hero-reservar">
         <i class="bi bi-calendar-check me-2"></i> Reservar mesa
       </a>
-      <button class="hero-heart" id="wishlist-btn" onclick="toggleWishlist()">
+      <button class="hero-heart" id="wishlist-btn" onclick="openSaveModal()">
         <i class="bi {{ 'bi-heart-fill' if is_in_wishlist else 'bi-heart' }}"></i>
       </button>
     </div>
@@ -328,6 +328,27 @@
   </div>
 </div>
 
+<div class="modal fade" id="saveModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Guardar en tus listas</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-grid gap-2">
+          <label class="btn btn-outline-secondary text-start d-flex align-items-center gap-2">
+            <input type="checkbox" id="saveDefault" class="form-check-input mt-0" onchange="toggleSaveDefault(this)">
+            <span><i class="bi bi-bookmark-heart me-1"></i>Guardados</span>
+          </label>
+        </div>
+        <hr>
+        <div id="saveListsOptions" class="d-grid gap-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   document.querySelectorAll('.detail-tab').forEach(tab => {
     tab.addEventListener('click', function () {
@@ -344,18 +365,70 @@
     });
   });
 
-  async function toggleWishlist() {
-    const btn  = document.getElementById('wishlist-btn');
-    const icon = btn.querySelector('i');
-    const res  = await fetch(`/perfil/wishlist/toggle/{{ restaurant.id }}`, {
-      method: 'POST',
-      headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+  const SAVE_CSRF = '{{ csrf_token() }}';
+  const SAVE_REST_ID = '{{ restaurant.id }}';
+
+  async function savePost(url) {
+    const res = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': SAVE_CSRF } });
+    let payload = {};
+    try { payload = await res.json(); } catch (e) {}
+    return { ok: res.ok, payload };
+  }
+
+  function updateHeart() {
+    const icon = document.querySelector('#wishlist-btn i');
+    const saved = document.getElementById('saveDefault').checked;
+    const anyList = Array.from(document.querySelectorAll('.save-list-cb')).some(cb => cb.checked);
+    const active = saved || anyList;
+    icon.classList.toggle('bi-heart', !active);
+    icon.classList.toggle('bi-heart-fill', active);
+  }
+
+  async function openSaveModal() {
+    const container = document.getElementById('saveListsOptions');
+    container.innerHTML = '<p class="text-muted mb-0 text-center">Cargando…</p>';
+    new bootstrap.Modal(document.getElementById('saveModal')).show();
+
+    const res = await fetch(`/perfil/wishlist/listas/estado/${SAVE_REST_ID}`, { headers: { 'X-CSRFToken': SAVE_CSRF } });
+    const data = await res.json();
+    document.getElementById('saveDefault').checked = !!data.saved;
+
+    container.innerHTML = '';
+    (data.lists || []).forEach(l => {
+      const label = document.createElement('label');
+      label.className = 'btn btn-outline-secondary text-start d-flex align-items-center gap-2';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'form-check-input mt-0 save-list-cb';
+      cb.checked = l.in_list;
+      cb.onchange = () => toggleSaveList(l.id, cb);
+      label.appendChild(cb);
+      const span = document.createElement('span');
+      span.innerHTML = `<i class="bi bi-folder me-1"></i>${l.name}`;
+      label.appendChild(span);
+      container.appendChild(label);
     });
-    if (res.ok) {
-      const data = await res.json();
-      icon.classList.toggle('bi-heart',      !data.in_wishlist);
-      icon.classList.toggle('bi-heart-fill',  data.in_wishlist);
+    if (!(data.lists || []).length) {
+      container.innerHTML = '<p class="text-muted mb-0 text-center small">Creá listas nombradas desde tu Wishlist.</p>';
     }
+    updateHeart();
+  }
+
+  async function toggleSaveDefault(cb) {
+    cb.disabled = true;
+    const { ok } = await savePost(`/perfil/wishlist/toggle/${SAVE_REST_ID}`);
+    cb.disabled = false;
+    if (!ok) { cb.checked = !cb.checked; showToast('No se pudo actualizar', 'error'); return; }
+    updateHeart();
+  }
+
+  async function toggleSaveList(listId, cb) {
+    cb.disabled = true;
+    const { ok, payload } = await savePost(`/perfil/wishlist/listas/${listId}/toggle/${SAVE_REST_ID}`);
+    cb.disabled = false;
+    if (!ok) { cb.checked = !cb.checked; showToast(payload.error || 'No se pudo actualizar', 'error'); return; }
+    cb.checked = payload.in_list;
+    updateHeart();
   }
 </script>
 <script src="{{ url_for('static', filename='js/ofertas_countdown.js') }}"></script>

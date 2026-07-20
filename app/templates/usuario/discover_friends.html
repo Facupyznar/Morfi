@@ -144,7 +144,9 @@
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       var btn = form.querySelector('.ff-connect-btn');
+      var originalHtml = btn.innerHTML;
       btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
       try {
         var res = await fetch(form.action, {
           method: 'POST',
@@ -157,10 +159,12 @@
           btn.classList.add('ff-connect-btn--sent');
         } else {
           btn.disabled = false;
+          btn.innerHTML = originalHtml;
           if (window.showToast) window.showToast(data.message || 'No se pudo enviar.', data.category || 'warning');
         }
       } catch (err) {
         btn.disabled = false;
+        btn.innerHTML = originalHtml;
         if (window.showToast) window.showToast('No se pudo enviar la solicitud.', 'danger');
       }
     });

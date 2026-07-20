@@ -106,7 +106,7 @@
             </div>
 
             <div class="tab-pane fade" id="friend-requests">
-              <div class="d-flex flex-column gap-3">
+              <div class="d-flex flex-column gap-3" id="friend-requests-list">
                 {% for friend in pending_friends %}
                 <div class="friends-card-row">
                   <div class="friends-avatar">
@@ -375,7 +375,9 @@
         const row = form.closest('.friends-search-row');
         const formData = new FormData(form);
 
+        const originalHtml = button.innerHTML;
         button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
         try {
           const response = await fetch(form.action, {
             method: 'POST',
@@ -385,6 +387,22 @@
           const payload = await response.json();
 
           if (response.ok && payload.ok) {
+            const pendingList = document.getElementById('friend-requests-list');
+            const avatar = row.querySelector('.friends-avatar');
+            const main = row.querySelector('.friends-main');
+            if (pendingList && avatar && main) {
+              const emptyState = pendingList.querySelector('.card-morfi');
+              if (emptyState) emptyState.remove();
+              const card = document.createElement('div');
+              card.className = 'friends-card-row';
+              card.appendChild(avatar);
+              card.appendChild(main);
+              const badge = document.createElement('span');
+              badge.className = 'friends-badge friends-badge-pending';
+              badge.textContent = 'Solicitud enviada';
+              card.appendChild(badge);
+              pendingList.appendChild(card);
+            }
             row.remove();
             const rowIndex = searchRows.indexOf(row);
             if (rowIndex >= 0) searchRows.splice(rowIndex, 1);
@@ -392,10 +410,12 @@
             if (window.showToast) window.showToast(payload.message, payload.category || 'success');
           } else {
             button.disabled = false;
+            button.innerHTML = originalHtml;
             if (window.showToast) window.showToast(payload.message || 'No se pudo enviar la solicitud.', payload.category || 'error');
           }
         } catch (error) {
           button.disabled = false;
+          button.innerHTML = originalHtml;
           if (window.showToast) window.showToast('No se pudo enviar la solicitud.', 'error');
         }
       });
@@ -404,4 +424,8 @@
     refreshSearchEmptyState();
   }
 </script>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='js/shared/tab_persist.js') }}"></script>
 {% endblock %}

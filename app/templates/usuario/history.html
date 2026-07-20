@@ -78,7 +78,12 @@
             <div class="tab-pane fade show active" id="reservas">
               <div class="d-flex flex-column gap-3">
                 {% for reservation in reservations %}
-                <div class="history-reservation-card">
+                <div class="history-reservation-card{% if reservation.qr_data_uri %} history-reservation-card--clickable{% endif %}"
+                     {% if reservation.qr_data_uri %}data-qr="{{ reservation.qr_data_uri }}"
+                     data-restaurant-name="{{ reservation.restaurant_name }}"
+                     data-date-label="{{ reservation.date_label }}"
+                     data-time-label="{{ reservation.time_label }}"
+                     onclick="openQrModal(this)"{% endif %}>
                   <div class="history-reservation-media">
                     {% if reservation.image_path %}
                     <img src="{{ url_for('static', filename=reservation.image_path) }}" alt="{{ reservation.restaurant_name }}">
@@ -92,10 +97,13 @@
                     <h6 class="history-reservation-title">{{ reservation.restaurant_name }}</h6>
                     <div class="history-reservation-meta">{{ reservation.date_label }} · {{ reservation.time_label }} · {{ reservation.diners_label }}</div>
                   </div>
-                  {% if reservation.status_label or reservation.action_label or reservation.can_cancel %}
+                  {% if reservation.status_label or reservation.action_label or reservation.can_cancel or reservation.qr_data_uri %}
                   <div class="history-reservation-side">
                     {% if reservation.status_label %}
                     <span class="history-status history-status--{{ reservation.status_variant }}">{{ reservation.status_label }}</span>
+                    {% endif %}
+                    {% if reservation.qr_data_uri %}
+                    <span class="history-qr-hint"><i class="bi bi-qr-code"></i> Ver QR</span>
                     {% endif %}
                     {% if reservation.action_label %}
                     <button
@@ -106,12 +114,12 @@
                       data-rating="{{ reservation.review_rating or '' }}"
                       data-comment="{{ reservation.review_comment or '' }}"
                       data-has-review="{{ '1' if reservation.has_review else '0' }}"
-                      onclick="openReviewModal(this)">
+                      onclick="event.stopPropagation(); openReviewModal(this)">
                       {{ reservation.action_label }}
                     </button>
                     {% endif %}
                     {% if reservation.can_cancel %}
-                    <form method="POST" action="{{ url_for('usuario.cancel_user_reservation', id_reserva=reservation.reservation_id) }}" class="mb-0">
+                    <form method="POST" action="{{ url_for('usuario.cancel_user_reservation', id_reserva=reservation.reservation_id) }}" class="mb-0" onclick="event.stopPropagation()">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <input type="hidden" name="month" value="{{ selected_month }}">
                       <button type="submit" class="history-cancel-btn">Cancelar reserva</button>
@@ -177,6 +185,17 @@
       </div>
 
     </div>
+  </div>
+</div>
+
+<div class="delete-overlay" id="qrModal" onclick="closeQrOnOverlay(event)" style="display:none;">
+  <div class="delete-modal-box qr-modal-box">
+    <h3 class="delete-modal-title" id="qrModalTitle">Tu código de reserva</h3>
+    <p class="delete-modal-desc" id="qrModalDesc">Mostrá este código en el restaurante al llegar.</p>
+    <div class="qr-modal-img-wrap">
+      <img id="qrModalImg" src="" alt="Código QR de la reserva">
+    </div>
+    <button type="button" class="btn-cancel-delete review-close-btn" onclick="closeQrModal()">Cerrar</button>
   </div>
 </div>
 
@@ -385,6 +404,38 @@
 .review-close-btn {
     margin-top: 14px;
 }
+.history-reservation-card--clickable {
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s;
+}
+.history-reservation-card--clickable:hover {
+    border-color: var(--morfi-orange);
+    box-shadow: 0 4px 18px rgba(217, 92, 46, 0.12);
+}
+.history-qr-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--morfi-orange);
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+.qr-modal-box {
+    max-width: 380px;
+}
+.qr-modal-img-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 8px 0 4px;
+}
+.qr-modal-img-wrap img {
+    width: 240px;
+    height: 240px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 12px;
+    border: 1px solid #E3D7C7;
+}
 </style>
 
 <script>
@@ -421,5 +472,32 @@
       closeReviewModal();
     }
   }
+
+  function openQrModal(card) {
+    const qr = card.dataset.qr;
+    if (!qr) return;
+    const name = card.dataset.restaurantName || 'tu reserva';
+    const dateLabel = card.dataset.dateLabel || '';
+    const timeLabel = card.dataset.timeLabel || '';
+    document.getElementById('qrModalImg').src = qr;
+    document.getElementById('qrModalTitle').textContent = name;
+    document.getElementById('qrModalDesc').textContent =
+      `Mostrá este código al llegar · ${dateLabel} · ${timeLabel}`;
+    document.getElementById('qrModal').style.display = 'flex';
+  }
+
+  function closeQrModal() {
+    document.getElementById('qrModal').style.display = 'none';
+  }
+
+  function closeQrOnOverlay(event) {
+    if (event.target === document.getElementById('qrModal')) {
+      closeQrModal();
+    }
+  }
 </script>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='js/shared/tab_persist.js') }}"></script>
 {% endblock %}

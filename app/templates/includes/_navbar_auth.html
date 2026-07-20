@@ -72,7 +72,8 @@
             }
             list.innerHTML = data.items.map(function(n) {
               var t = TIPO_ICON[n.tipo] || {icon:'bi-bell', bg:'#F0F0F5', color:'#6B6B8A'};
-              return '<a href="' + n.url + '" class="notif-dd-item' + (n.leida ? '' : ' notif-dd-item--unread') + '">' +
+              return '<a href="' + n.url + '" class="notif-dd-item' + (n.leida ? '' : ' notif-dd-item--unread') + '"' +
+                ' data-id="' + n.id + '" data-leida="' + (n.leida ? '1' : '0') + '" onclick="notifDropItemClick(event, this)">' +
                 '<div class="notif-dd-icon" style="background:' + t.bg + ';color:' + t.color + '"><i class="bi ' + t.icon + '"></i></div>' +
                 '<div class="notif-dd-body">' +
                   '<div class="notif-dd-titulo">' + n.titulo + '</div>' +
@@ -99,6 +100,37 @@
             body: 'csrf_token=' + encodeURIComponent(NOTIF_CSRF),
           });
           loadNotifications();
+        }
+
+        async function notifDropItemClick(event, el) {
+          var id = el.dataset.id;
+          var url = el.getAttribute('href');
+          if (el.dataset.leida === '1' || !id) return;
+          event.preventDefault();
+          try {
+            var res = await fetch('/notificaciones/' + id + '/leer', {
+              method: 'POST',
+              headers: {'Content-Type':'application/x-www-form-urlencoded'},
+              body: 'csrf_token=' + encodeURIComponent(NOTIF_CSRF),
+            });
+            var data = await res.json();
+            el.classList.remove('notif-dd-item--unread');
+            el.dataset.leida = '1';
+            var dot = el.querySelector('.notif-dd-dot');
+            if (dot) dot.remove();
+            var badge = document.getElementById('notif-badge');
+            if (badge) {
+              if (data.unread > 0) {
+                badge.textContent = data.unread > 9 ? '9+' : data.unread;
+                badge.style.display = 'flex';
+              } else {
+                badge.style.display = 'none';
+              }
+            }
+            var sub = document.getElementById('notif-dd-sub');
+            if (sub) sub.textContent = data.unread > 0 ? data.unread + ' sin leer' : 'Todo leído';
+          } catch(e) {}
+          if (url && url !== '#') window.location.href = url;
         }
 
         document.addEventListener('click', function(e) {

@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta, date, timezone
 
 from flask import jsonify, render_template, request, redirect, url_for, flash
@@ -7,6 +8,7 @@ from sqlalchemy.orm import joinedload
 
 from app.database import db
 from app.helpers.promos import beneficios_con_progreso, ofertas_vigentes
+from app.helpers.qr import qr_data_uri
 from app.helpers.validators import ValidationError, validate_int, validate_text
 from app.location import haversine_km
 from app.models.friends import Friends
@@ -573,6 +575,7 @@ def crear_reserva(restaurant_id):
             fecha_hora     = fecha_hora,
             cant_personas  = comensales,
             estado_reserva = ReservaStatus.CONFIRMADA,
+            token_validacion = uuid.uuid4().hex,
         )
         db.session.add(nueva)
         db.session.commit()
@@ -626,9 +629,14 @@ def reserva_confirmada(id_reserva):
     if not display_hour and reserva.fecha_hora:
         display_hour = reserva.fecha_hora.strftime("%H:%M")
 
+    if not reserva.token_validacion:
+        reserva.token_validacion = uuid.uuid4().hex
+        db.session.commit()
+
     return render_template(
         "usuario/reserva_confirmada.html",
         reserva    = reserva,
         restaurant = reserva.restaurant,
         display_hour = display_hour,
+        qr_data_uri = qr_data_uri(reserva.token_validacion),
     )

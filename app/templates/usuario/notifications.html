@@ -90,7 +90,9 @@
     <!-- Lista notificaciones -->
     <div class="notif-list">
       {% for n in items %}
-      <a href="{{ n.url }}" class="notif-item {% if not n.leida %}notif-item--unread{% endif %}">
+      <a href="{{ n.url }}" class="notif-item {% if not n.leida %}notif-item--unread{% endif %}"
+         data-id="{{ n.id }}" data-leida="{{ '1' if n.leida else '0' }}"
+         onclick="notifItemClick(event, this)">
         <div class="notif-icon" style="background:{{ n.icon_bg }}; color:{{ n.icon_color }};">
           <i class="bi {{ n.icon }}"></i>
         </div>
@@ -116,4 +118,45 @@
 
   </div>
 </div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  var NOTIF_PAGE_CSRF = '{{ csrf_token() }}';
+
+  function updateUnreadUI(unread) {
+    var sub = document.querySelector('.notif-page-unread');
+    if (sub) sub.textContent = unread > 0 ? unread + ' sin leer' : 'Todo leído';
+    var badge = document.getElementById('notif-badge');
+    if (badge) {
+      if (unread > 0) {
+        badge.textContent = unread > 9 ? '9+' : unread;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  }
+
+  async function notifItemClick(event, el) {
+    var id = el.dataset.id;
+    var url = el.getAttribute('href');
+    if (el.dataset.leida === '1' || !id) return;
+    event.preventDefault();
+    try {
+      var res = await fetch('/notificaciones/' + id + '/leer', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: 'csrf_token=' + encodeURIComponent(NOTIF_PAGE_CSRF),
+      });
+      var data = await res.json();
+      el.classList.remove('notif-item--unread');
+      el.dataset.leida = '1';
+      var dot = el.querySelector('.notif-dot');
+      if (dot) dot.remove();
+      if (typeof data.unread === 'number') updateUnreadUI(data.unread);
+    } catch(e) {}
+    if (url && url !== '#') window.location.href = url;
+  }
+</script>
 {% endblock %}

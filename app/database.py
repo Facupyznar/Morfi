@@ -80,6 +80,38 @@ def ensure_wishlist_schema():
             )
         )
 
+    table_names = set(inspector.get_table_names())
+    if "Wishlist_item" not in table_names:
+        db.session.execute(
+            text(
+                'CREATE TABLE IF NOT EXISTS "Wishlist_item" ('
+                '"Id" UUID PRIMARY KEY, '
+                '"WishlistId" UUID NOT NULL REFERENCES "Wishlist"("Id") ON DELETE CASCADE, '
+                '"IdRestaurante" UUID NOT NULL REFERENCES "Restaurant"("IdRestaurant"), '
+                '"Fecha_agregado" TIMESTAMPTZ NOT NULL DEFAULT now())'
+            )
+        )
+        db.session.execute(
+            text(
+                'CREATE UNIQUE INDEX IF NOT EXISTS "uq_wishlist_item" '
+                'ON "Wishlist_item" ("WishlistId", "IdRestaurante")'
+            )
+        )
+
+    if "Wishlist" in table_names:
+        db.session.execute(
+            text(
+                'INSERT INTO "Wishlist_item" ("Id", "WishlistId", "IdRestaurante", "Fecha_agregado") '
+                'SELECT gen_random_uuid(), uf."WishlistId", uf."IdRestaurante", uf."Fecha_agregado" '
+                'FROM "User_favorites" uf '
+                'WHERE uf."WishlistId" IS NOT NULL '
+                'AND NOT EXISTS ('
+                '  SELECT 1 FROM "Wishlist_item" wi '
+                '  WHERE wi."WishlistId" = uf."WishlistId" AND wi."IdRestaurante" = uf."IdRestaurante"'
+                ')'
+            )
+        )
+
     db.session.commit()
 
 

@@ -104,6 +104,28 @@ def mark_notifications_read():
     return jsonify({"ok": True})
 
 
+# ── POST /notificaciones/<id>/leer (marca una sola) ──────────────────
+
+@usuario_bp.route("/notificaciones/<uuid:id_notification>/leer", methods=["POST"])
+@login_required
+def mark_notification_read(id_notification):
+    notif = db.session.query(Notification).filter_by(
+        id_notification=id_notification,
+        user_id=current_user.user_id,
+    ).first()
+    if notif is None:
+        return jsonify({"ok": False}), 404
+
+    if not notif.leida:
+        notif.leida = True
+        db.session.commit()
+
+    unread = db.session.query(Notification).filter_by(
+        user_id=current_user.user_id, leida=False
+    ).count()
+    return jsonify({"ok": True, "unread": unread})
+
+
 # ── GET /notificaciones (página completa) ────────────────────────────
 
 @usuario_bp.route("/notificaciones")

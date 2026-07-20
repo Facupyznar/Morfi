@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Check-in — Morfi{% endblock %}
+
+{% block customCSS %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/restaurante/reservas.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+  .ck-wrap { max-width: 520px; margin: 0 auto; }
+
+  .ck-reader {
+    background: #000;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  #ck-reader { width: 100%; }
+
+  .ck-result {
+    border-radius: 16px;
+    padding: 22px 24px;
+    text-align: center;
+    font-weight: 700;
+    display: none;
+  }
+
+  .ck-result--ok { background: #E8F6F1; color: #0B7A56; }
+  .ck-result--error { background: #FDECEC; color: #C0392B; }
+
+  .ck-result-cliente { font-size: 1.15rem; margin-top: 6px; }
+  .ck-result-hora { font-weight: 600; color: #6B6B6B; margin-top: 2px; }
+
+  .ck-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #6B6B6B;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+  }
+</style>
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+{% set active_admin_section = 'Reservas' %}
+<div class="admin-layout">
+
+  {% include 'includes/_admin_sidebar.html' %}
+
+  <main class="rv-main">
+
+    <div class="ck-wrap">
+      <a href="{{ url_for('restaurante.reservations') }}" class="ck-back">
+        <i class="bi bi-chevron-left"></i> Volver a reservas
+      </a>
+
+      <div class="rv-header">
+        <div>
+          <h1 class="rv-title">Check-in de reservas</h1>
+          <p class="rv-subtitle">Escaneá el código QR del comensal para confirmar su asistencia</p>
+        </div>
+      </div>
+
+      <div class="ck-reader">
+        <div id="ck-reader"></div>
+      </div>
+
+      <div class="ck-result" id="ck-result">
+        <div id="ck-result-mensaje"></div>
+        <div class="ck-result-cliente" id="ck-result-cliente"></div>
+        <div class="ck-result-hora" id="ck-result-hora"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  var csrfToken = '{{ csrf_token() }}';
+  var resultBox = document.getElementById('ck-result');
+  var mensajeEl = document.getElementById('ck-result-mensaje');
+  var clienteEl = document.getElementById('ck-result-cliente');
+  var horaEl    = document.getElementById('ck-result-hora');
+
+  var procesando = false;
+  var ultimoToken = null;
+
+  function mostrar(ok, mensaje, cliente, hora) {
+    resultBox.style.display = 'block';
+    resultBox.className = 'ck-result ' + (ok ? 'ck-result--ok' : 'ck-result--error');
+    mensajeEl.textContent = mensaje || (ok ? 'Asistencia confirmada' : 'Error');
+    clienteEl.textContent = cliente || '';
+    horaEl.textContent = hora ? ('Reserva ' + hora + ' hs') : '';
+  }
+
+  async function validar(token) {
+    procesando = true;
+    try {
+      var res = await fetch('{{ url_for("restaurante.checkin_validar") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+        body: 'token=' + encodeURIComponent(token) + '&csrf_token=' + encodeURIComponent(csrfToken),
+      });
+      var data = await res.json();
+      mostrar(data.ok, data.mensaje, data.cliente, data.hora);
+    } catch (e) {
+      mostrar(false, 'No se pudo validar el código. Probá de nuevo.');
+    }
+    setTimeout(function () { procesando = false; ultimoToken = null; }, 2500);
+  }
+
+  function onScan(decodedText) {
+    if (procesando || decodedText === ultimoToken) return;
+    ultimoToken = decodedText;
+    validar(decodedText);
+  }
+
+  var scanner = new Html5Qrcode('ck-reader');
+  scanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: 240 },
+    onScan
+  ).catch(function () {
+    mostrar(false, 'No se pudo acceder a la cámara.');
+  });
+</script>
+{% endblock %}

@@ -235,12 +235,12 @@
                   {% endif %}
 
                   <div class="wl-card-actions">
-                    <button class="wl-action-btn" type="button" title="Mover a otra lista"
-                            onclick="openMove('{{ rest.id }}', '{{ lst.id }}')">
+                    <button class="wl-action-btn" type="button" title="Agregar a listas"
+                            onclick="openLists('{{ rest.id }}')">
                       <i class="bi bi-folder"></i>
                     </button>
-                    <button class="wl-action-btn heart" type="button" title="Quitar de la wishlist"
-                            onclick="removeFromWishlist(this, '{{ rest.id }}')">
+                    <button class="wl-action-btn heart" type="button" title="Quitar de esta lista"
+                            onclick="removeFromBucket(this, '{{ rest.id }}', '{{ lst.id }}')">
                       <i class="bi bi-heart-fill"></i>
                     </button>
                   </div>
@@ -256,7 +256,7 @@
                 <div class="wl-empty">
                   <i class="bi bi-heart d-block mb-2"></i>
                   {% if lst.removable %}
-                  <p class="mb-0">Esta lista está vacía. Movele restaurantes desde "{{ lists[0].name }}".</p>
+                  <p class="mb-0">Esta lista está vacía. Agregá restaurantes con el botón de carpeta en cualquier restaurante guardado o desde su página.</p>
                   {% else %}
                   <p class="mb-0">Todavía no guardaste ningún restaurante.</p>
                   <a href="{{ url_for('usuario.home') }}" class="btn btn-sm mt-3"
@@ -315,17 +315,17 @@
   </div>
 </div>
 
-<!-- Modal: mover a lista -->
-<div class="modal fade" id="moveModal" tabindex="-1" aria-hidden="true">
+<!-- Modal: gestionar listas -->
+<div class="modal fade" id="listsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Mover a otra lista</h5>
+        <h5 class="modal-title">Agregar a listas</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="moveRestaurantId">
-        <div id="moveOptions" class="d-grid gap-2"></div>
+        <input type="hidden" id="listsRestId">
+        <div id="listsOptions" class="d-grid gap-2"></div>
       </div>
     </div>
   </div>
@@ -333,6 +333,7 @@
 {% endblock %}
 
 {% block page_scripts %}
+<script src="{{ url_for('static', filename='js/shared/tab_persist.js') }}"></script>
 <script>
   const CSRF = '{{ csrf_token() }}';
   const WISHLIST_LISTS = [
@@ -351,8 +352,11 @@
     return { ok: res.ok, payload };
   }
 
-  async function removeFromWishlist(btn, restaurantId) {
-    const { ok } = await postForm(`/perfil/wishlist/toggle/${restaurantId}`);
+  async function removeFromBucket(btn, restaurantId, listId) {
+    const url = listId === 'default'
+      ? `/perfil/wishlist/toggle/${restaurantId}`
+      : `/perfil/wishlist/listas/${listId}/toggle/${restaurantId}`;
+    const { ok } = await postForm(url);
     if (!ok) { showToast('No se pudo quitar el restaurante', 'error'); return; }
     const card = btn.closest('.wl-card');
     card.style.transition = 'opacity .3s, transform .3s';
@@ -391,29 +395,52 @@
     else { showToast(payload.error || 'No se pudo eliminar', 'error'); }
   }
 
-  function openMove(restaurantId, currentListId) {
-    document.getElementById('moveRestaurantId').value = restaurantId;
-    const container = document.getElementById('moveOptions');
-    container.innerHTML = '';
-    const others = WISHLIST_LISTS.filter(l => l.id !== currentListId);
-    if (others.length === 0) {
-      container.innerHTML = '<p class="text-muted mb-0 text-center">No tenés otras listas. Creá una primero.</p>';
-    } else {
-      others.forEach(l => {
-        const b = document.createElement('button');
-        b.className = 'btn btn-outline-secondary text-start';
-        b.innerHTML = `<i class="bi bi-folder me-2"></i>${l.name}`;
-        b.onclick = () => moveItem(restaurantId, l.id);
-        container.appendChild(b);
-      });
+  let listsChanged = false;
+
+  async function openLists(restaurantId) {
+    listsChanged = false;
+    document.getElementById('listsRestId').value = restaurantId;
+    const container = document.getElementById('listsOptions');
+    container.innerHTML = '<p class="text-muted mb-0 text-center">Cargando…</p>';
+    const modalEl = document.getElementById('listsModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+    modalEl.addEventListener('hidden.bs.modal', function onHide() {
+      modalEl.removeEventListener('hidden.bs.modal', onHide);
+      if (listsChanged) location.reload();
+    });
+
+    const res = await fetch(`/perfil/wishlist/listas/estado/${restaurantId}`, { headers: { 'X-CSRFToken': CSRF } });
+    const data = await res.json();
+    const named = data.lists || [];
+    if (named.length === 0) {
+      container.innerHTML = '<p class="text-muted mb-0 text-center">No tenés listas nombradas. Creá una con "Crear lista".</p>';
+      return;
     }
-    new bootstrap.Modal(document.getElementById('moveModal')).show();
+    container.innerHTML = '';
+    named.forEach(l => {
+      const label = document.createElement('label');
+      label.className = 'btn btn-outline-secondary text-start d-flex align-items-center gap-2';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'form-check-input mt-0';
+      cb.checked = l.in_list;
+      cb.onchange = () => toggleInList(restaurantId, l.id, cb);
+      label.appendChild(cb);
+      const span = document.createElement('span');
+      span.innerHTML = `<i class="bi bi-folder me-1"></i>${l.name}`;
+      label.appendChild(span);
+      container.appendChild(label);
+    });
   }
 
-  async function moveItem(restaurantId, listId) {
-    const { ok, payload } = await postForm(`/perfil/wishlist/mover/${restaurantId}`, { wishlist_id: listId });
-    if (ok) { location.reload(); }
-    else { showToast(payload.error || 'No se pudo mover', 'error'); }
+  async function toggleInList(restaurantId, listId, cb) {
+    cb.disabled = true;
+    const { ok, payload } = await postForm(`/perfil/wishlist/listas/${listId}/toggle/${restaurantId}`);
+    cb.disabled = false;
+    if (!ok) { cb.checked = !cb.checked; showToast(payload.error || 'No se pudo actualizar', 'error'); return; }
+    cb.checked = payload.in_list;
+    listsChanged = true;
   }
 </script>
 {% endblock %}

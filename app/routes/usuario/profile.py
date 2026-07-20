@@ -11,6 +11,7 @@ from werkzeug.utils import secure_filename
 
 from app.models.user_favorites import UserFavorites
 from app.models.wishlist import Wishlist
+from app.models.wishlist_item import WishlistItem
 from app.models.restaurant import Restaurant
 from app.database import db
 from app.location import resolve_location_payload
@@ -19,6 +20,7 @@ from app.models.enums import FriendshipStatus
 from app.models.enums import ReservaStatus
 from app.models.friends import Friends
 from app.helpers.auth import ModelUser
+from app.helpers.qr import qr_data_uri
 from app.models.reserva import Reserva
 from app.models.review import Review
 from app.models.tag import Tag
@@ -797,6 +799,13 @@ def history():
             and reservation_date > comparison_now
         )
 
+        reserva_qr = None
+        if can_cancel:
+            if not reserva.token_validacion:
+                reserva.token_validacion = uuid.uuid4().hex
+                db.session.commit()
+            reserva_qr = qr_data_uri(reserva.token_validacion)
+
         if getattr(getattr(reserva, "estado_reserva", None), "value", None) == "cancelada":
             status_label = "Cancelada"
             status_variant = "cancelled"
@@ -836,6 +845,7 @@ def history():
             "review_rating": reserva.review.puntaje if reserva.review else None,
             "review_comment": reserva.review.comentario if reserva.review else "",
             "has_review": reserva.review is not None,
+            "qr_data_uri": reserva_qr,
         }
         reservations_payload.append(reservation_payload)
 
@@ -1247,6 +1257,15 @@ def wishlist():
         .all()
     )
 
+    items = (
+        db.session.query(WishlistItem)
+        .join(Wishlist, Wishlist.id == WishlistItem.wishlist_id)
+        .join(WishlistItem.restaurant)
+        .filter(Wishlist.user_id == current_user.user_id)
+        .order_by(WishlistItem.fecha_agregado.desc())
+        .all()
+    )
+
     # "Visitado" = el usuario tiene una reserva COMPLETADA en ese restaurante.
     visited_ids = {
         str(row[0])
@@ -1259,24 +1278,20 @@ def wishlist():
         .all()
     }
 
-    # Buckets por lista (default + cada lista nombrada).
-    buckets = {DEFAULT_LIST_ID: []}
-    for wl in named_lists:
-        buckets[str(wl.id)] = []
-
-    for fav in favorites:
-        r = fav.restaurant
-        bucket_key = str(fav.wishlist_id) if fav.wishlist_id else DEFAULT_LIST_ID
-        # Si la lista fue borrada en otra sesión, cae a la default.
-        if bucket_key not in buckets:
-            bucket_key = DEFAULT_LIST_ID
-        buckets[bucket_key].append({
+    def _card(r):
+        return {
             "id":        str(r.id_restaurant),
             "name":      r.name,
             "rating":    round(float(r.puntaje or 0), 1),
             "cover_url": r.cover_url,
             "visited":   str(r.id_restaurant) in visited_ids,
-        })
+        }
+
+    buckets = {DEFAULT_LIST_ID: [_card(fav.restaurant) for fav in favorites]}
+    for wl in named_lists:
+        buckets[str(wl.id)] = []
+    for it in items:
+        buckets.setdefault(str(it.wishlist_id), []).append(_card(it.restaurant))
 
     lists = [{
         "id":       DEFAULT_LIST_ID,
@@ -1388,44 +1403,75 @@ def eliminar_wishlist_lista(list_id):
     if not lista:
         return jsonify({"error": "Lista no encontrada"}), 404
 
-    # Los favoritos de la lista vuelven a la default (no se borran).
-    db.session.query(UserFavorites).filter_by(
-        user_id=current_user.user_id, wishlist_id=lista.id
-    ).update({"wishlist_id": None})
     db.session.delete(lista)
     db.session.commit()
     return jsonify({"ok": True})
 
 
-@usuario_bp.route("/perfil/wishlist/mover/<restaurant_id>", methods=["POST"])
+@usuario_bp.route("/perfil/wishlist/listas/<uuid:list_id>/toggle/<restaurant_id>", methods=["POST"])
 @login_required
-def mover_wishlist_item(restaurant_id):
+def toggle_wishlist_list(list_id, restaurant_id):
     from uuid import UUID as _UUID
     try:
         rid = _UUID(restaurant_id)
     except ValueError:
         return jsonify({"error": "ID inválido"}), 400
 
-    favorite = db.session.query(UserFavorites).filter_by(
-        user_id=current_user.user_id, id_restaurante=rid
+    lista = db.session.query(Wishlist).filter_by(
+        id=list_id, user_id=current_user.user_id
     ).first()
-    if not favorite:
-        return jsonify({"error": "El restaurante no está en tu wishlist"}), 404
+    if not lista:
+        return jsonify({"error": "Lista no encontrada"}), 404
 
-    destino = (request.form.get("wishlist_id") or DEFAULT_LIST_ID).strip()
-    if destino == DEFAULT_LIST_ID:
-        favorite.wishlist_id = None
-    else:
-        try:
-            dest_id = _UUID(destino)
-        except ValueError:
-            return jsonify({"error": "Lista inválida"}), 400
-        lista = db.session.query(Wishlist).filter_by(
-            id=dest_id, user_id=current_user.user_id
-        ).first()
-        if not lista:
-            return jsonify({"error": "Lista no encontrada"}), 404
-        favorite.wishlist_id = lista.id
+    if not db.session.query(Restaurant).filter_by(id_restaurant=rid).first():
+        return jsonify({"error": "Restaurante no encontrado"}), 404
 
+    item = db.session.query(WishlistItem).filter_by(
+        wishlist_id=list_id, id_restaurante=rid
+    ).first()
+
+    if item:
+        db.session.delete(item)
+        db.session.commit()
+        return jsonify({"in_list": False})
+
+    db.session.add(WishlistItem(wishlist_id=list_id, id_restaurante=rid))
     db.session.commit()
-    return jsonify({"ok": True, "wishlist_id": destino})
+    return jsonify({"in_list": True})
+
+
+@usuario_bp.route("/perfil/wishlist/listas/estado/<restaurant_id>")
+@login_required
+def estado_wishlist_listas(restaurant_id):
+    from uuid import UUID as _UUID
+    try:
+        rid = _UUID(restaurant_id)
+    except ValueError:
+        return jsonify({"error": "ID inválido"}), 400
+
+    saved = db.session.query(UserFavorites).filter_by(
+        user_id=current_user.user_id, id_restaurante=rid
+    ).first() is not None
+
+    named_lists = (
+        db.session.query(Wishlist)
+        .filter_by(user_id=current_user.user_id)
+        .order_by(Wishlist.created_at.asc())
+        .all()
+    )
+
+    en_listas = {
+        str(row[0])
+        for row in db.session.query(WishlistItem.wishlist_id)
+        .join(Wishlist, Wishlist.id == WishlistItem.wishlist_id)
+        .filter(Wishlist.user_id == current_user.user_id, WishlistItem.id_restaurante == rid)
+        .all()
+    }
+
+    return jsonify({
+        "saved": saved,
+        "lists": [
+            {"id": str(wl.id), "name": wl.nombre, "in_list": str(wl.id) in en_listas}
+            for wl in named_lists
+        ],
+    })
