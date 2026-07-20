@@ -19,3 +19,4 @@ google-genai
 Authlib==1.3.2
 fpdf2==2.8.2
 qrcode[pil]
+mercadopago

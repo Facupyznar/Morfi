@@ -131,6 +131,21 @@
 
   .btn-historial:hover { background: #EAE4DC; }
 
+  .btn-pagar-mp {
+    display: block;
+    width: 100%;
+    background: #009EE3;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 13px 20px;
+    border: none;
+    border-radius: 12px;
+    transition: background 0.15s;
+  }
+
+  .btn-pagar-mp:hover { background: #0084c7; }
+
   .success-qr {
     background: #F5F0EB;
     border-radius: 16px;
@@ -202,6 +217,14 @@
     {% endif %}
 
     <div class="success-actions">
+      {% if config.MP_ENABLED %}
+      <form method="POST" action="{{ url_for('usuario.pagar_reserva', id_reserva=reserva.id_reserva) }}" class="mb-0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-pagar-mp">
+          <i class="bi bi-credit-card me-2"></i> Pagar seña con Mercado Pago
+        </button>
+      </form>
+      {% endif %}
       <a href="{{ url_for('usuario.home') }}" class="btn-home">
         <i class="bi bi-house me-2"></i> Volver al inicio
       </a>

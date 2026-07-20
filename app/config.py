@@ -65,3 +65,6 @@ class Config:
         os.environ.get("GOOGLE_CONTACTS_INCLUDE_OTHER", "false").strip().lower()
         in {"1", "true", "yes", "on"}
     )
+
+    MERCADOPAGO_ACCESS_TOKEN = os.environ.get("MERCADOPAGO_ACCESS_TOKEN")
+    MP_ENABLED = bool(MERCADOPAGO_ACCESS_TOKEN)

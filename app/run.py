@@ -25,6 +25,7 @@ from app.routes.usuario import profile as usuario_profile_routes
 from app.routes.usuario import notifications as usuario_notifications_routes
 from app.routes.usuario import promos as usuario_promos_routes
 from app.routes.usuario import contacts as usuario_contacts_routes
+from app.routes.usuario import pagos as usuario_pagos_routes
 
 
 def create_app():
