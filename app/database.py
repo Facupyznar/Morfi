@@ -115,6 +115,21 @@ def ensure_wishlist_schema():
     db.session.commit()
 
 
+def ensure_restaurant_schema():
+    inspector = inspect(db.engine)
+    if "Restaurant" not in inspector.get_table_names():
+        return
+
+    column_names = {column["name"] for column in inspector.get_columns("Restaurant")}
+
+    if "RequiereSena" not in column_names:
+        db.session.execute(
+            text('ALTER TABLE "Restaurant" ADD COLUMN "RequiereSena" BOOLEAN NOT NULL DEFAULT FALSE')
+        )
+
+    db.session.commit()
+
+
 def ensure_menu_schema():
     inspector = inspect(db.engine)
     if "Menu" not in inspector.get_table_names():

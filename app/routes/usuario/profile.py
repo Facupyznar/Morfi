@@ -866,8 +866,6 @@ def history():
             "qr_data_uri": reserva_qr,
             "sena_pendiente": sena_pendiente,
         }
-        reservations_payload.append(reservation_payload)
-
         if reserva.estado_reserva == ReservaStatus.COMPLETADA:
             visited_payload.append(
                 {
@@ -878,6 +876,8 @@ def history():
                     "can_cancel": False,
                 }
             )
+        else:
+            reservations_payload.append(reservation_payload)
 
     return render_template(
         "usuario/history.html",
